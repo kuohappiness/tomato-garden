@@ -788,7 +788,7 @@ async function makeFirebaseAPI(cfg){
   const app = initializeApp(cfg);
   const auth = A.getAuth(app);
   const db = F.getFirestore(app);
-  const {doc,collection,getDoc,setDoc,updateDoc,deleteDoc,onSnapshot,writeBatch,arrayUnion,arrayRemove,increment,serverTimestamp,query,where} = F;
+  const {doc,collection,getDoc,getDocs,setDoc,updateDoc,deleteDoc,onSnapshot,writeBatch,arrayUnion,arrayRemove,increment,serverTimestamp,query,where} = F;
   const gref = gid => doc(db,'groups',gid);
   return {
     mode:'firebase',
@@ -848,6 +848,8 @@ async function makeFirebaseAPI(cfg){
     async addChar(gid,uid,data){ const ref=doc(db,'groups',gid,'chars',`${uid}_${weekStart()}`); const s=await getDoc(ref); if(s.exists()) throw new Error('week'); await setDoc(ref,{...data,by:uid,createdAt:Date.now()}); },
     deleteChar(gid,id){ return deleteDoc(doc(db,'groups',gid,'chars',id)); },
     bumpKetchup(gid,uid){ return updateDoc(doc(db,'groups',gid,'members',uid), {ketchup:increment(1), studying:null}); },
+    async listDir(){ const qs=await getDocs(collection(db,'directory')); const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); return a; },
+    setDir(did,data){ return setDoc(doc(db,'directory',did),data); },
     async getGuest(token){ const d=await getDoc(doc(db,'guests',token)); return d.exists()?d.data():null; },
     setGuest(token,data){ return setDoc(doc(db,'guests',token),data); },
     delGuest(token){ return deleteDoc(doc(db,'guests',token)); },
@@ -945,6 +947,8 @@ function makeLocalAPI(){
     async deleteChar(gid,id){ delete G(gid).chars[id]; save(); },
     async bumpKetchup(gid,uid){ const m=G(gid).members[uid]=G(gid).members[uid]||{}; m.ketchup=(m.ketchup||0)+1; m.studying=null; save(); },
     watchMySessions(gid,uid,cb){ return watch(()=>cb(Object.entries(G(gid)?.sessions||{}).map(([id,x])=>({id,...x})).filter(s=>s.uid===uid).sort((a,b)=>b.endedAt-a.endedAt))); },
+    async listDir(){ return Object.entries(D.directory||{}).map(([id,x])=>({id,...structuredClone(x)})); },
+    async setDir(did,data){ D.directory=D.directory||{}; D.directory[did]=data; save(); },
     async getGuest(token){ return structuredClone((D.guests||{})[token]||null); },
     async setGuest(token,data){ D.guests=D.guests||{}; D.guests[token]=data; save(); },
     async delGuest(token){ if(D.guests) delete D.guests[token]; save(); },
@@ -1036,7 +1040,21 @@ async function loadHome(){
     try { const g=await S.api.getGroup(gid); if(!g || !(g.members||[]).includes(S.me.uid)) return;
       const m=await S.api.getMember(gid,S.me.uid).catch(()=>null); out[gid]={g,m:m||{}}; } catch(e){ console.warn(gid,e); }
   }));
-  S.home=out; S.homeLoaded=true; render();
+  S.home=out;
+  await Promise.all(Object.entries(out).filter(([,x])=>x.g.owner===S.me.uid).map(([gid,x])=>ensureDir(gid,x.g).catch(e=>console.warn('dir',e))));
+  try { S.dir=(await S.api.listDir()).sort((a,b)=>(a.name||'').localeCompare(b.name||'','zh-Hant')); } catch(e){ console.warn('listDir',e); S.dir=[]; }
+  S.homeLoaded=true; render();
+}
+// 讀書社名錄：團長的 App 會自動把讀書社名稱、角色、人數放上大廳（不含邀請碼）
+let dirPub={};
+async function ensureDir(gid,g){
+  if (!S.api.setDir || g.owner!==S.me?.uid) return;
+  let did=g.dirId;
+  if (!did) { did=guestToken(); await S.api.updateGroup(gid,{dirId:did}); g.dirId=did; }
+  const data={name:g.name||'', theme:g.theme||'tomato', n:(g.members||[]).length, by:S.me.uid};
+  const key=did+JSON.stringify(data);
+  if (dirPub[gid]===key) return;
+  await S.api.setDir(did,{...data, updatedAt:Date.now()}); dirPub[gid]=key;
 }
 function subscribe(gid){
   unsubs.forEach(f=>f()); unsubs=[];
@@ -1077,6 +1095,7 @@ function doRender(){
   renderTabbar();
   tickTimer();
   scheduleGuestPublish();
+  if (S.group && S.gid && S.me && S.group.owner===S.me.uid) ensureDir(S.gid,{...S.group}).catch(e=>console.warn('dir',e));
 }
 function renderTabbar(){
   let tb=$('#tabbar');
@@ -1124,20 +1143,35 @@ function viewHome(){
   return `<div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>讀書社大廳</div><button class="btn ghost sm" data-a="signout">登出</button></div>
   ${S.api.mode==='demo'?`<div class="banner">示範模式：資料只存在這支手機。</div>`:''}
   <div class="hall-title">選一個讀書社進去</div>
-  ${!S.homeLoaded?'<div class="spin"></div>':cards || '<div class="card empty">你還沒有加入任何讀書社，按下面新增一個吧！</div>'}
-  <button class="club add" data-a="newGroup">＋ 新增或加入讀書社</button>`;
+  ${!S.homeLoaded?'<div class="spin"></div>':cards || '<div class="card empty">你還沒有加入任何讀書社。從下面選一個，輸入邀請碼加入吧！</div>'}
+  ${S.homeLoaded?dirHTML(ids):''}
+  <button class="club add" data-a="newGroup">＋ 用邀請碼加入讀書社</button>`;
 }
+function dirHTML(ids){
+  const mine=new Set(ids.map(gid=>S.home[gid]?.g?.dirId).filter(Boolean));
+  const list=(S.dir||[]).filter(d=>!mine.has(d.id));
+  if (!list.length) return '';
+  return `<div class="hall-title" style="font-size:1.3rem;margin-top:18px">其他讀書社</div>
+  <p class="small" style="margin:-4px 0 10px;font-weight:700">想加入的話，請跟那一團的社員要 6 碼邀請碼。</p>
+  ${list.map((d,i)=>{ const th=THEMES[d.theme||'tomato']||THEMES.tbd;
+    return `<button class="club" data-a="newGroup" style="--c:${CLUB_COLORS[(i+ids.length)%CLUB_COLORS.length]}">
+      <div class="art">${clubArt(d.theme,d.id)}</div>
+      <div class="grow"><div class="name">${esc(d.name)}</div>
+      <div class="meta">${th.ready?esc(th.label):'<span class="tag">角色設定討論中</span>'}・${d.n||0} 人</div>
+      <div class="meta">🔒 需要邀請碼才能加入</div></div><span class="go">›</span></button>`; }).join('')}`;
+}
+const CREATE_OK = /[?&]create=1\b/.test(location.search);
 function viewOnboard(){
-  return `<div class="top"><button class="btn ghost sm" data-a="home">‹ 大廳</button><div class="brand">新增讀書社</div><span style="width:60px"></span></div>
+  return `<div class="top"><button class="btn ghost sm" data-a="home">‹ 大廳</button><div class="brand">加入讀書社</div><span style="width:60px"></span></div>
   <div class="card"><h2>加入朋友的讀書社</h2><p class="small">請建立讀書社的同學把 6 碼邀請碼給你。</p>
     <input type="text" data-keep="joincode" id="joincode" placeholder="例如 K7M2QX" maxlength="6" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:3px;font-weight:700">
     <button class="btn block" style="margin-top:10px" data-a="join">加入</button></div>
-  <div class="card"><h2>建立新的讀書社</h2><p class="small">建立後把邀請碼傳給好朋友。</p>
+  ${CREATE_OK?`<div class="card"><h2>建立新的讀書社</h2><p class="small">建立後把邀請碼傳給好朋友。</p>
     <label class="f">讀書社名稱</label><input type="text" data-keep="gname" id="gname" placeholder="例如：67番茄園">
     <label class="f">角色</label><select id="gtheme" data-keep="gtheme">${Object.entries(THEMES).map(([k,t])=>`<option value="${k}">${esc(t.label)}${t.ready?'':'（先用番茄兵）'}</option>`).join('')}</select>
     <label class="f">考試名稱</label><input type="text" data-keep="gexam" id="gexam" value="${esc(TEMPLATE.name)}">
     <label class="f">考試第一天</label><input type="date" data-keep="gdate" id="gdate" value="${TEMPLATE.examDate}">
-    <button class="btn block red" style="margin-top:12px" data-a="create">建立讀書社</button></div>`;
+    <button class="btn block red" style="margin-top:12px" data-a="create">建立讀書社</button></div>`:`<p class="small" style="text-align:center;font-weight:700">目前暫停建立新的讀書社，只能用邀請碼加入現有的讀書社。</p>`}`;
 }
 function viewHeader(){
   const g=S.group, left = g.examDate ? daysBetween(ymd(), g.examDate) : null;
@@ -1800,7 +1834,7 @@ document.addEventListener('click', async e=>{
       } catch(err){ console.error(err); toast(err.code==='auth/credential-already-in-use'?'這個 Google 帳號已經在番茄園用過了，不能再綁定':err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':'綁定失敗：'+(err.code||err.message)); } break;
     case 'go': S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'join': { const c=val('joincode'); if(c.length!==6) return toast('邀請碼是 6 個字'); await doJoin(c); break; }
-    case 'create': {
+    case 'create': { if(!CREATE_OK) return toast('目前暫停建立新的讀書社');
       const name=val('gname')||`${myName()}的讀書小隊`;
       const gid=await S.api.createGroup(S.me,{name, examName:val('gexam'), examDate:val('gdate'), theme:$('#gtheme')?.value||'tomato'});
       const groups=[...new Set([...(S.userDoc.groups||[]),gid])];
