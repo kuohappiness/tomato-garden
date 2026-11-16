@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffe9a8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="番茄園">
+<title>番茄園讀書社</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffe9a8; --card:#fffdf5; --ink:#1d1d1d; --muted:#5e584c; --line:#1d1d1d;
+  --tomato:#ff4b3e; --tomato-d:#d92d20; --leaf:#2fbf5b; --leaf-d:#168a3c; --leaf-l:#c9f5c4;
+  --sky:#7fd3ff; --sun:#ffd23f; --purple:#8e5bb5; --radius:18px;
+  --b:3px solid var(--ink); --sh:4px 4px 0 var(--ink);
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;color:var(--ink);font-family:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;font-size:16px;line-height:1.5}
+body{background:var(--bg) radial-gradient(rgba(0,0,0,.07) 1.2px,transparent 1.3px) 0 0/14px 14px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.num,.clock,.code,.lvl .num,.stat b{font-family:"Bungee","Noto Sans TC",sans-serif;font-weight:400}
+#app{max-width:560px;margin:0 auto;min-height:100vh;padding:calc(12px + var(--safe-t)) 14px calc(100px + var(--safe-b))}
+h1,h2,h3{margin:0;line-height:1.25}
+h2{font-size:1.15rem;font-weight:900}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.tiny{font-size:.75rem}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.card{background:var(--card);border:var(--b);border-radius:var(--radius);padding:16px;margin:14px 0;box-shadow:var(--sh)}
+.card.tilt{transform:rotate(-.6deg)}
+.btn{border:var(--b);border-radius:14px;padding:10px 18px;font-weight:900;background:var(--leaf);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;box-shadow:var(--sh);text-shadow:0 1px 0 rgba(0,0,0,.25);transition:transform .06s,box-shadow .06s}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn.red{background:var(--tomato)}
+.btn.yellow{background:var(--sun);color:var(--ink);text-shadow:none}
+.btn.ghost{background:#fff;color:var(--ink);text-shadow:none}
+.btn.soft{background:var(--leaf-l);color:var(--ink);text-shadow:none}
+.btn.block{width:100%}
+.btn.sm{padding:5px 12px;min-height:36px;font-size:.88rem;box-shadow:3px 3px 0 var(--ink)}
+.btn.big{font-size:1.15rem;min-height:56px}
+.btn[disabled]{opacity:.5}
+.iconbtn{border:0;background:transparent;padding:6px;border-radius:10px;min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink)}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;border:var(--b);border-radius:12px;padding:10px 12px;background:#fff;min-height:46px;font-weight:500}
+textarea{min-height:140px;resize:vertical;line-height:1.6}
+label.f{display:block;font-size:.85rem;font-weight:700;margin:10px 0 4px}
+.chip{display:inline-flex;align-items:center;border-radius:8px;padding:1px 8px;font-size:.78rem;font-weight:900;color:#fff;white-space:nowrap;border:2px solid var(--ink);text-shadow:0 1px 0 rgba(0,0,0,.3)}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:10px;padding:4px 12px;font-size:.85rem;font-weight:700;background:#fff;color:var(--ink);border:2px solid var(--ink);white-space:nowrap;flex:none}
+.pill.on{background:var(--ink);color:#fff}
+.hscroll{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:900;font-size:1.1rem}
+.brand .logo{width:36px;height:40px;flex:none;display:inline-block}
+.avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--sun);display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:var(--ink);flex:none;overflow:hidden;border:2.5px solid var(--ink)}
+.avatar.lg{width:48px;height:48px;font-size:1.15rem}
+.countdown{background:var(--tomato);color:#fff;border:var(--b);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;box-shadow:var(--sh);transform:rotate(.5deg)}
+.countdown b{font-family:"Bungee",sans-serif;font-weight:400;font-size:2rem;color:var(--sun);-webkit-text-stroke:1.5px var(--ink);margin:0 4px}
+.countdown .muted{color:#ffe1dc}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:var(--b);padding:6px 6px calc(6px + var(--safe-b));display:flex;justify-content:center;z-index:20}
+.tabbar .in{max-width:560px;width:100%;display:flex;gap:4px}
+.tab{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 0;font-size:.72rem;color:var(--muted);font-weight:900;border-radius:12px}
+.tab svg{width:24px;height:24px}
+.tab.on{color:var(--ink);background:var(--sun);border:2px solid var(--ink)}
+
+.timer{text-align:center}
+.timer .clock{font-size:3.6rem;letter-spacing:1px;line-height:1.05;-webkit-text-stroke:0}
+.timer .mode{font-weight:900}
+.timer.break{background:#d8f7ff}
+.plantbox{width:170px;height:150px;margin:0 auto}
+.goal{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.goal span{width:26px;height:26px}
+.say{display:inline-block;background:#fff;border:2.5px solid var(--ink);border-radius:14px;padding:6px 12px;font-weight:700;position:relative;margin:6px 0 2px;font-size:.9rem}
+.say::after{content:"";position:absolute;left:50%;bottom:-9px;width:14px;height:14px;background:#fff;border-right:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);transform:translateX(-50%) rotate(45deg)}
+
+.task{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:2px dashed #d8cfb8}
+.task:first-child{border-top:0}
+.check{width:28px;height:28px;border-radius:8px;border:2.5px solid var(--ink);background:#fff;flex:none;display:flex;align-items:center;justify-content:center;margin-top:1px;padding:0}
+.check.on{background:var(--leaf)}
+.task .title{font-weight:700;word-break:break-word}
+.task.done .title{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px}
+.stars{display:inline-flex;gap:2px;margin-top:2px}
+.star{border:0;background:transparent;padding:2px;min-width:30px;min-height:30px;display:inline-flex;align-items:center;justify-content:center}
+.star svg{width:22px;height:22px}
+.datehead{font-weight:900;margin:8px 0 2px;display:flex;align-items:center;gap:8px}
+.datehead.today{color:var(--tomato-d)}
+.empty{text-align:center;color:var(--muted);padding:20px 8px;font-weight:700}
+
+.bar{height:12px;background:#fff;border:2px solid var(--ink);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat div{background:#fff;border:2.5px solid var(--ink);border-radius:12px;padding:6px 4px;text-align:center}
+.stat b{display:block;font-size:1.3rem;line-height:1.3}
+.stat span{font-size:.72rem;font-weight:700;color:var(--muted)}
+
+/* 軍團戰場 */
+.field{position:relative;height:300px;border:var(--b);border-radius:var(--radius);overflow:hidden;box-shadow:var(--sh);margin:14px 0}
+.field .sky{position:absolute;inset:0}
+.field .hill{position:absolute;left:-10%;right:-10%;bottom:-40%;height:85%;border-radius:50% 50% 0 0;border-top:3px solid var(--ink)}
+.field .title{position:absolute;left:12px;top:10px;font-weight:900;font-size:1.05rem;color:var(--ink);background:#fff;border:2.5px solid var(--ink);border-radius:10px;padding:2px 10px;box-shadow:3px 3px 0 var(--ink);z-index:5}
+.field .count{position:absolute;right:12px;top:10px;font-family:"Bungee",sans-serif;background:var(--sun);border:2.5px solid var(--ink);border-radius:10px;padding:0 10px;box-shadow:3px 3px 0 var(--ink);z-index:5}
+.sol{position:absolute;border:0;background:transparent;padding:0;animation:walk var(--d) ease-in-out var(--dl) infinite alternate;z-index:2}
+.sol>span{display:block;width:100%;height:100%;animation:bob .42s ease-in-out infinite alternate;transform-origin:50% 100%}
+@keyframes walk{from{transform:translateX(0)}to{transform:translateX(var(--dx))}}
+@keyframes bob{from{transform:translateY(0) rotate(-5deg)}to{transform:translateY(-5px) rotate(5deg)}}
+.sprout{position:absolute;border:0;background:transparent;padding:0;z-index:3;animation:wiggle 1.2s ease-in-out infinite}
+@keyframes wiggle{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.cloud{position:absolute;animation:drift linear infinite}
+@keyframes drift{from{transform:translateX(-120px)}to{transform:translateX(640px)}}
+
+.dex{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dex .cell{background:#fff;border:2.5px solid var(--ink);border-radius:14px;padding:6px 4px 8px;text-align:center;font-size:.78rem;font-weight:900;position:relative}
+.dex .cell .pic{width:64px;height:74px;margin:0 auto}
+.dex .cell .n{position:absolute;right:6px;top:4px;font-family:"Bungee",sans-serif;font-weight:400;font-size:.8rem}
+.dex .cell.lock{background:#eee6d2;color:var(--muted)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+.badge{border-radius:12px;padding:8px 4px;text-align:center;background:#fff;border:2.5px solid var(--ink);font-size:.76rem;font-weight:900;line-height:1.3}
+.badge .ic{font-size:1.6rem;display:block;line-height:1.3}
+.badge .d{display:block;font-weight:500;font-size:.68rem;color:var(--muted)}
+.badge.off{opacity:.38;filter:grayscale(1);border-style:dashed}
+.lvl{display:flex;align-items:center;gap:12px}
+.lvl .num{width:60px;height:60px;border-radius:16px;background:var(--tomato);color:#fff;font-size:1.6rem;display:flex;align-items:center;justify-content:center;flex:none;border:var(--b);box-shadow:3px 3px 0 var(--ink);transform:rotate(-4deg)}
+
+.friend{display:flex;gap:12px;align-items:flex-start}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:900;color:#fff;background:var(--tomato);border:2px solid var(--ink);border-radius:999px;padding:1px 10px}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
+.code{font-size:1.6rem;letter-spacing:4px;background:var(--sun);border:var(--b);border-radius:12px;padding:2px 14px;box-shadow:3px 3px 0 var(--ink)}
+.mini{display:flex;flex-wrap:wrap;gap:0;margin-top:6px}
+.mini span{width:24px;height:28px;margin-right:-4px}
+.quest{position:relative;height:150px;background:linear-gradient(#b8ecff,#e6f9ff 55%,#a6dc6c 55%);border:var(--b);border-radius:14px;overflow:hidden;margin-top:10px}
+.quest .base{position:absolute;left:6px;bottom:6px;width:70px;height:78px}
+.quest .boss{position:absolute;bottom:8px;width:96px;height:106px;transition:left 1s cubic-bezier(.3,1.4,.5,1)}
+.quest .carry{position:absolute;bottom:2px;display:flex}
+.quest .carry span{width:26px;height:30px;margin-right:-6px;animation:bob .3s ease-in-out infinite alternate}
+.quest .trail{position:absolute;left:70px;right:10px;bottom:24px;border-bottom:3px dashed rgba(0,0,0,.35)}
+
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:.9rem;font-weight:700;z-index:600;max-width:90vw;opacity:0;transition:opacity .2s;pointer-events:none;border:2px solid #fff}
+.toast.on{opacity:1}
+.modal{position:fixed;inset:0;background:rgba(20,15,5,.55);display:flex;align-items:flex-end;justify-content:center;z-index:500}
+.sheet{background:var(--card);width:100%;max-width:560px;border:var(--b);border-bottom:0;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + var(--safe-b));max-height:90vh;overflow:auto}
+.celebrate{text-align:center;padding:4px 0}
+.celebrate .big{font-size:1.45rem;font-weight:900;margin-top:4px}
+.celebrate .card-id{display:inline-block;font-family:"Bungee",sans-serif;background:var(--ink);color:var(--sun);border-radius:8px;padding:0 10px;font-size:.9rem}
+.banner{background:#fff;border:2.5px dashed var(--ink);border-radius:12px;padding:8px 12px;font-size:.85rem;font-weight:700;margin-top:8px}
+.login{min-height:84vh;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:12px}
+.login h1{font-size:2.2rem;font-weight:900;transform:rotate(-2deg);text-shadow:3px 3px 0 var(--sun)}
+.login .crowd{display:flex;justify-content:center;align-items:flex-end;height:130px}
+.login .crowd span{width:70px;height:84px;margin:0 -8px;animation:bob .5s ease-in-out infinite alternate}
+.login .crowd span:nth-child(2){width:96px;height:114px;animation-delay:.15s}
+.login .crowd span:nth-child(3){animation-delay:.3s}
+.seg{display:flex;background:#fff;border:2.5px solid var(--ink);border-radius:12px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;font-weight:900;color:var(--muted)}
+.seg button.on{background:var(--ink);color:#fff}
+details summary{cursor:pointer;font-weight:700;list-style:none}
+details summary::-webkit-details-marker{display:none}
+.spin{width:30px;height:30px;border:4px solid #fff;border-top-color:var(--tomato);border-radius:50%;animation:sp 1s linear infinite;margin:40px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes grow{from{transform:scale(.3) translateY(40px);opacity:0}to{transform:scale(1);opacity:1}}
+.pop{animation:grow .6s cubic-bezier(.3,1.7,.5,1)}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.shake{animation:shake .25s ease-in-out infinite}
+
+.club{display:flex;align-items:stretch;gap:12px;width:100%;text-align:left;background:#fff;border:var(--b);border-radius:var(--radius);box-shadow:var(--sh);padding:10px;margin:14px 0;transition:transform .06s,box-shadow .06s}
+.club:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.club .art{flex:0 0 112px;height:92px;border-radius:12px;border:2.5px solid var(--ink);background:var(--c);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative}
+.club .art span{width:44px;height:52px;margin:0 -7px -4px;animation:bob .5s ease-in-out infinite alternate}
+.club .art span:nth-child(2){width:54px;height:64px;animation-delay:.15s}
+.club .art span:nth-child(3){animation-delay:.3s}
+.club .name{font-weight:900;font-size:1.2rem;line-height:1.2}
+.club .meta{font-size:.78rem;font-weight:700;color:var(--muted);margin-top:2px}
+.club .go{align-self:center;font-weight:900;font-size:1.4rem}
+.club.add{border-style:dashed;background:transparent;box-shadow:none;justify-content:center;align-items:center;min-height:84px;font-weight:900;font-size:1.05rem}
+.tag{display:inline-block;font-size:.72rem;font-weight:900;border:2px solid var(--ink);border-radius:8px;padding:0 6px;background:var(--sun);color:var(--ink)}
+.hall-title{font-size:1.6rem;font-weight:900;transform:rotate(-1.5deg);display:inline-block;text-shadow:3px 3px 0 #fff;margin:6px 0 0}
+.s67 .armL{animation:sx .32s ease-in-out infinite alternate}
+.s67 .armR{animation:sx .32s ease-in-out infinite alternate-reverse}
+@keyframes sx{from{transform:translateY(-7px)}to{transform:translateY(7px)}}
+@keyframes drop{0%{transform:translateY(-260px) rotate(-12deg)}70%{transform:translateY(12px) rotate(5deg)}100%{transform:translateY(0) rotate(0)}}
+.drop{animation:drop 1s cubic-bezier(.3,1.2,.5,1)}
+.giftbox{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.giftbox .g{background:#fff;border:2.5px solid var(--ink);border-radius:12px;text-align:center;padding:6px 2px;font-size:.66rem;font-weight:900;line-height:1.2;position:relative}
+.giftbox .g .ic{font-size:1.6rem;display:block;line-height:1.3}
+.giftbox .g .n{position:absolute;right:3px;top:1px;font-family:"Bungee",sans-serif;font-weight:400;font-size:.7rem}
+.giftbox .g.off{background:#eee6d2;color:var(--muted)}
+.giftbox .g.off .ic{filter:grayscale(1) brightness(.2);opacity:.25}
+.rar{display:inline-block;border:2px solid var(--ink);border-radius:8px;padding:0 8px;font-weight:900;font-size:.8rem}
+.r-普通{background:#fff}.r-少見{background:#c9f5c4}.r-稀有{background:#b9dcff}.r-傳說{background:linear-gradient(90deg,#ffd23f,#ff9a1f);}
+.six7{font-family:"Bungee",sans-serif;font-size:2.4rem;color:var(--sun);-webkit-text-stroke:2px var(--ink);display:inline-block;animation:shake .3s infinite}
+/* 被嵌在其他網頁（例如 Claude App 預覽）時：分頁列放上方，彈窗與提示放上方 */
+body.embed #app{padding-bottom:40px}
+body.embed .tabbar{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:var(--b);padding:6px;z-index:30}
+body.embed .modal{align-items:flex-start}
+body.embed .sheet{border-radius:0 0 22px 22px;border:var(--b);border-top:0;max-height:none}
+body.embed .toast{top:80px;bottom:auto;position:absolute}
+</style>
+</head>
+<body>
+<div id="app"><div class="spin"></div></div>
+<div id="toast" class="toast"></div>
+<div id="modal-root"></div>
+<script src="config.js"></script>
+<script type="module">
+/* ==========================================================
+   番茄園讀書社 — 一起讀書、種番茄
+   資料：Firebase（Google 登入＋Firestore）；沒設定時用「示範模式」
+   ========================================================== */
+
+// ---------- 常數 ----------
+const SUBJECTS = [
+  {name:'國文', color:'#ff4b3e'}, {name:'英文', color:'#3b8cff'}, {name:'數學', color:'#ff9a1f'},
+  {name:'生物', color:'#46c84f'}, {name:'理化', color:'#9bd12f'}, {name:'歷史', color:'#b5733f'},
+  {name:'地理', color:'#18b3a3'}, {name:'公民', color:'#9b5de5'}, {name:'社會', color:'#7a74a8'},
+  {name:'其他', color:'#6b6558'}
+];
+const SUBJ_COLOR = Object.fromEntries(SUBJECTS.map(s=>[s.name,s.color]));
+const ALIAS = {'國':'國文','國文':'國文','英':'英文','英文':'英文','數':'數學','數學':'數學','生':'生物','生物':'生物','自然':'生物',
+  '理':'理化','理化':'理化','歷':'歷史','歷史':'歷史','地':'地理','地理':'地理','公':'公民','公民':'公民','社':'社會','社會':'社會','歷地公':'社會','其他':'其他'};
+const LEVELS = [
+  {min:0,name:'番茄醬預備役'},{min:5,name:'番茄籽'},{min:15,name:'小番茄'},{min:30,name:'番茄炒蛋'},
+  {min:50,name:'番茄大將軍'},{min:80,name:'番茄元帥'},{min:120,name:'番茄之神'},{min:200,name:'宇宙番茄霸主'}
+];
+const TEMPLATE = {
+  name:'國一第二次段考', examDate:'2026-12-02',
+  lines:`11/16 英｜字彙書 U1 第一字義＋例句；80 個勾選字第 1 批
+11/16 數｜2-2 課本觀念重讀＋例題重算
+11/16 生｜葉片構造、光合作用：讀課本、看圖
+11/16 生｜對應的作業本／習作，圈出不懂的地方
+11/17 國｜L4 字音字形手寫重點寫一遍
+11/17 數｜2-3 最大公因數、最小公倍數：短除法＋標準分解式
+11/17 英｜L3 課文朗讀；文法：祈使句、Let's、can
+11/17 公｜第 1 課：國民與公民、國籍取得
+11/18 英｜字彙書 U2；80 個勾選字第 2 批
+11/18 數｜公因數、公倍數應用問題
+11/18 歷｜ch.4 讀課本，自己做年代表
+11/18 地｜第 3 章：內營力 vs 外營力、等高線圖判讀
+11/19 國｜L5 字音字形；默寫《早發白帝城》
+11/19 數｜指數、正負分數四則、指數律
+11/19 生｜植物物質運輸、動物消化系統
+11/19 英｜L4 課文；文法：人稱代名詞、what day／what time
+11/21 英｜字彙書 U3；80 個勾選字第 3 批
+11/21 數｜一元一次式：文字符號代表數、化簡
+11/21 數｜一元一次式應用題：依題意列式
+11/21 國｜L4 課文＋習作＋「閱讀萬花筒」
+11/21 國｜L5 課文＋習作
+11/21 生｜循環系統：自己畫出血液循環路徑
+11/21 歷｜ch.5：清代行政區劃 5 次變化
+11/21 歷｜ch.6：開港、進出口商品變化
+11/21 地｜第 4 章：沙岸 vs 岩岸、四種海岸、離島
+11/21 公｜第 2 課：性別刻板印象／偏見／歧視、性別三法
+11/21 生｜免疫系統；複習植物運輸
+11/21 英｜文法：時間介係詞、現在進行式；大家說英語第 1–2 篇
+11/22 國｜L6 字音字形；默寫《塞下曲》
+11/22 國｜L6 課文＋習作；語二
+11/22 公｜第 3 課：血親／姻親、親等、家庭型態
+11/22 英｜大家說英語第 3–4 篇；Review 2
+11/23 英｜80 個勾選字全部自我小考
+11/23 數｜2-2、2-3 作業、講義錯題重做
+11/23 數｜指數、負數四則混合題
+11/23 生｜考前必殺卷 #1（限時）＋訂正
+11/24 國｜L4–L6 字音字形自我測驗
+11/24 國｜自學二＋P.170 文意驗收站；百中成語篇 P.27
+11/24 數｜一元一次式應用題 10 題
+11/24 英｜L3 習作／考卷錯題訂正
+11/25 英｜字彙書 U1–U3 第一字義自我小考
+11/25 數｜整合題（混合各節）
+11/25 歷｜手冊＋小考卷錯題；年號順序、一府二鹿三艋舺
+11/25 地｜手冊＋小考卷；空白地圖填地形、海岸、離島
+11/26 國｜默寫自考：L4、早發白帝城、塞下曲
+11/26 國｜語二＋「形音義伸展秀」
+11/26 生｜考前必殺卷 #2＋訂正
+11/26 英｜L4 習作／考卷錯題；大家說英語重點句
+11/28 英｜單字打星號的重考
+11/28 數｜模擬卷限時 60 分（上半）
+11/28 數｜模擬卷（下半）＋對答案
+11/28 數｜訂正錯題，寫進錯題本
+11/28 生｜實驗步驟、目的與結果判讀
+11/28 生｜圖表題：器官、血管、維管束辨認
+11/28 國｜L4–L6 課內題（課本題、習作、單元卷）
+11/28 國｜單元卷錯題訂正
+11/28 英｜英文考卷／模擬題（含閱讀題）
+11/28 英｜訂正；文法 7 點每點自己出 2 題
+11/28 歷｜ch.4–6 同時代事件整合表
+11/28 地｜等高線、分層設色、剖面圖、衛星影像判讀
+11/29 公｜手冊＋單元卷再做一次，錯題釐清
+11/29 歷｜單元卷再做一次
+11/29 地｜單元卷再做一次
+11/29 社｜歷地公錯題總整理（一張 A4）
+11/29 國｜成語篇；詞語關係題
+11/29 英｜大家說英語 4 篇重讀＋課文朗讀
+11/29 數｜錯題本重做
+11/29 生｜錯題本重做
+11/30 英｜80 個勾選字最後一輪
+11/30 生｜必殺卷錯題；循環／消化圖再畫一次
+11/30 歷｜年代、因果、圖表快速複習
+11/30 地｜地圖快速複習
+12/01 國｜默寫＋字音字形最後一次
+12/01 公｜第 1–3 課重點＋錯題
+12/01 數｜只看錯題本，不做新題
+12/01 國｜成語、語文常識、課文注釋
+12/02 英｜80 個勾選字＋文法 7 點
+12/02 生｜錯題＋構造圖
+12/02 歷｜年號、行政區劃、港口
+12/02 地｜五大地形、海岸、離島`
+};
+
+// ---------- 是否被嵌在別的網頁裡 ----------
+let EMBED=false; try { EMBED = window.self!==window.top; } catch { EMBED=true; }
+if (EMBED) document.body.classList.add('embed');
+
+// ---------- 小工具 ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = (d=new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => new Date(s+'T00:00:00');
+const addDays = (s,n) => { const d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); };
+const WD = '日一二三四五六';
+const fmtDate = s => { const d=parseYmd(s); return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`; };
+const weekStart = () => { const d=new Date(); d.setDate(d.getDate()-((d.getDay()+6)%7)); return ymd(d); };
+const daysBetween = (a,b) => Math.round((parseYmd(b)-parseYmd(a))/86400000);
+const mmss = ms => { const s=Math.max(0,Math.ceil(ms/1000)); return `${pad(Math.floor(s/60))}:${pad(s%60)}`; };
+const fmtMin = m => m>=60 ? `${Math.floor(m/60)} 時 ${m%60} 分` : `${m} 分`;
+const PALETTE = ['#ff4b3e','#3b8cff','#ff9a1f','#46c84f','#9bd12f','#b5733f','#18b3a3','#9b5de5','#7a74a8','#ff5fa2','#ffcc1f','#6b6558'];
+function clubSubjects(){ const l=S.group?.subjects; return (Array.isArray(l)&&l.length) ? l : SUBJECTS; }
+function subjNames(){ return clubSubjects().map(x=>x.name); }
+function subjColor(s){ const c=clubSubjects().find(x=>x.name===s)?.color || SUBJ_COLOR[s]; return c || PALETTE[hash(s)%PALETTE.length]; }
+const subjOptions = (sel) => subjNames().map(n=>`<option ${n===sel?'selected':''}>${esc(n)}</option>`).join('');
+const chip = s => { const c=subjColor(s), n=/^#[0-9a-f]{6}$/i.test(c)?parseInt(c.slice(1),16):0, light=n && ((n>>16)*.299+((n>>8)&255)*.587+(n&255)*.114)>200;
+  return `<span class="chip" style="background:${c}${light?';color:#1d1d1d;text-shadow:none':''}">${esc(s)}</span>`; };
+const lsGet = (k,d=null) => { try { const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); } catch { return d; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch {} };
+function toast(msg){ const t=$('#toast'); if(EMBED) t.style.top=(window.scrollY+80)+'px'; t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),2200); }
+function randCode(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
+
+// 解析「11/16 英｜內容」這種格式
+function parseLines(text, baseYear){
+  const out=[]; const now=new Date();
+  for (let raw of String(text).split(/\r?\n/)) {
+    let line = raw.trim(); if (!line) continue;
+    let date='';
+    let m = line.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s*/);
+    if (m) { date=`${m[1]}-${pad(m[2])}-${pad(m[3])}`; line=line.slice(m[0].length); }
+    else if ((m = line.match(/^(\d{1,2})[/.](\d{1,2})(?:\s*[（(][^）)]*[）)])?\s*/))) {
+      let y = baseYear || now.getFullYear();
+      let d = `${y}-${pad(m[1])}-${pad(m[2])}`;
+      if (!baseYear && (parseYmd(d) - now) < -200*86400000) d = `${y+1}-${pad(m[1])}-${pad(m[2])}`;
+      date=d; line=line.slice(m[0].length);
+    }
+    let subject='其他';
+    m = line.match(/^([^\s｜|:：]{1,4})\s*[｜|:：]\s*/) || line.match(/^(國文|英文|數學|生物|理化|歷史|地理|公民|社會|國|英|數|生|歷|地|公)\s+/);
+    const names = (typeof S!=='undefined' && S.group) ? subjNames() : SUBJECTS.map(x=>x.name);
+    m = m || line.match(/^([^\s｜|:：]{1,4})\s*[｜|:：]\s*/);
+    if (m) {
+      let hit = names.includes(m[1]) ? m[1] : ALIAS[m[1]];
+      if (hit && !names.includes(hit)) { const SYN=[['國文','國語'],['英文','英語'],['生物','自然','理化'],['歷史','地理','公民','社會']];
+        if (hit==='理化' && names.includes('超修')) hit='超修';
+        else { const grp=SYN.find(g=>g.includes(hit)); const alt=grp?.find(x=>names.includes(x)); if(alt) hit=alt; } }
+      if (!hit) { const c=names.filter(n=>n[0]===m[1][0]); if(c.length===1) hit=c[0]; }
+      if (hit) { subject = names.includes(hit) ? hit : (names.includes('其他') ? '其他' : names.at(-1)); line=line.slice(m[0].length); }
+    }
+    if (!names.includes(subject)) subject = names.includes('其他') ? '其他' : names.at(-1);
+    if (line) out.push({subject, title:line, date});
+  }
+  return out;
+}
+
+// ---------- 固定種子的亂數（同一隻番茄兵每次長得一樣） ----------
+function hash(str){ let h=2166136261>>>0; for (const c of String(str)){ h^=c.charCodeAt(0); h=Math.imul(h,16777619)>>>0; } return h||1; }
+function rng(seed){ let s=(seed>>>0)||1; return ()=>{ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; }; }
+const pick=(r,a)=>a[Math.floor(r()*a.length)];
+const INK='#1d1d1d';
+
+// ---------- 番茄兵種類（依科目） ----------
+const TYPES = {
+  '國文':{color:'#ff4b3e', name:'書呆兵', acc:'hat',     skill:'會背〈出師表〉，但只會第一句'},
+  '英文':{color:'#3b8cff', name:'洋腔兵', acc:'phones',  skill:'英文只會說 Apple 和 Banana'},
+  '數學':{color:'#ff9a1f', name:'算盤兵', acc:'glasses', skill:'數到三就會睡著'},
+  '生物':{color:'#46c84f', name:'光合兵', acc:'leaf',    skill:'曬太陽就不用吃午餐'},
+  '理化':{color:'#9bd12f', name:'爆炸兵', acc:'goggles', skill:'實驗做到一半頭髮會冒煙'},
+  '歷史':{color:'#b5733f', name:'皇帝兵', acc:'crown',   skill:'自稱康熙的第八代孫子'},
+  '地理':{color:'#18b3a3', name:'迷路兵', acc:'flag',    skill:'拿著地圖還是會迷路'},
+  '公民':{color:'#9b5de5', name:'法官兵', acc:'tie',     skill:'動不動就說「這樣違法喔」'},
+  '社會':{color:'#7a74a8', name:'雜學兵', acc:'tie',     skill:'什麼都懂一點點，真的只有一點點'},
+  '其他':{color:'#ff4b3e', name:'普通兵', acc:'',        skill:'沒有特別專長，但非常努力'},
+};
+const RARE = {
+  gold:{name:'黃金番茄兵', skill:'據說可以拿去換一碗滷肉飯'},
+  rainbow:{name:'彩虹番茄兵', skill:'連老師都沒看過的傳說級番茄'},
+  '67':{name:'六七兵', skill:'聽到 6 或 7 雙手就會自己上下晃，停不下來'},
+};
+const THEMES = {
+  tomato:{label:'番茄兵', ready:true,  desc:'專心 25 分鐘，種出一隻表情很蠢的番茄兵'},
+  boba:  {label:'珍奶星球（珍珠）', ready:true, desc:'專心 25 分鐘，搖出一顆可愛的珍珠'},
+  tbd:   {label:'角色設定討論中', ready:false, desc:'角色還在設計，先用番茄兵玩法代打'},
+};
+const CLUB_COLORS=['#ff4b3e','#3b8cff','#9b5de5','#18b3a3','#ff9a1f','#46c84f'];
+const ACC_KEYS = ['glasses','hat','phones','leaf','goggles','crown','flag','tie'];
+function typeOf(sub){
+  const cs = ((typeof S!=='undefined' && S.group) ? clubSubjects().find(x=>x.name===sub) : null) || BOBA_SUBJECTS.find(x=>x.name===sub) || null;
+  const base = TYPES[sub];
+  if (!base && !cs) return TYPES['其他'];
+  return { color: cs?.color || base?.color || subjColor(sub),
+           name: cs?.unit || base?.name || (sub+'兵'),
+           acc: cs?.acc || (base ? base.acc : ACC_KEYS[hash(sub)%ACC_KEYS.length]),
+           skill: cs?.skill || base?.skill || `專精「${sub}」，其他科目不太行` };
+}
+function dexSubjects(){ return subjNames().filter(n=>n!=='其他'); }
+const NAME_A=['阿','小','大','老','臭','肥','爆','歪','呆','胖','鐵','狂','醬'];
+const NAME_B=['茄','汁','醬','籽','蒂','皮','蛋','球','圓','炒','湯','紅','啾'];
+const NAME_C=['','','','二世','三號','大人','仔','王','（自稱）','Jr.','987','67'];
+const QUOTES=[
+  '我的夢想是不要被做成番茄炒蛋。','報告隊長，我剛出土就想睡覺。','拔我的時候可以輕一點嗎？我的屁股還在土裡。',
+  '我數學很好，我會數到三。一、二……','誰把我種在這裡的？','隊長，你剛剛專心的樣子有點帥。',
+  '番茄有 95% 是水，所以我其實是一杯水。','我叔叔是番茄醬，我們不太聯絡。','我沒有手，但我會用意念幫你搬考卷。',
+  '我在土裡聽到你在背單字，背錯兩個喔。','段考魔王看起來好大……沒關係，我們人多。','不要一直看我，我會害羞到更紅。',
+  '我是水果還是蔬菜？我也不知道，好煩。','出生第一件事：嗆。','我想當番茄界的大將軍，先從小兵做起。',
+  '聽說隔壁的番茄被放在披薩上，好羨慕。','今天的土有點鹹。','我剛剛夢到自己變成番茄醬，嚇死。',
+  '我會保護你直到段考結束（或被吃掉）。','隊長，下一隻要比我帥嗎？不准。','我出生了！那我現在要幹嘛？',
+  '我覺得我的左眼比較大，這是我的特色。','六……七……（雙手上下晃）','我身高 67 公分，在番茄界算很高。','今天的幸運數字是 67，明天也是。','你再種 3 隻，我們就可以組樂團了。','不要拿我去做番茄汁，拜託。',
+];
+
+function soldierOf(sess, n){
+  const r=rng(hash(sess.id||sess.endedAt)), boba=themeKey()==='boba';
+  const roll=r(); const rare = roll<0.01 ? 'rainbow' : roll<0.06 ? 'gold' : roll<0.127 ? '67' : '';
+  const subject = sess.subject || '其他';
+  const so={id:sess.id, n, subject, rare, seed:hash(String(sess.id||sess.endedAt)+'face'),
+    name: boba ? pick(r,BOBA_A)+pick(r,BOBA_B)+pick(r,BOBA_C) : pick(r,NAME_A)+pick(r,NAME_B)+pick(r,NAME_C),
+    quote: pick(r, boba?BOBA_QUOTES:QUOTES), endedAt:sess.endedAt, date:sess.date};
+  // 社員自創角色：約 10% 機率出現（只會出現在角色被設計之後完成的番茄鐘）
+  if (!rare && roll<0.227) { const pool=(S.chars||[]).filter(c=>(c.createdAt||0)<sess.endedAt).sort((a,b)=>a.createdAt-b.createdAt);
+    if (pool.length) { const c=pool[Math.floor(r()*pool.length)]; so.custom=c; so.name=c.name; if(c.quote) so.quote=c.quote; } }
+  return so;
+}
+
+// ---------- 番茄兵 ----------
+const GRAD = `<defs><linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6b0"/><stop offset=".5" stop-color="#ffcc1f"/><stop offset="1" stop-color="#e29600"/></linearGradient><linearGradient id="gRain" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4b3e"/><stop offset=".25" stop-color="#ffb21e"/><stop offset=".5" stop-color="#3fd06a"/><stop offset=".75" stop-color="#3b9dff"/><stop offset="1" stop-color="#a45cff"/></linearGradient></defs>`;
+const ACC = {
+  glasses:k=>`<g fill="rgba(255,255,255,.25)" stroke="${k}" stroke-width="3.5"><rect x="25" y="55" width="22" height="17" rx="5"/><rect x="53" y="54" width="22" height="17" rx="5"/></g><path d="M47 62h6" stroke="${k}" stroke-width="3.5"/>`,
+  phones:k=>`<path d="M19 64q0-38 31-38t31 38" fill="none" stroke="${k}" stroke-width="5"/><rect x="10" y="57" width="13" height="21" rx="5" fill="#ffd23f" stroke="${k}" stroke-width="3"/><rect x="77" y="57" width="13" height="21" rx="5" fill="#ffd23f" stroke="${k}" stroke-width="3"/>`,
+  hat:k=>`<path d="M31 41h38l-5-15H36z" fill="${k}"/><path d="M27 41h46" stroke="${k}" stroke-width="4" stroke-linecap="round"/><path d="M88 74l9-28" stroke="#8b5e3c" stroke-width="5" stroke-linecap="round"/><path d="M97 46l3-9-7 2z" fill="${k}"/>`,
+  leaf:k=>`<path d="M52 30q-30-18-40 6q26 9 40-6z" fill="#8ff09a" stroke="${k}" stroke-width="3"/><path d="M50 31q-16-1-30 3" stroke="${k}" stroke-width="2" fill="none"/>`,
+  goggles:k=>`<rect x="22" y="52" width="56" height="21" rx="10" fill="rgba(160,235,255,.55)" stroke="${k}" stroke-width="3.5"/><path d="M15 60h7M78 60h7" stroke="${k}" stroke-width="5"/>`,
+  crown:k=>`<path d="M36 33l4-13 6 8 4-12 4 12 6-8 4 13z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M37 79q6-6 13 0q7-6 13 0q-6 6-13 1q-7 5-13-1z" fill="${k}"/>`,
+  flag:k=>`<path d="M93 92V38" stroke="${k}" stroke-width="3.5"/><path d="M93 38l-20 7 20 8z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><text x="16" y="34" font-size="20" font-weight="900" fill="${k}">?</text>`,
+  tie:k=>`<path d="M45 96l5-6 5 6-5 15z" fill="${k}"/><rect x="74" y="78" width="20" height="9" rx="3" fill="#8b5e3c" stroke="${k}" stroke-width="2.5" transform="rotate(-30 84 82)"/>`,
+};
+function soldierSVG(so,{lock=false}={}){
+  if (themeKey(so.theme)==='boba') return pearlSVG(so,{lock});
+  const r=rng(so.seed||7), T=so.custom?{color:so.custom.color,acc:so.custom.acc}:typeOf(so.subject), k=INK;
+  const is67 = so.rare==='67' && !lock;
+  let fill = so.rare==='gold'?'url(#gGold)':so.rare==='rainbow'?'url(#gRain)':is67?'#ff6a2a':T.color;
+  if (lock) fill='#d9cfb6';
+  const lk=r()*6-3, wave=r()<.45;
+  let g='';
+  g+=`<path d="M40 97L${37+lk} 112h-9M60 97L${63-lk} 112h9" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if (is67) g+=`<g class="armL"><path d="M19 70q-12-4-14-20" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/><ellipse cx="4" cy="47" rx="7" ry="3.5" fill="#fff" stroke="${k}" stroke-width="2.5"/></g><g class="armR"><path d="M81 70q12-4 14-20" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/><ellipse cx="96" cy="47" rx="7" ry="3.5" fill="#fff" stroke="${k}" stroke-width="2.5"/></g>`;
+  else g+=`<path d="M19 72q-11 ${wave?-14:6}-12 ${wave?-24:15}M81 72q11 6 12 15" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
+  const rx=32+r()*5, ry=29+r()*5;
+  g+=`<ellipse cx="50" cy="70" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${fill}" stroke="${k}" stroke-width="4"/>`;
+  if (!lock) g+=`<ellipse cx="33" cy="54" rx="7" ry="4" fill="#fff" opacity=".6" transform="rotate(-28 33 54)"/>`;
+  g+=`<path d="M50 44l-14-4 9 9-12 6 15-3 2 9 2-9 15 3-12-6 9-9z" fill="${lock?'#bdb196':'#2fbf5b'}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+  g+=`<path d="M50 44q-2-12 7-17" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/>`;
+  if (lock) {
+    g+=`<text x="50" y="82" text-anchor="middle" font-size="28" font-weight="900" fill="#9d9177">?</text>`;
+  } else {
+    const e1=6+r()*5, e2=5+r()*7, y1=64+r()*4, y2=62+r()*6, x1=38-r()*3, x2=62+r()*3, px=()=>(r()*2-1)*.45;
+    g+=`<circle cx="${x1}" cy="${y1}" r="${e1}" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="${x2}" cy="${y2}" r="${e2}" fill="#fff" stroke="${k}" stroke-width="3"/>`;
+    g+=`<circle cx="${x1+px()*e1}" cy="${y1+px()*e1}" r="${Math.max(2.2,e1*.4)}" fill="${k}"/><circle cx="${x2+px()*e2}" cy="${y2+px()*e2}" r="${Math.max(2.2,e2*.4)}" fill="${k}"/>`;
+    const m=Math.floor(r()*5), my=82+r()*3;
+    if (m===0) g+=`<path d="M40 ${my}q10 13 20 0z" fill="#7a1010" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+    else if (m===1) g+=`<path d="M37 ${my}q4-4 8 0t8 0t8 0" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`;
+    else if (m===2) g+=`<ellipse cx="51" cy="${my+2}" rx="4" ry="5.5" fill="#7a1010" stroke="${k}" stroke-width="3"/>`;
+    else if (m===3) g+=`<path d="M37 ${my}q13 9 26-2" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/><rect x="46" y="${my+2}" width="7" height="7" fill="#fff" stroke="${k}" stroke-width="2"/>`;
+    else g+=`<path d="M40 ${my}h19" stroke="${k}" stroke-width="3" stroke-linecap="round"/><path d="M49 ${my}q1 12 8 7q3-3-1-7" fill="#ff7aa0" stroke="${k}" stroke-width="2.5"/>`;
+    if (r()<.5) g+=`<ellipse cx="25" cy="79" rx="5" ry="3" fill="#ff9aa8"/><ellipse cx="75" cy="79" rx="5" ry="3" fill="#ff9aa8"/>`;
+    if (is67) g+=`<rect x="34" y="88" width="32" height="13" rx="4" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/><text x="50" y="99" text-anchor="middle" font-size="11" font-weight="900" fill="${k}">67</text>`;
+    else g+=(ACC[T.acc]?.(k))||'';
+    if (so.rare) g+=`<path d="M86 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM12 40l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff" stroke="${k}" stroke-width="2"/>`;
+  }
+  return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true"${is67?' class="s67"':''}>${GRAD}${g}</svg>`;
+}
+
+// ---------- 空投禮物 ----------
+const GIFTS = [
+  {id:'sock',ic:'🧦',name:'一隻不成對的襪子',rar:'普通',w:10,d:'另一隻在哪？沒人知道。'},
+  {id:'pudding',ic:'🍮',name:'過期三天的布丁',rar:'普通',w:10,d:'聞起來還可以，但建議不要。'},
+  {id:'egg',ic:'🥚',name:'半顆滷蛋',rar:'普通',w:10,d:'另一半被番茄兵偷吃了。'},
+  {id:'pen',ic:'🖍️',name:'沒水的紅筆',rar:'普通',w:10,d:'老師改考卷改到沒水的那一支。'},
+  {id:'fry',ic:'🍟',name:'一根軟掉的薯條',rar:'普通',w:10,d:'它曾經很脆。'},
+  {id:'rock',ic:'🪨',name:'一顆普通的石頭',rar:'普通',w:10,d:'真的，非常普通。'},
+  {id:'boba',ic:'🧋',name:'珍奶的最後一顆珍珠',rar:'少見',w:5,d:'吸不到，永遠吸不到。'},
+  {id:'chicken',ic:'🍗',name:'不切不要辣的雞排',rar:'少見',w:5,d:'老闆說今天特別大塊。'},
+  {id:'cape',ic:'🫥',name:'隱形斗篷',rar:'少見',w:5,d:'看不到，所以不確定有沒有拿到。'},
+  {id:'mic',ic:'🎤',name:'會走音的麥克風',rar:'少見',w:5,d:'不管唱什麼都會變成「六七」。'},
+  {id:'balloon',ic:'🎈',name:'6 和 7 的數字氣球',rar:'稀有',w:2,d:'綁在一起會一上一下地飄。'},
+  {id:'note67',ic:'📜',name:'第 67 號神秘紙條',rar:'稀有',w:2,d:'打開來寫著：「好好讀書。」'},
+  {id:'antidote',ic:'🧪',name:'番茄醬解藥',rar:'稀有',w:2,d:'可以抵銷一瓶番茄醬！'},
+  {id:'spatula',ic:'🥄',name:'黃金鍋鏟',rar:'稀有',w:2,d:'番茄炒蛋專用，閃閃發光。'},
+  {id:'crown67',ic:'👑',name:'六七大帝的王冠',rar:'傳說',w:0.6,d:'戴上去之後，手會自己開始上下晃。'},
+];
+function weightedGift(r, pool){ const tot=pool.reduce((a,b)=>a+b.w,0); let x=r()*tot; for(const g of pool){ x-=g.w; if(x<=0) return g; } return pool[0]; }
+function is67Time(ts){ const d=new Date(ts); return d.getMinutes()===7 && (d.getHours()===6 || d.getHours()===18); }
+function giftOf(so){
+  if (!so || !so.endedAt) return null;
+  if (so.n===67) return {...GIFTS.find(g=>g.id==='crown67'), why:'第 67 個角色出現，六七大帝親自送禮！'};
+  const r=rng(hash(String(so.id)+'gift'));
+  if (is67Time(so.endedAt)) return {...weightedGift(r, GIFTS.filter(g=>g.rar==='稀有'||g.rar==='傳說')), why:'六七時刻出土，必掉稀有空投！'};
+  if (r()<0.25) return weightedGift(r, GIFTS);
+  return null;
+}
+function crateSVG(){
+  const k=INK;
+  return `<svg viewBox="0 0 120 130" width="100%" height="100%" aria-hidden="true">
+  <path d="M14 40Q60-10 106 40Z" fill="#fff" stroke="${k}" stroke-width="3.5"/><path d="M14 40Q37 26 60 40Q83 26 106 40" fill="#ff4b3e" stroke="${k}" stroke-width="3"/>
+  <path d="M16 40L40 74M60 40V74M104 40L80 74" stroke="${k}" stroke-width="2"/>
+  <rect x="30" y="72" width="60" height="50" rx="5" fill="#d99a52" stroke="${k}" stroke-width="4"/>
+  <path d="M30 88h60M30 106h60" stroke="#a8692b" stroke-width="3"/><rect x="50" y="72" width="20" height="50" fill="#ffd23f" stroke="${k}" stroke-width="3"/>
+  <text x="60" y="104" text-anchor="middle" font-size="22" font-weight="900" fill="${k}">?</text></svg>`;
+}
+function eggSVG(done=false){
+  const k=INK;
+  return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true"><g transform="rotate(${done?0:-6} 50 104)">
+  <ellipse cx="50" cy="60" rx="38" ry="45" fill="#a8672f" stroke="${k}" stroke-width="4"/>
+  <path d="M20 46q12 9 25-2t28 4M17 72q15-8 29 2t33-4" stroke="#7a4518" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="34" cy="38" rx="7" ry="4" fill="#fff" opacity=".5" transform="rotate(-30 34 38)"/>
+  ${done?`<path d="M34 56q5-6 10 0M56 56q5-6 10 0" stroke="${k}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M40 68q10 10 20 0z" fill="#7a1010" stroke="${k}" stroke-width="3"/>`
+        :`<circle cx="39" cy="56" r="7" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="62" cy="54" r="5" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="40" cy="58" r="3" fill="${k}"/><circle cx="61" cy="56" r="2.4" fill="${k}"/><path d="M42 72q8-5 16 0" stroke="${k}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M80 34q4 8 0 11q-5-2 0-11z" fill="#8fd3ff" stroke="${k}" stroke-width="2"/>`}
+  <rect x="31" y="84" width="38" height="14" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="50" y="95" text-anchor="middle" font-size="10" font-weight="900" fill="${k}">67kg</text></g></svg>`;
+}
+function bobaSVG(done=false){
+  const k=INK;
+  return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true"><g transform="rotate(${done?0:5} 50 104)">
+  <path d="M60 22L74 0" stroke="${k}" stroke-width="10" stroke-linecap="round"/><path d="M60 22L74 0" stroke="#ff4b3e" stroke-width="6" stroke-linecap="round"/>
+  <path d="M22 30h56l-7 74H29z" fill="#e9cfa6" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="17" y="22" width="66" height="11" rx="3" fill="#fff" stroke="${k}" stroke-width="3.5"/>
+  ${[[36,96],[46,98],[56,96],[64,92],[40,88],[52,88],[33,90]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="#2b1a10" stroke="${k}" stroke-width="1.5"/>`).join('')}
+  ${done?`<path d="M36 50q5-6 10 0M56 50q5-6 10 0" stroke="${k}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M42 60q9 9 18 0z" fill="#7a1010" stroke="${k}" stroke-width="3"/>`
+        :`<circle cx="40" cy="50" r="6" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="62" cy="49" r="7.5" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="41" cy="51" r="2.6" fill="${k}"/><circle cx="60" cy="51" r="3.2" fill="${k}"/><ellipse cx="51" cy="64" rx="4" ry="5" fill="#7a1010" stroke="${k}" stroke-width="2.5"/>`}
+  <rect x="34" y="70" width="32" height="13" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="50" y="80.5" text-anchor="middle" font-size="10" font-weight="900" fill="${k}">67L</text></g></svg>`;
+}
+const MISSIONS = [
+  {title:'把考卷怪拖回基地', story:'段考魔王派出考卷怪，大家一起把它拖回基地關起來！', win:'考卷怪被拖回基地了！它說它下次還會再來。', art:d=>bossSVG(d)},
+  {title:'護送 67 公斤的巨大滷蛋', story:'一顆 67 公斤的滷蛋迷路了，正在冒冷汗，快護送它回基地。', win:'巨大滷蛋安全抵達！它感動到流出滷汁。', art:d=>eggSVG(d)},
+  {title:'搬回 67 公升的巨無霸珍奶', story:'有人在操場留下一杯 67 公升的珍奶，趁它還沒退冰搬回基地！', win:'珍奶搬回來了！可是最後一顆珍珠還是吸不到。', art:d=>bobaSVG(d)},
+];
+function missionOfWeek(){ const w=Math.floor((parseYmd(weekStart())-new Date(2026,0,5))/604800000); return MISSIONS[((w%MISSIONS.length)+MISSIONS.length)%MISSIONS.length]; }
+
+// ---------- 計時中：土裡慢慢長出來 ----------
+function growSVG(p){
+  p=Math.max(0,Math.min(1,p)); const k=INK;
+  const up = p<.35 ? 0 : (p-.35)/.65;             // 頭冒出來的程度
+  const hy = 112 - up*32;                          // 頭頂高度
+  let g='';
+  if (up>0) {
+    g+=`<ellipse cx="85" cy="${hy+30}" rx="32" ry="30" fill="#ff4b3e" stroke="${k}" stroke-width="4"/>`;
+    g+=`<ellipse cx="72" cy="${hy+14}" rx="6" ry="3.5" fill="#fff" opacity=".6" transform="rotate(-25 72 ${hy+14})"/>`;
+    if (up>.55) { const o=Math.min(1,(up-.55)/.3); g+=`<g opacity="${o}"><circle cx="73" cy="${hy+24}" r="8" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="98" cy="${hy+22}" r="6" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="76" cy="${hy+22}" r="3.4" fill="${k}"/><circle cx="96" cy="${hy+24}" r="2.8" fill="${k}"/></g>`; }
+  }
+  const base = up>0 ? hy+4 : 108, len = 10 + Math.min(p,.35)/.35*24;
+  g+=`<path d="M85 ${base}q-3 ${-len/2} 3 ${-len}" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
+  const ly = base-len+2;
+  g+=`<path d="M88 ${ly}q-20-12-26 2q14 6 26-2zM88 ${ly}q18-14 26-1q-12 7-26 1z" fill="#2fbf5b" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+  if (up>0) g+=`<path d="M85 ${hy+3}l-11-3 7 7-9 5 12-2 1 7 2-7 11 2-9-5 7-7z" fill="#2fbf5b" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`;
+  g+=`<path d="M8 150Q18 110 85 106Q152 110 162 150Z" fill="#9b6a3f" stroke="${k}" stroke-width="4"/>`;
+  g+=`<circle cx="40" cy="128" r="3" fill="#7a4f2c"/><circle cx="125" cy="124" r="4" fill="#7a4f2c"/><circle cx="100" cy="138" r="2.5" fill="#7a4f2c"/>`;
+  return `<svg viewBox="0 0 170 150" width="100%" height="100%" aria-hidden="true">${g}</svg>`;
+}
+const pearlIcon = (on=true) => on
+  ? `<svg viewBox="0 0 26 26" width="100%" height="100%"><circle cx="13" cy="13.5" r="10" fill="#5a3420" stroke="${INK}" stroke-width="2"/><ellipse cx="9" cy="9.5" rx="3" ry="2" fill="#fff" opacity=".5"/><circle cx="9.5" cy="13" r="1.6" fill="#fff"/><circle cx="16.5" cy="13" r="1.6" fill="#fff"/><path d="M10.5 17q2.5 2 5 0" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>`
+  : `<svg viewBox="0 0 26 26" width="100%" height="100%"><circle cx="13" cy="13.5" r="10" fill="#fff" stroke="${INK}" stroke-width="2" stroke-dasharray="3 2.5"/></svg>`;
+function growArt(p){ return themeKey()==='boba' ? cupSVG(p) : growSVG(p); }
+function failArt(){ return themeKey()==='boba' ? slurpSVG() : ketchupSVG(); }
+function giftDisp(g){ return g && g.id==='antidote' ? {...g, ...TH().antidote} : g; }
+// ---------- 放棄：番茄醬 ----------
+function ketchupSVG(){
+  const k=INK;
+  return `<svg viewBox="0 0 170 150" width="100%" height="100%" aria-hidden="true">
+  <path d="M14 146q6-22 30-12q12-26 38-8q22-20 40 4q30-6 34 16z" fill="#d92d20" stroke="${k}" stroke-width="3.5"/>
+  <g transform="rotate(-14 85 80)"><rect x="64" y="40" width="42" height="84" rx="13" fill="#ff4b3e" stroke="${k}" stroke-width="4"/>
+  <rect x="75" y="20" width="20" height="22" rx="3" fill="#fff" stroke="${k}" stroke-width="4"/>
+  <rect x="68" y="78" width="34" height="26" rx="5" fill="#fff" stroke="${k}" stroke-width="3"/>
+  <text x="85" y="96" text-anchor="middle" font-size="11" font-weight="900" fill="${k}">番茄醬</text>
+  <path d="M73 54l7 7m0-7l-7 7M90 54l7 7m0-7l-7 7" stroke="${k}" stroke-width="3" stroke-linecap="round"/>
+  <path d="M78 70q7-5 14 0" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/></g></svg>`;
+}
+// ---------- 還沒拔的芽 ----------
+function sproutSVG(){
+  const k=INK;
+  return `<svg viewBox="0 0 60 70" width="100%" height="100%" aria-hidden="true"><ellipse cx="30" cy="60" rx="17" ry="11" fill="#ff4b3e" stroke="${k}" stroke-width="3"/>
+  <path d="M4 68q26-18 52 0z" fill="#9b6a3f" stroke="${k}" stroke-width="3"/>
+  <path d="M30 50q-1-9 2-15" fill="none" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M32 36q-14-9-19 2q11 5 19-2zM32 36q12-11 19-1q-10 6-19 1z" fill="#2fbf5b" stroke="${k}" stroke-width="2.5"/>
+  <rect x="38" y="1" width="20" height="21" rx="6" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/><text x="48" y="18" text-anchor="middle" font-size="16" font-weight="900" fill="${k}">!</text></svg>`;
+}
+// ---------- 段考魔王：考卷怪 ----------
+function bossSVG(down=false){
+  const k=INK;
+  return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true"><g transform="rotate(${down?-75:-5} 50 104)">
+  <path d="M30 100v8M68 100v8" stroke="${k}" stroke-width="5" stroke-linecap="round"/>
+  <path d="M12 8h60l16 16v78H12z" fill="#fff" stroke="${k}" stroke-width="4" stroke-linejoin="round"/><path d="M72 8v16h16" fill="none" stroke="${k}" stroke-width="3.5"/>
+  <circle cx="29" cy="28" r="13" fill="none" stroke="#e02a1e" stroke-width="3.5"/><text x="29" y="35" text-anchor="middle" font-size="18" font-weight="900" fill="#e02a1e">0</text>
+  ${down?`<path d="M50 34l10 10m0-10l-10 10M68 34l10 10m0-10l-10 10" stroke="${k}" stroke-width="4" stroke-linecap="round"/>`
+        :`<path d="M49 28l13 6M81 28l-13 6" stroke="${k}" stroke-width="4" stroke-linecap="round"/><circle cx="56" cy="41" r="4.5" fill="${k}"/><circle cx="74" cy="41" r="4.5" fill="${k}"/>`}
+  <path d="M48 52h34v10H48z" fill="${k}"/><path d="M51 52l3 5 3-5M61 52l3 5 3-5M71 52l3 5 3-5" fill="#fff"/>
+  <path d="M20 72h46M20 81h56M20 90h38" stroke="#b9c3c9" stroke-width="3.5" stroke-linecap="round"/></g></svg>`;
+}
+function baseSVG(){
+  const k=INK;
+  return `<svg viewBox="0 0 70 78" width="100%" height="100%" aria-hidden="true"><path d="M9 32h52l-7 42H16z" fill="#d9743f" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="4" y="23" width="62" height="12" rx="3" fill="#f08a52" stroke="${k}" stroke-width="3.5"/>
+  <path d="M35 23q-2-11 4-17" fill="none" stroke="${k}" stroke-width="3"/><path d="M38 8q-12-8-17 2q9 5 17-2z" fill="#2fbf5b" stroke="${k}" stroke-width="2.5"/>
+  <text x="35" y="60" text-anchor="middle" font-size="12" font-weight="900" fill="#fff" stroke="${k}" stroke-width=".6">基地</text></svg>`;
+}
+const tomatoIcon = (on=true) => on
+  ? `<svg viewBox="0 0 26 26" width="100%" height="100%"><circle cx="13" cy="14.5" r="9.5" fill="#ff4b3e" stroke="${INK}" stroke-width="2.2"/><circle cx="10" cy="14" r="2" fill="#fff" stroke="${INK}" stroke-width="1.2"/><circle cx="16.5" cy="13.5" r="2.6" fill="#fff" stroke="${INK}" stroke-width="1.2"/><circle cx="10.4" cy="14.3" r=".9" fill="${INK}"/><circle cx="16" cy="14" r="1.1" fill="${INK}"/><path d="M13 5.5l-3.5-1.3 2.4 2.8-2.3 2.2 3.4-1.4 3.4 1.4-2.3-2.2 2.4-2.8z" fill="#2fbf5b" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+  : `<svg viewBox="0 0 26 26" width="100%" height="100%"><circle cx="13" cy="14.5" r="9.5" fill="#fff" stroke="${INK}" stroke-width="2" stroke-dasharray="3 2.5"/></svg>`;
+
+// ====================== 主題：珍奶星球（10–12 歲，可愛風） ======================
+const BOBA_SUBJECTS=[
+  {name:'國語',color:'#7a4526',unit:'黑糖珍珠',acc:'hat',    skill:'寫字超工整，還會順便把桌子擦乾淨'},
+  {name:'數學',color:'#a678d8',unit:'芋圓',    acc:'glasses',skill:'用 QQ 的身體當彈力計算機'},
+  {name:'自然',color:'#7cc95a',unit:'綠茶凍',  acc:'leaf',   skill:'一照到太陽就開心地抖抖'},
+  {name:'社會',color:'#f2b84b',unit:'布丁',    acc:'flag',   skill:'地圖背得很熟，只是走路一直晃'},
+  {name:'英語',color:'#f4efe3',unit:'椰果',    acc:'bow',    skill:'會用英文說早安、午安、晚安'},
+  {name:'音樂',color:'#ff7aa2',unit:'草莓啵啵',acc:'note',   skill:'一緊張就會開始唱歌'},
+  {name:'補充',color:'#ffb02e',unit:'芒果啵啵',acc:'star',   skill:'最喜歡幫大家補充能量'},
+];
+const BOBA_LEVELS=[
+  {min:0,name:'小珍珠'},{min:5,name:'彈牙珍珠'},{min:15,name:'珍珠奶茶'},{min:30,name:'大杯珍奶'},
+  {min:50,name:'全糖珍奶'},{min:80,name:'珍奶店長'},{min:120,name:'珍奶星球守護者'},{min:200,name:'宇宙珍奶王'}
+];
+const BOBA_QUOTES=['我是 Q 彈的珍珠，請多指教！','今天也要一起加油喔！','我剛剛在杯底睡了一個好覺。','你讀書的樣子好認真！',
+  '我最喜歡半糖少冰。','我會乖乖待在杯子裡等你。','六……七……（開心地跳上跳下）','吸管不要靠近我啦！','我們珍珠最團結了！',
+  '今天的奶茶有點冰，好舒服。','你知道嗎？我是用地瓜粉做的喔。','下一顆珍珠會是我的好朋友嗎？','讀完這一段，我們一起休息一下吧！'];
+const BOBA_A=['小','圓','啵','QQ','咕嚕','糖','奶','泡','嚕'], BOBA_B=['寶','球','妹','弟','丸','豆','咪','啾','圓'], BOBA_C=['','','','醬','一號','二號','寶寶'];
+const BOBA_RARE={gold:{name:'黃金珍珠',skill:'閃閃發亮，喝下去會變聰明（傳說）'},rainbow:{name:'彩虹珍珠',skill:'每一口都是不同的味道'},'67':{name:'六七珍珠',skill:'聽到 6 和 7 就會舉起小牌子上下跳'}};
+
+const THEME_TXT = {
+  tomato:{unit:'番茄兵',cnt:'隻',army:'我的番茄兵軍團',plant:'種下番茄兵',fail:'番茄醬',failIc:'🧴',failMsg:'噗滋——番茄兵變成番茄醬了',
+    failAsk:'真的要放棄？土裡那隻番茄兵會被榨成番茄醬。',giveupBtn:'放棄（會變番茄醬）',pending:'土裡有東西在動……',pluck:'拔出來！',
+    pendingField:n=>`有 ${n} 隻在土裡，點一下拔出來！`,focusLines:['番茄兵正在長大，別吵它','土裡傳來打呼聲……','它說：再 5 分鐘就好','專心！它在偷看你'],
+    ready:'土已經鬆好了，來種今天第一隻吧',countdown:'段考魔王出現倒數',dexTitle:'番茄兵圖鑑',recent:'最近出土',born:'出土',
+    empty:'這裡空空的……<br>去「今天」專心 25 分鐘，種出第一隻番茄兵！',six7:'6……7……（土裡的番茄兵開始上下晃手）',
+    antidote:{name:'番茄醬解藥',d:'可以抵銷一瓶番茄醬！'},keep:'收進軍團',none:'土裡沒有番茄兵了',breakEnd:'休息結束！下一隻番茄兵在等你'},
+  boba:{unit:'珍珠',cnt:'顆',army:'我的珍奶星球',plant:'開始搖珍奶',fail:'被吸走',failIc:'🥤',failMsg:'咻——珍珠被吸管吸走了',
+    failAsk:'真的要放棄嗎？杯子裡的珍珠會被吸管吸走喔。',giveupBtn:'放棄（珍珠會被吸走）',pending:'杯子裡有東西在動……',pluck:'撈出來！',
+    pendingField:n=>`杯底還有 ${n} 顆，點一下撈出來！`,focusLines:['珍珠正在慢慢變 Q','杯子裡傳來咕嚕咕嚕聲','珍珠說：再一下下就好','加油！珍珠在幫你打氣'],
+    ready:'杯子準備好了，來搖今天第一顆珍珠吧',countdown:'考試倒數',dexTitle:'珍珠圖鑑',recent:'最近撈到',born:'撈到',
+    empty:'星球上還空空的……<br>去「今天」專心 25 分鐘，搖出第一顆珍珠！',six7:'6……7……（杯子裡的珍珠開始上下跳）',
+    antidote:{name:'吸管保護罩',d:'可以抵銷一次被吸走！'},keep:'放進星球',none:'杯底沒有珍珠了',breakEnd:'休息結束！下一顆珍珠在等你'},
+};
+function themeKey(t){ return (t ?? S.group?.theme)==='boba' ? 'boba' : 'tomato'; }
+function TH(){ return THEME_TXT[themeKey()]; }
+function rareInfo(so){ return so.rare ? (themeKey()==='boba' ? BOBA_RARE[so.rare] : RARE[so.rare]) : null; }
+
+const CUTE_ACC = {
+  hat:k=>`<path d="M30 37l20-10 20 10-20 10z" fill="${k}"/><path d="M66 39v11" stroke="#ffd23f" stroke-width="2.5"/><circle cx="66" cy="51" r="2.6" fill="#ffd23f"/>`,
+  glasses:k=>`<g fill="rgba(255,255,255,.2)" stroke="${k}" stroke-width="3"><circle cx="37" cy="68" r="11"/><circle cx="63" cy="68" r="11"/></g><path d="M48 68h4" stroke="${k}" stroke-width="3"/>`,
+  leaf:k=>`<path d="M50 35q-2-11 6-15" fill="none" stroke="${k}" stroke-width="3"/><path d="M55 21q12-11 21 0q-10 8-21 0z" fill="#8ff09a" stroke="${k}" stroke-width="2.5"/>`,
+  flag:k=>`<path d="M93 92V58" stroke="${k}" stroke-width="3"/><path d="M93 58l-17 6 17 7z" fill="#ff7aa2" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
+  bow:k=>`<path d="M50 36l-15-9v18zM50 36l15-9v18z" fill="#ff7aa2" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="50" cy="36" r="4.5" fill="#ff7aa2" stroke="${k}" stroke-width="2.5"/>`,
+  note:k=>`<path d="M82 26v20" stroke="${k}" stroke-width="3"/><ellipse cx="78" cy="46" rx="5" ry="4" fill="${k}"/><path d="M82 26q9 2 9 10" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`,
+  star:k=>`<path d="M68 26l3.4 6.8 7.5 1-5.5 5 1.4 7.4-6.8-3.6-6.8 3.6 1.4-7.4-5.5-5 7.5-1z" fill="#ffd23f" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
+  crown:k=>`<path d="M37 37l3-11 6 6 4-9 4 9 6-6 3 11z" fill="#ffd23f" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
+  heart:k=>`<path d="M68 40c-6-4-10-8-10-12a5 5 0 0 1 10-2a5 5 0 0 1 10 2c0 4-4 8-10 12z" fill="#ff5f7a" stroke="${k}" stroke-width="2.5"/>`,
+};
+function isDark(hex){ if(!/^#[0-9a-f]{6}$/i.test(hex||'')) return false; const n=parseInt(hex.slice(1),16); return ((n>>16)*.299+((n>>8)&255)*.587+(n&255)*.114)<110; }
+function pearlSVG(so,{lock=false}={}){
+  const r=rng(so.seed||7), cc=so.custom, T=cc?{color:cc.color,acc:cc.acc}:typeOf(so.subject), k=INK;
+  const is67=so.rare==='67'&&!lock;
+  const fill = lock?'#d9cfb6': so.rare==='gold'?'url(#gGold)': so.rare==='rainbow'?'url(#gRain)': is67?'#ffb02e' : T.color;
+  let g=`<ellipse cx="37" cy="107" rx="8" ry="4.5" fill="${k}"/><ellipse cx="63" cy="107" rx="8" ry="4.5" fill="${k}"/>`;
+  if (is67) g+=`<g class="armL"><path d="M18 72q-8-6-8-18" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/><rect x="0" y="36" width="20" height="18" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="10" y="50" text-anchor="middle" font-size="13" font-weight="900" fill="${k}">6</text></g><g class="armR"><path d="M82 72q8-6 8-18" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/><rect x="80" y="36" width="20" height="18" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="90" y="50" text-anchor="middle" font-size="13" font-weight="900" fill="${k}">7</text></g>`;
+  else g+=`<path d="M16 76q-9 3-10 12M84 76q9 3 10 12" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/>`;
+  g+=`<circle cx="50" cy="70" r="36" fill="${fill}" stroke="${k}" stroke-width="4"/>`;
+  if (lock) return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true">${g}<text x="50" y="82" text-anchor="middle" font-size="28" font-weight="900" fill="#9d9177">?</text></svg>`;
+  g+=`<ellipse cx="34" cy="51" rx="9" ry="5.5" fill="#fff" opacity=".6" transform="rotate(-32 34 51)"/><circle cx="67" cy="47" r="3" fill="#fff" opacity=".6"/>`;
+  const ey=67+r()*3, gap=13;
+  for (const x of [50-gap,50+gap]) g+=`<ellipse cx="${x}" cy="${ey}" rx="7.5" ry="9" fill="#fff" stroke="${k}" stroke-width="2.5"/><ellipse cx="${x}" cy="${ey+1.5}" rx="5.2" ry="6.8" fill="${k}"/><circle cx="${x+2}" cy="${ey-2}" r="2.4" fill="#fff"/><circle cx="${x-2}" cy="${ey+4}" r="1.1" fill="#fff"/>`;
+  const mc = isDark(T.color)&&!so.rare ? '#fff' : k, m=Math.floor(r()*3), my=ey+13;
+  if (m===0) g+=`<path d="M44 ${my}q6 6 12 0" fill="none" stroke="${mc}" stroke-width="3" stroke-linecap="round"/>`;
+  else if (m===1) g+=`<path d="M44 ${my}q6 9 12 0z" fill="#ff7a8a" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`;
+  else g+=`<path d="M43 ${my}q3.5 4 7 0q3.5 4 7 0" fill="none" stroke="${mc}" stroke-width="2.6" stroke-linecap="round"/>`;
+  g+=`<ellipse cx="${50-gap-9}" cy="${ey+11}" rx="5.5" ry="3.2" fill="#ff9aa8" opacity=".9"/><ellipse cx="${50+gap+9}" cy="${ey+11}" rx="5.5" ry="3.2" fill="#ff9aa8" opacity=".9"/>`;
+  if (!is67) g+=(CUTE_ACC[T.acc]?.(k))||'';
+  if (so.rare) g+=`<path d="M86 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM12 40l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff" stroke="${k}" stroke-width="2"/>`;
+  return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true"${is67?' class="s67"':''}>${GRAD}${g}</svg>`;
+}
+// 計時中：杯子慢慢裝滿、珍珠一顆顆出現
+function cupSVG(p){
+  p=Math.max(0,Math.min(1,p)); const k=INK, y=146-p*108;
+  const pearls=[[66,138],[80,140],[94,140],[107,137],[72,126],[87,128],[101,125],[79,114],[95,114],[87,102]].slice(0,Math.floor(p*10));
+  let g=`<defs><clipPath id="cupc"><path d="M50 26H120L112 146H58Z"/></clipPath></defs>`;
+  g+=`<path d="M95 20L114 0" stroke="${k}" stroke-width="11" stroke-linecap="round"/><path d="M95 20L114 0" stroke="#ff7aa2" stroke-width="7" stroke-linecap="round"/>`;
+  g+=`<g clip-path="url(#cupc)"><rect x="40" y="${y}" width="90" height="130" fill="#e3b583"/>${pearls.map(([x,yy])=>`<circle cx="${x}" cy="${yy}" r="7" fill="#3b2416" stroke="${k}" stroke-width="1.5"/>`).join('')}
+    ${p>=.85?`<g transform="translate(0 ${(1-p)*40})"><circle cx="85" cy="${y+14}" r="14" fill="#5a3420" stroke="${k}" stroke-width="3"/><circle cx="80" cy="${y+12}" r="3.2" fill="#fff"/><circle cx="91" cy="${y+12}" r="3.2" fill="#fff"/><circle cx="80.6" cy="${y+12.6}" r="1.8" fill="${k}"/><circle cx="91.6" cy="${y+12.6}" r="1.8" fill="${k}"/></g>`:''}</g>`;
+  g+=`<path d="M50 26H120L112 146H58Z" fill="rgba(255,255,255,.25)" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>`;
+  g+=`<rect x="44" y="18" width="82" height="11" rx="4" fill="#fff" stroke="${k}" stroke-width="3.5"/><path d="M62 40v80" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".55"/>`;
+  return `<svg viewBox="0 0 170 150" width="100%" height="100%" aria-hidden="true">${g}</svg>`;
+}
+function slurpSVG(){
+  const k=INK;
+  return `<svg viewBox="0 0 170 150" width="100%" height="100%" aria-hidden="true">
+  <path d="M95 22L130 -10" stroke="${k}" stroke-width="13" stroke-linecap="round"/><path d="M95 22L130 -10" stroke="#ff7aa2" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="118" cy="2" r="7" fill="#5a3420" stroke="${k}" stroke-width="2"/>
+  <path d="M50 26H120L112 146H58Z" fill="rgba(255,255,255,.4)" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="44" y="18" width="82" height="11" rx="4" fill="#fff" stroke="${k}" stroke-width="3.5"/>
+  <text x="140" y="40" font-size="18" font-weight="900" fill="${k}">咻</text><text x="20" y="80" font-size="14" font-weight="900" fill="${k}">——</text></svg>`;
+}
+function miniCupSVG(){
+  const k=INK;
+  return `<svg viewBox="0 0 60 70" width="100%" height="100%" aria-hidden="true"><path d="M14 22H46L42 66H18Z" fill="#e3b583" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="25" cy="58" r="4" fill="#3b2416"/><circle cx="34" cy="59" r="4" fill="#3b2416"/><rect x="11" y="17" width="38" height="7" rx="3" fill="#fff" stroke="${k}" stroke-width="2.5"/>
+  <rect x="38" y="0" width="20" height="20" rx="6" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/><text x="48" y="16" text-anchor="middle" font-size="15" font-weight="900" fill="${k}">!</text></svg>`;
+}
+
+// ---------- 戰場（番茄兵在草地上亂走） ----------
+function skyNow(){
+  const h=new Date().getHours();
+  if (themeKey()==='boba') return (h>=6&&h<18) ? {sky:'linear-gradient(#c7b8ff,#ffd9ef)', hill:'#e9c597', night:false, sun:'#fff1a8'} : {sky:'linear-gradient(#2b2357,#5a3f8f)', hill:'#b98f60', night:true, sun:'#fff6c8'};
+  if (h>=6 && h<16) return {sky:'linear-gradient(#69c9ff,#c9f1ff)', hill:'#78d453', night:false, sun:'#ffd23f'};
+  if (h>=16 && h<19) return {sky:'linear-gradient(#ff8a4c,#ffd27a)', hill:'#65bf45', night:false, sun:'#ffef7a'};
+  return {sky:'linear-gradient(#141a45,#3a4794)', hill:'#3b8a3f', night:true, sun:'#fff6c8'};
+}
+function fieldHTML(army, pluckTs, {title='', height=300}={}){
+  title = title || TH().army;
+  const sk=skyNow(), k=INK;
+  const plucked=army.filter(s=>s.endedAt<=pluckTs), sprouts=army.filter(s=>s.endedAt>pluckTs);
+  const shown=plucked.slice(-30);
+  let deco = sk.night
+    ? Array.from({length:14},(_,i)=>{ const r=rng(i+9); return `<span style="position:absolute;left:${r()*96}%;top:${r()*40}%;width:4px;height:4px;border-radius:50%;background:#fff;opacity:${.4+r()*.6}"></span>`; }).join('')
+      + `<span style="position:absolute;right:18%;top:14%;width:34px;height:34px;border-radius:50%;background:${sk.sun};border:2.5px solid ${k};box-shadow:inset -9px -4px 0 rgba(0,0,0,.18)"></span>`
+    : `<span style="position:absolute;right:16%;top:12%;width:40px;height:40px;border-radius:50%;background:${sk.sun};border:2.5px solid ${k}"></span>`
+      + [0,1].map(i=>`<span class="cloud" style="top:${16+i*18}%;animation-duration:${38+i*17}s;animation-delay:-${i*20}s"><svg width="74" height="30" viewBox="0 0 74 30"><path d="M10 26a9 9 0 0 1 4-17a12 12 0 0 1 22-4a11 11 0 0 1 20 5a8 8 0 0 1 8 16z" fill="#fff" stroke="${k}" stroke-width="2.5"/></svg></span>`).join('');
+  const sol = shown.map(so=>{
+    const r=rng(so.seed+3), y=4+r()*36, w=Math.round(46+(40-y)*0.45), x=3+r()*78;
+    const dx=Math.round((r()<.5?-1:1)*(18+r()*50)), d=(2.6+r()*3).toFixed(1), dl=(r()*4).toFixed(1);
+    return `<button class="sol" data-a="soldier" data-id="${so.id}" style="left:${x.toFixed(1)}%;bottom:${y.toFixed(1)}%;width:${w}px;height:${Math.round(w*1.1)}px;z-index:${60-Math.round(y)};--dx:${dx}px;--d:${d}s;--dl:-${dl}s" aria-label="${so.name}"><span>${soldierSVG(so)}</span></button>`;
+  }).join('');
+  const spr = sprouts.slice(0,8).map((s,i)=>`<button class="sprout" data-a="pluck" style="left:${8+i*11}%;bottom:${2+(i%2)*6}%;width:48px;height:56px;z-index:70;animation-delay:-${i*.3}s" aria-label="${esc(TH().pluck)}">${themeKey()==='boba'?miniCupSVG():sproutSVG()}</button>`).join('');
+  const emptyMsg = (!shown.length && !sprouts.length) ? `<div style="position:absolute;left:50%;bottom:34%;transform:translateX(-50%);width:80%;text-align:center;z-index:6"><span class="say">${TH().empty}</span></div>` : '';
+  return `<div class="field" style="height:${height}px">
+    <div class="sky" style="background:${sk.sky}">${deco}</div>
+    <div class="hill" style="background:${sk.hill}"></div>
+    <div class="title">${esc(title)}</div><div class="count">×${plucked.length}</div>
+    ${sol}${spr}${emptyMsg}
+    ${sprouts.length?`<div style="position:absolute;right:10px;bottom:10px;z-index:80"><span class="say" style="font-size:.8rem">${TH().pendingField(sprouts.length)}</span></div>`:''}
+  </div>`;
+}
+// 朋友的小軍團（依各科讀書時間分配兵種）
+function miniArmy(uid, max=14){
+  const m=S.members[uid]||{}, n=m.tomatoes||0; if(!n) return `<span class="tiny muted">還沒有${TH().unit}</span>`;
+  const sm=m.sm||{}, tot=Object.values(sm).reduce((a,b)=>a+b,0)||1;
+  const show=Math.min(n,max), list=[];
+  Object.entries(sm).sort((a,b)=>b[1]-a[1]).forEach(([s,v])=>{ for(let i=0;i<Math.round(v/tot*show);i++) list.push(s); });
+  while(list.length<show) list.push('其他');
+  return `<div class="mini">${list.slice(0,show).map((s,i)=>`<span>${soldierSVG({subject:s,seed:hash(uid+i)})}</span>`).join('')}${n>max?`<b class="small" style="align-self:center;margin-left:8px">+${n-max}</b>`:''}</div>`;
+}
+
+const starSVG = on => `<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.3L12 17.1l-5.7 3.1 1.2-6.3L2.8 9.5l6.4-.8z" fill="${on?'#f5b335':'none'}" stroke="${on?'#e09a12':'#cfc6b3'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+const checkSVG = `<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12.5l4.2 4.2L19 7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICONS = {
+  today:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>`,
+  tasks:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></svg>`,
+  garden:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="14" r="7"/><path d="M12 7c0-3 2-4 4-4M12 7c-2-2-4-2-6-1 2 1 4 1 6 1z"/></svg>`,
+  friends:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
+  play:`<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg>`,
+  more:`<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>`,
+};
+
+// ======================================================================
+//  資料層：Firebase 版 與 示範（本機）版，介面相同
+// ======================================================================
+async function makeFirebaseAPI(cfg){
+  const V='10.12.2', B=`https://www.gstatic.com/firebasejs/${V}/`;
+  const [{initializeApp},A,F] = await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-auth.js'),import(B+'firebase-firestore.js')]);
+  const app = initializeApp(cfg);
+  const auth = A.getAuth(app);
+  const db = F.getFirestore(app);
+  const {doc,collection,getDoc,setDoc,updateDoc,deleteDoc,onSnapshot,writeBatch,arrayUnion,arrayRemove,increment,serverTimestamp,query,where} = F;
+  const gref = gid => doc(db,'groups',gid);
+  return {
+    mode:'firebase',
+    onAuth(cb){ return A.onAuthStateChanged(auth, u => cb(u ? {uid:u.uid, name:u.displayName||lsGet('tg-nick')||'同學', photo:u.photoURL||'', anon:u.isAnonymous} : null)); },
+    async signIn(){ const p=new A.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); await A.signInWithPopup(auth,p); },
+    async signInAnon(nick){ lsSet('tg-nick',nick); const c=await A.signInAnonymously(auth); try{ await A.updateProfile(c.user,{displayName:nick}); }catch{} },
+    async emailSignUp(email,pw,nick){ lsSet('tg-nick',nick); const c=await A.createUserWithEmailAndPassword(auth,email,pw); try{ await A.updateProfile(c.user,{displayName:nick}); }catch{} },
+    async emailSignIn(email,pw){ await A.signInWithEmailAndPassword(auth,email,pw); },
+    async emailReset(email){ await A.sendPasswordResetEmail(auth,email); },
+    async linkEmail(email,pw){ const cred=A.EmailAuthProvider.credential(email,pw); await A.linkWithCredential(auth.currentUser,cred); },
+    async linkGoogle(){ const p=new A.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); const c=await A.linkWithPopup(auth.currentUser,p); return {name:c.user.displayName, photo:c.user.photoURL||''}; },
+    signOut(){ return A.signOut(auth); },
+    async getUser(uid){ const s=await getDoc(doc(db,'users',uid)); return s.exists()?s.data():null; },
+    setUser(uid,data){ return setDoc(doc(db,'users',uid), data, {merge:true}); },
+    async getGroup(gid){ const s=await getDoc(gref(gid)); return s.exists()?{id:s.id,...s.data()}:null; },
+    async getMember(gid,uid){ const s=await getDoc(doc(db,'groups',gid,'members',uid)); return s.exists()?s.data():null; },
+    async createGroup(me,{name,examName,examDate,theme='tomato'}){
+      let code;
+      for (let i=0;i<5;i++){ code=randCode(); const s=await getDoc(gref(code)); if(!s.exists()) break; }
+      await setDoc(gref(code), {name, examName, examDate, theme, subjects:theme==='boba'?BOBA_SUBJECTS:SUBJECTS, owner:me.uid, members:[me.uid], createdAt:serverTimestamp()});
+      await setDoc(doc(db,'groups',code,'members',me.uid), {name:me.name, photo:me.photo, joinedAt:Date.now()}, {merge:true});
+      return code;
+    },
+    async joinGroup(me,code){
+      code=code.trim().toUpperCase();
+      const s=await getDoc(gref(code)); if(!s.exists()) throw new Error('找不到這個邀請碼');
+      if (!(s.data().members||[]).includes(me.uid)) await updateDoc(gref(code), {members:arrayUnion(me.uid)});
+      await setDoc(doc(db,'groups',code,'members',me.uid), {name:me.name, photo:me.photo, joinedAt:Date.now()}, {merge:true});
+      return code;
+    },
+    async leaveGroup(me,gid){ await updateDoc(gref(gid), {members:arrayRemove(me.uid)}); },
+    watchGroup(gid,cb,err){ return onSnapshot(gref(gid), s=>cb(s.exists()?{id:s.id,...s.data()}:null), err); },
+    updateGroup(gid,data){ return updateDoc(gref(gid), data); },
+    watchMembers(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'members'), qs=>{ const o={}; qs.forEach(d=>o[d.id]=d.data()); cb(o); }, err); },
+    setMember(gid,uid,data){ return setDoc(doc(db,'groups',gid,'members',uid), data, {merge:true}); },
+    watchTasks(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'tasks'), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); cb(a); }, err); },
+    async addTasks(gid,uid,list){
+      for (let i=0;i<list.length;i+=10){
+        const b=writeBatch(db);
+        list.slice(i,i+10).forEach((t,j)=>b.set(doc(collection(db,'groups',gid,'tasks')), {subject:t.subject,title:t.title,date:t.date||'',order:Date.now()+i+j,createdBy:uid}));
+        await b.commit();
+      }
+    },
+    updateTask(gid,id,data){ return updateDoc(doc(db,'groups',gid,'tasks',id), data); },
+    deleteTask(gid,id){ return deleteDoc(doc(db,'groups',gid,'tasks',id)); },
+    watchProgress(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'progress'), qs=>{ const o={}; qs.forEach(d=>o[d.id]=d.data()); cb(o); }, err); },
+    setProgress(gid,uid,taskId,data){ return setDoc(doc(db,'groups',gid,'progress',`${uid}_${taskId}`), {uid,taskId,...data,updatedAt:Date.now()}, {merge:true}); },
+    async recordSession(gid,uid,{subject,taskId,minutes,tomato}){
+      const day=ymd(), b=writeBatch(db);
+      b.set(doc(collection(db,'groups',gid,'sessions')), {uid,subject,taskId:taskId||'',minutes,tomato:!!tomato,date:day,endedAt:Date.now()});
+      const up={minutes:increment(minutes), [`dm.${day}`]:increment(minutes), [`sm.${subject}`]:increment(minutes), studying:null};
+      if (tomato){ up.tomatoes=increment(1); up[`dt.${day}`]=increment(1); }
+      b.update(doc(db,'groups',gid,'members',uid), up);
+      await b.commit();
+    },
+    watchChars(gid,cb){ return onSnapshot(collection(db,'groups',gid,'chars'), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); cb(a); }, ()=>{}); },
+    async addChar(gid,uid,data){ const ref=doc(db,'groups',gid,'chars',`${uid}_${weekStart()}`); const s=await getDoc(ref); if(s.exists()) throw new Error('week'); await setDoc(ref,{...data,by:uid,createdAt:Date.now()}); },
+    deleteChar(gid,id){ return deleteDoc(doc(db,'groups',gid,'chars',id)); },
+    bumpKetchup(gid,uid){ return updateDoc(doc(db,'groups',gid,'members',uid), {ketchup:increment(1), studying:null}); },
+    async getGuest(token){ const d=await getDoc(doc(db,'guests',token)); return d.exists()?d.data():null; },
+    setGuest(token,data){ return setDoc(doc(db,'guests',token),data); },
+    delGuest(token){ return deleteDoc(doc(db,'guests',token)); },
+    watchMySessions(gid,uid,cb){ return onSnapshot(query(collection(db,'groups',gid,'sessions'), where('uid','==',uid)), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); a.sort((x,y)=>y.endedAt-x.endedAt); cb(a); }, ()=>{}); },
+  };
+}
+
+function makeLocalAPI(){
+  const KEY='tg-demo-v5';
+  let D = lsGet(KEY);
+  const listeners=new Set();
+  const save=()=>{ lsSet(KEY,D); listeners.forEach(f=>f()); };
+  const ME={uid:'me', name:'我', photo:''};
+  function seed(){
+    const gid='DEMO01', tasks={}, progress={};
+    parseLines(TEMPLATE.lines, 2026).forEach((t,i)=>{ tasks['t'+i]={...t, order:i, createdBy:'me'}; });
+    const ids=Object.keys(tasks), today=ymd();
+    const friendDays = (n,base) => { const dm={},dt={}; for(let i=0;i<5;i++){ const d=addDays(today,-i); const k=Math.max(0,base-i%3); dt[d]=k; dm[d]=k*25; } return {dm,dt}; };
+    const f1=friendDays(5,4), f2=friendDays(5,2), f3=friendDays(5,3);
+    ids.slice(0,14).forEach((id,i)=>{ progress['f1_'+id]={uid:'f1',taskId:id,done:true,mastery:1+(i%3)}; });
+    ids.slice(0,7).forEach((id,i)=>{ progress['f2_'+id]={uid:'f2',taskId:id,done:true,mastery:1+((i+1)%3)}; });
+    const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);
+    return {
+      users:{me:{groups:[gid,'DEMO02','DEMO03','DEMO04'], current:''}},
+      groups:{[gid]:{
+        doc:{name:'67番茄園', theme:'tomato', subjects:[...SUBJECTS.filter(x=>!['社會','理化','其他'].includes(x.name)), {name:'超修',color:'#ff5fa2',unit:'超修兵',skill:'超級修煉中，讀到一半頭上會冒煙'}, SUBJECTS.find(x=>x.name==='其他')], examName:TEMPLATE.name, examDate:TEMPLATE.examDate, owner:'me', members:['me','f1','f2','f3']},
+        members:{
+          me:{name:'我', photo:'', joinedAt:Date.now()},
+          f1:{name:'小安', photo:'', tomatoes:sum(f1.dt), minutes:sum(f1.dm), dm:f1.dm, dt:f1.dt, sm:{'數學':150,'英文':125,'生物':100,'國文':75}, studying:{subject:'數學', title:'公因數、公倍數應用問題', endsAt:Date.now()+14*60000}},
+          f2:{name:'阿哲', photo:'', tomatoes:sum(f2.dt), minutes:sum(f2.dm), dm:f2.dm, dt:f2.dt, sm:{'英文':100,'歷史':50,'國文':75}, ketchup:1},
+          f3:{name:'阿凱', photo:'', tomatoes:sum(f3.dt), minutes:sum(f3.dm), dm:f3.dm, dt:f3.dt, sm:{'數學':125,'地理':75,'公民':50}},
+        },
+        tasks, progress, sessions:{},
+        chars:{['f1_'+addDays(weekStart(),-7)]:{name:'爆汁隊長',color:'#ff4b3e',acc:'crown',skill:'一生氣就會噴汁',quote:'番茄兵，衝啊！',by:'f1',createdAt:Date.now()-8*86400000}}
+      },
+      DEMO02:(()=>{ const bt={}; [['國語','第 8 課生字＋造句'],['數學','分數的加減'],['自然','植物的構造'],['英語','Unit 4 單字'],['音樂','直笛〈小星星〉'],['社會','家鄉的地圖'],['補充','閱讀測驗一篇']].forEach(([sub,ti],i)=>{ bt['b'+i]={subject:sub,title:ti,date:addDays(today,i%3),order:i,createdBy:'k1'}; });
+        const k1=friendDays(5,3), k2=friendDays(5,2);
+        return {doc:{name:'珍奶星球軍團', theme:'boba', subjects:structuredClone(BOBA_SUBJECTS), examName:'', examDate:'', owner:'k1', members:['k1','me','k2']},
+          members:{ me:{name:'我', photo:'', joinedAt:Date.now()},
+            k1:{name:'小芸', photo:'', tomatoes:sum(k1.dt), minutes:sum(k1.dm), dm:k1.dm, dt:k1.dt, sm:{'國語':100,'數學':75,'英語':75,'音樂':50}},
+            k2:{name:'阿布', photo:'', tomatoes:sum(k2.dt), minutes:sum(k2.dm), dm:k2.dm, dt:k2.dt, sm:{'自然':75,'社會':50,'補充':50}, studying:{subject:'自然', title:'植物的構造', endsAt:Date.now()+9*60000}} },
+          tasks:bt, progress:{}, sessions:{},
+          chars:{['k1_'+addDays(weekStart(),-7)]:{name:'棉花糖啵啵',color:'#f4efe3',acc:'heart',skill:'會在你讀書時偷偷幫你加油',quote:'你最棒了！',by:'k1',createdAt:Date.now()-8*86400000}} }; })(),
+      ...Object.fromEntries([['DEMO03','第三讀書社'],['DEMO04','第四讀書社']].map(([id,n])=>[id,{
+        doc:{name:n, theme:'tbd', examName:TEMPLATE.name, examDate:TEMPLATE.examDate, owner:'me', members:['me']},
+        members:{me:{name:'我', photo:'', joinedAt:Date.now()}}, tasks:{}, progress:{}, sessions:{}
+      }]))
+      }
+    };
+  }
+  if (!D) { D=seed(); lsSet(KEY,D); }
+  const G=gid=>D.groups[gid];
+  const watch=(fn)=>{ const f=()=>fn(); listeners.add(f); setTimeout(f,0); return ()=>listeners.delete(f); };
+  const setPath=(obj,path,val)=>{ const ks=path.split('.'); let o=obj; ks.slice(0,-1).forEach(k=>{ o[k]=o[k]||{}; o=o[k]; }); o[ks.at(-1)]=val; };
+  const getPath=(obj,path)=>path.split('.').reduce((o,k)=>o?.[k],obj);
+  return {
+    mode:'demo',
+    onAuth(cb){ const u=lsGet('tg-demo-signed'); setTimeout(()=>cb(u?{...ME, anon:u==='anon', name:(u==='anon'||u==='email')?(lsGet('tg-nick')||'我'):ME.name}:null),0); this._cb=cb; return ()=>{}; },
+    async signIn(){ lsSet('tg-demo-signed',true); this._cb?.(ME); },
+    async signInAnon(nick){ lsSet('tg-nick',nick); lsSet('tg-demo-signed','anon'); this._cb?.({...ME, name:nick, anon:true}); },
+    async linkGoogle(){ lsSet('tg-demo-signed',true); return {name:ME.name, photo:''}; },
+    async emailSignUp(email,pw,nick){ const acc=lsGet('tg-demo-acc',{}); if(acc[email]) throw {code:'auth/email-already-in-use'}; if(pw.length<6) throw {code:'auth/weak-password'}; acc[email]={pw,nick}; lsSet('tg-demo-acc',acc); lsSet('tg-nick',nick); lsSet('tg-demo-signed','email'); this._cb?.({...ME,name:nick}); },
+    async emailSignIn(email,pw){ const a=lsGet('tg-demo-acc',{})[email]; if(!a||a.pw!==pw) throw {code:'auth/invalid-credential'}; lsSet('tg-nick',a.nick); lsSet('tg-demo-signed','email'); this._cb?.({...ME,name:a.nick}); },
+    async emailReset(email){ return; },
+    async linkEmail(email,pw){ const acc=lsGet('tg-demo-acc',{}); acc[email]={pw,nick:lsGet('tg-nick')}; lsSet('tg-demo-acc',acc); lsSet('tg-demo-signed','email'); },
+    async signOut(){ lsDel('tg-demo-signed'); this._cb?.(null); },
+    async getUser(uid){ return D.users[uid]||null; },
+    async setUser(uid,data){ D.users[uid]={...(D.users[uid]||{}),...data}; save(); },
+    async getGroup(gid){ return G(gid)?{id:gid,...structuredClone(G(gid).doc)}:null; },
+    async getMember(gid,uid){ return G(gid)?.members?.[uid] ? structuredClone(G(gid).members[uid]) : null; },
+    async createGroup(me,{name,examName,examDate,theme='tomato'}){ const code=randCode(); D.groups[code]={doc:{name,examName,examDate,theme,subjects:structuredClone(theme==='boba'?BOBA_SUBJECTS:SUBJECTS),owner:me.uid,members:[me.uid]},members:{[me.uid]:{name:me.name,photo:me.photo,joinedAt:Date.now()}},tasks:{},progress:{},sessions:{}}; save(); return code; },
+    async joinGroup(me,code){ code=code.trim().toUpperCase(); const g=G(code); if(!g) throw new Error('找不到這個邀請碼'); if(!g.doc.members.includes(me.uid)) g.doc.members.push(me.uid); g.members[me.uid]={...(g.members[me.uid]||{}),name:me.name,photo:me.photo}; save(); return code; },
+    async leaveGroup(me,gid){ const g=G(gid); g.doc.members=g.doc.members.filter(x=>x!==me.uid); save(); },
+    watchGroup(gid,cb){ return watch(()=>cb(G(gid)?{id:gid,...G(gid).doc}:null)); },
+    async updateGroup(gid,data){ Object.assign(G(gid).doc,data); save(); },
+    watchMembers(gid,cb){ return watch(()=>cb(structuredClone(G(gid)?.members||{}))); },
+    async setMember(gid,uid,data){ const g=G(gid); g.members[uid]={...(g.members[uid]||{}),...data}; save(); },
+    watchTasks(gid,cb){ return watch(()=>cb(Object.entries(G(gid)?.tasks||{}).map(([id,t])=>({id,...t})))); },
+    async addTasks(gid,uid,list){ const g=G(gid); list.forEach((t,i)=>{ g.tasks['t'+Date.now().toString(36)+i]={subject:t.subject,title:t.title,date:t.date||'',order:Date.now()+i,createdBy:uid}; }); save(); },
+    async updateTask(gid,id,data){ Object.assign(G(gid).tasks[id],data); save(); },
+    async deleteTask(gid,id){ delete G(gid).tasks[id]; save(); },
+    watchProgress(gid,cb){ return watch(()=>cb(structuredClone(G(gid)?.progress||{}))); },
+    async setProgress(gid,uid,taskId,data){ const g=G(gid), k=`${uid}_${taskId}`; g.progress[k]={...(g.progress[k]||{}),uid,taskId,...data,updatedAt:Date.now()}; save(); },
+    async recordSession(gid,uid,{subject,taskId,minutes,tomato}){
+      const g=G(gid), day=ymd(), m=g.members[uid]=g.members[uid]||{};
+      const inc=(p,v)=>setPath(m,p,(getPath(m,p)||0)+v);
+      inc('minutes',minutes); m.dm=m.dm||{}; m.dm[day]=(m.dm[day]||0)+minutes; m.sm=m.sm||{}; m.sm[subject]=(m.sm[subject]||0)+minutes;
+      if (tomato){ inc('tomatoes',1); m.dt=m.dt||{}; m.dt[day]=(m.dt[day]||0)+1; }
+      m.studying=null;
+      g.sessions['s'+Date.now()]={uid,subject,taskId:taskId||'',minutes,tomato:!!tomato,date:day,endedAt:Date.now()};
+      save();
+    },
+    watchChars(gid,cb){ return watch(()=>cb(Object.entries(G(gid)?.chars||{}).map(([id,c])=>({id,...c})))); },
+    async addChar(gid,uid,data){ const g=G(gid); g.chars=g.chars||{}; const id=`${uid}_${weekStart()}`; if(g.chars[id]) throw new Error('week'); g.chars[id]={...data,by:uid,createdAt:Date.now()}; save(); },
+    async deleteChar(gid,id){ delete G(gid).chars[id]; save(); },
+    async bumpKetchup(gid,uid){ const m=G(gid).members[uid]=G(gid).members[uid]||{}; m.ketchup=(m.ketchup||0)+1; m.studying=null; save(); },
+    watchMySessions(gid,uid,cb){ return watch(()=>cb(Object.entries(G(gid)?.sessions||{}).map(([id,x])=>({id,...x})).filter(s=>s.uid===uid).sort((a,b)=>b.endedAt-a.endedAt))); },
+    async getGuest(token){ return structuredClone((D.guests||{})[token]||null); },
+    async setGuest(token,data){ D.guests=D.guests||{}; D.guests[token]=data; save(); },
+    async delGuest(token){ if(D.guests) delete D.guests[token]; save(); },
+    resetDemo(){ lsDel(KEY); D=seed(); lsSet(KEY,D); save(); },
+  };
+}
+
+// ======================================================================
+//  狀態
+// ======================================================================
+const S = {
+  api:null, me:null, userDoc:null, gid:null, group:null,
+  members:{}, tasks:[], progress:{}, sessions:[],
+  view:(location.hash.replace('#','')||'today'), loading:true, error:'',
+  taskFilter:'全部', taskShowDone:true, friendSort:'week', addMode:'one',
+  timer: lsGet('tg-timer'),
+  settings: Object.assign({focus:25, brk:5, goal:4}, lsGet('tg-settings',{})),
+};
+if (!['today','tasks','garden','friends','settings'].includes(S.view)) S.view='today';
+let unsubs=[];
+const joinFromHash = (location.hash.match(/^#join-([A-Za-z0-9]{6})$/)||[])[1];
+const guestFromHash = (location.hash.match(/^#guest-([A-Za-z0-9]{12})$/)||[])[1];
+
+// ---------- 衍生資料 ----------
+const isLeader = () => !!S.group && S.group.owner===S.me?.uid;
+const leaderName = () => (S.members[S.group?.owner]||{}).name || '團長';
+const prog = (uid,tid) => S.progress[`${uid}_${tid}`] || {};
+const sortTasks = a => [...a].sort((x,y)=> (x.date||'9999').localeCompare(y.date||'9999') || (x.order||0)-(y.order||0));
+function memberStats(uid){
+  const m=S.members[uid]||{}, today=ymd(), ws=weekStart();
+  const dm=m.dm||{}, dt=m.dt||{};
+  let week=0; for (let i=0;i<7;i++){ week += dm[addDays(ws,i)]||0; }
+  let streak=0, d=today; if (!(dt[d]>0)) d=addDays(d,-1);
+  while ((dt[d]||0)>0){ streak++; d=addDays(d,-1); }
+  const tids=S.tasks.map(t=>t.id); let done=0, mast=0;
+  tids.forEach(id=>{ const p=prog(uid,id); if(p.done) done++; mast+=p.mastery||0; });
+  const maxDay=Math.max(0,...Object.values(dt));
+  return { todayMin:dm[today]||0, todayTom:dt[today]||0, week, total:m.minutes||0, tomatoes:m.tomatoes||0, streak, maxDay,
+    done, totalTasks:tids.length, donePct: tids.length? Math.round(done/tids.length*100):0,
+    mastPct: tids.length? Math.round(mast/(3*tids.length)*100):0, sm:m.sm||{}, dt };
+}
+function subjectStats(uid){
+  const by={};
+  S.tasks.forEach(t=>{ const s=by[t.subject]=by[t.subject]||{total:0,done:0,mast:0}; const p=prog(uid,t.id); s.total++; if(p.done) s.done++; s.mast+=p.mastery||0; });
+  const order=[...subjNames(), ...Object.keys(by).filter(n=>!subjNames().includes(n))];
+  return order.filter(n=>by[n]).map(n=>({name:n,...by[n]}));
+}
+const levelOf = n => { const L=themeKey()==='boba'?BOBA_LEVELS:LEVELS; let i=0; L.forEach((l,k)=>{ if(n>=l.min) i=k; }); return {idx:i+1, ...L[i], next:L[i+1]}; };
+const myName = () => S.members[S.me?.uid]?.name || S.me?.name || '我';
+function avatar(uid, cls=''){
+  const m=S.members[uid]||{}; const n=(m.name||'?').trim();
+  return m.photo ? `<img class="avatar ${cls}" src="${esc(m.photo)}" alt="" referrerpolicy="no-referrer">` : `<span class="avatar ${cls}">${esc(n.slice(0,1))}</span>`;
+}
+
+// ======================================================================
+//  啟動
+// ======================================================================
+async function boot(){
+  try {
+    const cfg = window.FIREBASE_CONFIG;
+    S.api = (cfg && cfg.apiKey) ? await makeFirebaseAPI(cfg) : makeLocalAPI();
+  } catch(e) {
+    console.error(e); S.error='無法載入 Firebase：'+(e.message||e)+'。請確認網路，或檢查 config.js。'; S.loading=false; render(); return;
+  }
+  if (guestFromHash) { startGuest(guestFromHash); return; }
+  S.api.onAuth(async u => {
+    unsubs.forEach(f=>f()); unsubs=[];
+    S.me=u; S.group=null; S.gid=null; S.members={}; S.tasks=[]; S.progress={};
+    if (!u) { S.loading=false; render(); return; }
+    S.loading=true; render();
+    try {
+      S.userDoc = await S.api.getUser(u.uid) || {groups:[]};
+      if (joinFromHash) { await doJoin(joinFromHash, true); history.replaceState(null,'',location.pathname); }
+      else if (S.timer?.gid && (S.userDoc.groups||[]).includes(S.timer.gid)) subscribe(S.timer.gid);
+      else { S.loading=false; loadHome(); render(); }
+    } catch(e){ console.error(e); S.error=e.message; S.loading=false; render(); }
+  });
+}
+function goHome(){
+  unsubs.forEach(f=>f()); unsubs=[];
+  S.group=null; S.gid=null; S.loading=false; S.creating=false; S.view='today'; S.members={}; S.tasks=[]; S.progress={}; S.sessions=[]; S.chars=[];
+  try{ history.replaceState(null,'',location.pathname); }catch{}
+  loadHome(); render(); window.scrollTo(0,0);
+}
+async function loadHome(){
+  const ids=S.userDoc?.groups||[];
+  const out={};
+  await Promise.all(ids.map(async gid=>{
+    try { const g=await S.api.getGroup(gid); if(!g || !(g.members||[]).includes(S.me.uid)) return;
+      const m=await S.api.getMember(gid,S.me.uid).catch(()=>null); out[gid]={g,m:m||{}}; } catch(e){ console.warn(gid,e); }
+  }));
+  S.home=out; S.homeLoaded=true; render();
+}
+function subscribe(gid){
+  unsubs.forEach(f=>f()); unsubs=[];
+  S.gid=gid; S.loading=true;
+  const fail = e => { console.error(e); toast('讀取資料失敗：'+(e.code||e.message)); };
+  const to=setTimeout(()=>{ if(S.loading){ S.loading=false; render(); } },10000);
+  unsubs.push(S.api.watchGroup(gid, g=>{
+    clearTimeout(to);
+    if (!g || !(g.members||[]).includes(S.me.uid)) { goHome(); return; }
+    S.group=g; S.loading=false; render();
+  }, fail));
+  unsubs.push(S.api.watchMembers(gid, m=>{ S.members=m; render(); }, fail));
+  unsubs.push(S.api.watchTasks(gid, t=>{ S.tasks=t; render(); }, fail));
+  unsubs.push(S.api.watchProgress(gid, p=>{ S.progress=p; render(); }, fail));
+  unsubs.push(S.api.watchMySessions(gid, S.me.uid, s=>{ S.sessions=s; render(); }));
+  unsubs.push(S.api.watchChars(gid, c=>{ S.chars=c; render(); }));
+  // 確保自己的成員資料存在
+  S.api.setMember(gid, S.me.uid, {photo:S.me.photo||''}).catch(()=>{});
+}
+
+// ======================================================================
+//  畫面
+// ======================================================================
+let renderQueued=false;
+function render(){ if(renderQueued) return; renderQueued=true; requestAnimationFrame(()=>{ renderQueued=false; doRender(); }); }
+function doRender(){
+  // 保留正在輸入的欄位
+  const keep={}; document.querySelectorAll('[data-keep]').forEach(el=>{ keep[el.dataset.keep]=el.type==='checkbox'?el.checked:el.value; });
+  const focusKey=document.activeElement?.dataset?.keep;
+  const app=$('#app');
+  if (S.error) app.innerHTML = `<div class="card"><h2>出了點問題</h2><p>${esc(S.error)}</p><button class="btn" data-a="reload">重新整理</button></div>`;
+  else if (S.guest) app.innerHTML = viewGuest();
+  else if (S.loading) app.innerHTML = `<div class="spin"></div>`;
+  else if (!S.me) app.innerHTML = viewLogin();
+  else if (!S.group) app.innerHTML = S.creating ? viewOnboard() : viewHome();
+  else app.innerHTML = viewHeader() + ({today:viewToday,tasks:viewTasks,garden:viewGarden,friends:viewFriends,settings:viewSettings}[S.view]||viewToday)();
+  document.querySelectorAll('[data-keep]').forEach(el=>{ const k=el.dataset.keep; if(k in keep){ if(el.type==='checkbox') el.checked=keep[k]; else el.value=keep[k]; } if(k===focusKey) el.focus(); });
+  renderTabbar();
+  tickTimer();
+  scheduleGuestPublish();
+}
+function renderTabbar(){
+  let tb=$('#tabbar');
+  if (!S.me || !S.group || S.loading) { tb?.remove(); return; }
+  if (!tb){ tb=document.createElement('nav'); tb.id='tabbar'; tb.className='tabbar'; if(EMBED) document.body.insertBefore(tb,$('#app')); else document.body.appendChild(tb); }
+  const tabs=[['today','今天'],['tasks','任務'],['garden','軍團'],['friends','遠征'],['settings','設定']];
+  tb.innerHTML = `<div class="in">${tabs.map(([k,l])=>`<button class="tab ${S.view===k?'on':''}" data-a="go" data-v="${k}">${ICONS[k]}<span>${l}</span></button>`).join('')}</div>`;
+}
+
+function viewLogin(){
+  const inApp=/Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent);
+  const demo=S.api?.mode==='demo';
+  const crowd=[{subject:'數學',seed:11},{subject:'其他',seed:5,rare:''},{subject:'英文',seed:23}];
+  return `<div class="login">
+    <div class="crowd pop">${crowd.map(c=>`<span>${soldierSVG(c)}</span>`).join('')}</div>
+    <h1>番茄園讀書社</h1>
+    <p style="font-weight:700;margin:0">專心 25 分鐘，土裡就會冒出一隻番茄兵。<br>中途放棄？它會被榨成番茄醬。</p>
+    ${inApp?`<div class="banner">你現在是在 LINE／FB 裡面開的網頁，Google 登入可能會失敗。請按右上角選「用瀏覽器開啟」（Safari 或 Chrome）。</div>`:''}
+    <button class="btn red big block" data-a="signin">${demo?'進入示範模式（Google 登入）':'用 Google 帳號登入'}</button>
+    <button class="btn yellow big block" data-a="emailStart">用 Email＋密碼登入／註冊</button>
+    <button class="btn ghost big block" data-a="anonStart">免帳號登入（只輸入暱稱）</button>
+    <p class="tiny" style="margin:-4px 0 0">學校的 Google 帳號被擋住時，可以改用 Email 或免帳號登入。</p>
+    ${demo?`<div class="banner">示範模式：還沒設定 Firebase，資料只存在這支手機，朋友看不到。照 SETUP.md 設定好就能多人一起用。</div>`:''}
+    ${joinFromHash?`<p class="small" style="font-weight:700">登入後會自動加入邀請碼 <b>${esc(joinFromHash)}</b> 的群組</p>`:''}
+  </div>`;
+}
+function clubArt(theme, gid){
+  if (theme==='boba') return ['數學','國語','音樂'].map((sub,i)=>`<span>${soldierSVG({subject:sub,seed:hash(gid+i),theme:'boba'})}</span>`).join('');
+  if ((theme||'tomato')==='tomato') return ['數學','其他','英文'].map((sub,i)=>`<span>${soldierSVG({subject:sub,seed:hash(gid+i)})}</span>`).join('');
+  return [0,1,2].map(i=>`<span>${soldierSVG({subject:'其他',seed:i},{lock:true})}</span>`).join('');
+}
+function viewHome(){
+  const ids=(S.userDoc?.groups||[]).filter(g=>S.home?.[g]);
+  const cards=ids.map((gid,i)=>{
+    const {g,m}=S.home[gid], th=THEMES[g.theme||'tomato']||THEMES.tbd;
+    const left=g.examDate?daysBetween(ymd(),g.examDate):null, today=(m.dt||{})[ymd()]||0;
+    return `<button class="club" data-a="enter" data-v="${esc(gid)}" style="--c:${CLUB_COLORS[i%CLUB_COLORS.length]}">
+      <div class="art">${clubArt(g.theme,gid)}</div>
+      <div class="grow">
+        <div class="name">${esc(g.name)}</div>
+        <div class="meta">${g.owner===S.me.uid?'<span class="tag">團長</span> ':''}${th.ready?esc(th.label):'<span class="tag">角色設定討論中</span>'}・${(g.members||[]).length} 人</div>
+        <div class="meta">今天 ${today} ${THEME_TXT[themeKey(g.theme)].cnt}・共 ${m.tomatoes||0} ${THEME_TXT[themeKey(g.theme)].cnt}${left!=null&&left>=0?`・段考倒數 ${left} 天`:''}</div>
+      </div><span class="go">›</span></button>`;
+  }).join('');
+  return `<div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>讀書社大廳</div><button class="btn ghost sm" data-a="signout">登出</button></div>
+  ${S.api.mode==='demo'?`<div class="banner">示範模式：資料只存在這支手機。</div>`:''}
+  <div class="hall-title">選一個讀書社進去</div>
+  ${!S.homeLoaded?'<div class="spin"></div>':cards || '<div class="card empty">你還沒有加入任何讀書社，按下面新增一個吧！</div>'}
+  <button class="club add" data-a="newGroup">＋ 新增或加入讀書社</button>`;
+}
+function viewOnboard(){
+  return `<div class="top"><button class="btn ghost sm" data-a="home">‹ 大廳</button><div class="brand">新增讀書社</div><span style="width:60px"></span></div>
+  <div class="card"><h2>加入朋友的讀書社</h2><p class="small">請建立讀書社的同學把 6 碼邀請碼給你。</p>
+    <input type="text" data-keep="joincode" id="joincode" placeholder="例如 K7M2QX" maxlength="6" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:3px;font-weight:700">
+    <button class="btn block" style="margin-top:10px" data-a="join">加入</button></div>
+  <div class="card"><h2>建立新的讀書社</h2><p class="small">建立後把邀請碼傳給好朋友。</p>
+    <label class="f">讀書社名稱</label><input type="text" data-keep="gname" id="gname" placeholder="例如：67番茄園">
+    <label class="f">角色</label><select id="gtheme" data-keep="gtheme">${Object.entries(THEMES).map(([k,t])=>`<option value="${k}">${esc(t.label)}${t.ready?'':'（先用番茄兵）'}</option>`).join('')}</select>
+    <label class="f">考試名稱</label><input type="text" data-keep="gexam" id="gexam" value="${esc(TEMPLATE.name)}">
+    <label class="f">考試第一天</label><input type="date" data-keep="gdate" id="gdate" value="${TEMPLATE.examDate}">
+    <button class="btn block red" style="margin-top:12px" data-a="create">建立讀書社</button></div>`;
+}
+function viewHeader(){
+  const g=S.group, left = g.examDate ? daysBetween(ymd(), g.examDate) : null;
+  return `<div class="top"><button class="btn ghost sm" data-a="home" aria-label="回讀書社大廳">‹ 大廳</button><div class="brand grow" style="justify-content:center"><span class="grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${esc(g.name)}</span></div>${avatar(S.me.uid)}</div>
+  ${S.api.mode==='demo'?`<div class="banner">示範模式：資料只存在這支手機。</div>`:''}
+  ${g.theme==='tbd'?`<div class="banner">這個讀書社的角色還在設計中，先用番茄兵代打。</div>`:''}
+  ${S.view==='today' && left!=null ? `<div class="countdown"><div><div class="small muted">${esc(g.examName||'考試')}・${fmtDate(g.examDate)}</div><div style="font-weight:900">${TH().countdown}</div></div><div style="font-weight:900">${left>0?`<b>${left}</b>天`:left===0?'就是今天！衝！':'打完了，辛苦了！'}</div></div>`:''}`;
+}
+// ----- 今天 -----
+function viewToday(){
+  const st=memberStats(S.me.uid), goal=S.settings.goal;
+  const today=ymd();
+  const todays = sortTasks(S.tasks.filter(t=>t.date===today));
+  const overdue = sortTasks(S.tasks.filter(t=>t.date && t.date<today && !prog(S.me.uid,t.id).done));
+  const t=S.timer;
+  const subjOpts = subjOptions(t?.subject);
+  const pickTasks = [...todays, ...overdue].filter(x=>!prog(S.me.uid,x.id).done);
+  const army=myArmy(), latest=army.at(-1);
+  let timerHTML;
+  if (!t) {
+    timerHTML = `<div class="say">${st.todayTom>=goal?'今天 KPI 達成了！還要再種嗎？':st.todayTom?`今天已經有 ${st.todayTom} ${TH().cnt}了，繼續！`:TH().ready}</div>
+      <div class="plantbox" id="plant">${growArt(0)}</div>
+      <div class="clock" id="clock">${pad(S.settings.focus)}:00</div>
+      <div class="row" style="margin-top:12px">
+        <select id="tsubj" data-keep="tsubj" style="flex:0 0 96px">${subjOpts}</select>
+        <select id="ttask" data-keep="ttask" class="grow"><option value="">（不指定任務）</option>${pickTasks.map(x=>`<option value="${x.id}">${esc(x.subject)}｜${esc(x.title)}</option>`).join('')}</select>
+      </div>
+      <button class="btn red big block" style="margin-top:12px" data-a="start">${ICONS.play} ${TH().plant}（${S.settings.focus} 分）</button>`;
+  } else if (t.mode==='focus') {
+    const task=S.tasks.find(x=>x.id===t.taskId);
+    const lines=TH().focusLines;
+    timerHTML = `<div class="mode">${chip(t.subject)} ${task?esc(task.title):''}</div>
+      <div class="say" id="sayline">${lines[Math.floor(Date.now()/60000)%lines.length]}</div>
+      <div class="plantbox" id="plant"></div>
+      <div class="clock" id="clock"></div>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost" data-a="giveup">${TH().giveupBtn}</button></div>`;
+  } else {
+    timerHTML = `<div class="mode">休息時間！起來喝水、動一動</div>
+      <div class="plantbox" id="plant" style="width:130px">${latest?soldierSVG(latest):growArt(1)}</div>
+      <div class="clock" id="clock"></div>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn soft" data-a="skipbreak">休息夠了</button></div>`;
+  }
+  const row = x => taskRow(x,{play:!t});
+  return `
+  <div class="card timer ${t?.mode==='break'?'break':''}" id="timercard">
+    ${timerHTML}
+    <div class="small" style="margin-top:12px;font-weight:700">今日目標 ${Math.min(st.todayTom,goal)}／${goal} ${TH().cnt}・已讀 ${fmtMin(st.todayMin)}</div>
+    <div class="goal">${Array.from({length:Math.max(goal,st.todayTom)},(_,i)=>`<span>${themeKey()==='boba'?pearlIcon(i<st.todayTom):tomatoIcon(i<st.todayTom)}</span>`).join('')}</div>
+  </div>
+  <div class="card">
+    <div class="row between"><h2>今天的任務</h2><span class="small" style="font-weight:700">${fmtDate(today)}</span></div>
+    ${todays.length? todays.map(row).join('') : `<div class="empty">今天沒有排任務。<br><button class="btn soft sm" style="margin-top:8px" data-a="go" data-v="tasks">去任務頁新增</button></div>`}
+  </div>
+  ${overdue.length?`<div class="card"><details ${overdue.length<=4?'open':''}><summary class="row between"><h2>欠債中（${overdue.length}）</h2><span class="small">展開</span></summary>${overdue.map(row).join('')}</details></div>`:''}`;
+}
+function taskRow(x,{play=false,showDate=false}={}){
+  const p=prog(S.me.uid,x.id), mast=p.mastery||0;
+  return `<div class="task ${p.done?'done':''}">
+    <button class="check ${p.done?'on':''}" data-a="toggle" data-id="${x.id}" aria-label="完成">${p.done?checkSVG:''}</button>
+    <div class="grow">
+      <div class="row wrap" style="gap:6px">${chip(x.subject)}${showDate&&x.date?`<span class="tiny muted">${fmtDate(x.date)}</span>`:''}</div>
+      <div class="title">${esc(x.title)}</div>
+      <div class="row" style="gap:4px"><span class="tiny muted">熟練</span><span class="stars">${[1,2,3].map(n=>`<button class="star" data-a="mast" data-id="${x.id}" data-n="${n}" aria-label="熟練 ${n}">${starSVG(n<=mast)}</button>`).join('')}</span></div>
+    </div>
+    ${play?`<button class="iconbtn" data-a="startTask" data-id="${x.id}" aria-label="開始" style="color:var(--tomato)">${ICONS.play}</button>`:''}
+    <button class="iconbtn" data-a="editTask" data-id="${x.id}" aria-label="編輯">${ICONS.more}</button>
+  </div>`;
+}
+
+// ----- 任務 -----
+function viewTasks(){
+  const f=S.taskFilter, today=ymd();
+  const subs=[...new Set(S.tasks.map(t=>t.subject))];
+  let list=sortTasks(S.tasks.filter(t=>f==='全部'||t.subject===f));
+  if (!S.taskShowDone) list=list.filter(t=>!prog(S.me.uid,t.id).done);
+  const groups={}; list.forEach(t=>{ (groups[t.date||'']=groups[t.date||'']||[]).push(t); });
+  const keys=Object.keys(groups).sort((a,b)=>(a||'9999').localeCompare(b||'9999'));
+  const st=memberStats(S.me.uid);
+  return `
+  <div class="card">
+    <div class="row between"><h2>考試範圍・任務</h2><span class="small muted">完成 ${st.done}/${st.totalTasks}</span></div>
+    <div class="bar" style="margin-top:8px"><i style="width:${st.donePct}%;background:var(--leaf)"></i></div>
+    <div class="hscroll" style="margin-top:12px">
+      ${['全部',...subs].map(s=>`<button class="pill ${f===s?'on':''}" data-a="filter" data-v="${esc(s)}">${esc(s)}</button>`).join('')}
+    </div>
+    <label class="row small muted" style="margin-top:8px;gap:6px"><input type="checkbox" data-a="showdone" ${S.taskShowDone?'checked':''}> 顯示已完成</label>
+  </div>
+  ${keys.length? keys.map(k=>`<div class="card" style="padding-top:6px"><div class="datehead ${k===today?'today':''}">${k?fmtDate(k):'未排日期'}${k===today?'<span class="chip" style="background:var(--tomato)">今天</span>':''}</div>${groups[k].map(x=>taskRow(x,{})).join('')}</div>`).join('')
+    : `<div class="card empty">還沒有任務。用下面的表單輸入考試範圍吧！</div>`}
+  <div class="card" id="add">
+    <h2>新增考試範圍</h2>
+    <div class="seg" style="margin-top:10px"><button class="${S.addMode==='one'?'on':''}" data-a="addmode" data-v="one">一筆一筆</button><button class="${S.addMode==='bulk'?'on':''}" data-a="addmode" data-v="bulk">整批貼上</button></div>
+    ${S.addMode==='one'?`
+      <div class="row" style="margin-top:10px"><select id="nsubj" data-keep="nsubj" style="flex:0 0 100px">${subjOptions()}</select><input type="date" id="ndate" data-keep="ndate" class="grow"></div>
+      <input type="text" id="ntitle" data-keep="ntitle" placeholder="例如：L4 字音字形手寫一遍" style="margin-top:8px">
+      <button class="btn block" style="margin-top:10px" data-a="addOne">新增</button>`
+    :`
+      <p class="small muted" style="margin:10px 0 6px">一行一個任務：<b>日期 科目｜內容</b>（日期可省略）。<br>例：<code>11/16 數｜2-2 例題重算</code></p>
+      <textarea id="nbulk" data-keep="nbulk" placeholder="11/16 英｜字彙書 U1&#10;11/16 數｜2-2 課本例題&#10;生｜光合作用看圖"></textarea>
+      <button class="btn block" style="margin-top:10px" data-a="addBulk">全部加入</button>
+      <button class="btn soft block" style="margin-top:8px" data-a="template">載入「國一第二次段考」衝刺表（80 項）</button>`}
+  </div>`;
+}
+
+// ----- 番茄園 -----
+function myArmy(){ return S.sessions.filter(s=>s.tomato).sort((a,b)=>a.endedAt-b.endedAt).map((s,i)=>soldierOf(s,i+1)); }
+function viewGarden(){
+  const st=memberStats(S.me.uid), army=myArmy(), me=S.members[S.me.uid]||{};
+  const lv=levelOf(army.length);
+  const T_=TH(), bb=themeKey()==='boba', U=T_.cnt;
+  const nextTxt = lv.next ? `再 ${lv.next.min-army.length} ${U}升到「${lv.next.name}」` : '你已經是最強的了';
+  const pct = lv.next ? Math.round((army.length-lv.min)/(lv.next.min-lv.min)*100) : 100;
+  const subj=subjectStats(S.me.uid);
+  const allSubj=dexSubjects().length>0 && dexSubjects().every(s=>(st.sm[s]||0)>0);
+  const cnt={}; army.forEach(s=>{ const k=s.rare||(s.custom?'c:'+s.custom.id:s.subject); cnt[k]=(cnt[k]||0)+1; });
+  const pluckedArmy=army.filter(s=>s.endedAt<=(me.pluckTs||0));
+  const gifts={}; pluckedArmy.forEach(so=>{ const g=giftOf(so); if(g) gifts[g.id]=(gifts[g.id]||0)+1; });
+  const giftTotal=Object.values(gifts).reduce((a,b)=>a+b,0);
+  const ketchupRaw=me.ketchup||0, ketchup=Math.max(0, ketchupRaw-(gifts.antidote||0));
+  const dex=[...dexSubjects().map(s=>({key:s, so:{subject:s,seed:hash('dex'+s)}, name:typeOf(s).name, sub:s})),
+             {key:'gold', so:{subject:'其他',rare:'gold',seed:hash('dexg')}, name:rareInfo({rare:'gold'}).name, sub:'稀有 5%'},
+             {key:'67', so:{subject:'其他',rare:'67',seed:hash('dex67')}, name:rareInfo({rare:'67'}).name, sub:'稀有 6.7%'},
+             {key:'rainbow', so:{subject:'其他',rare:'rainbow',seed:hash('dexr')}, name:rareInfo({rare:'rainbow'}).name, sub:'傳說 1%'},
+             ...(S.chars||[]).slice().sort((a,b)=>a.createdAt-b.createdAt).map(c=>({key:'c:'+c.id, so:{subject:'其他',seed:hash('c'+c.id),custom:c}, name:c.name, sub:`${(S.members[c.by]||{}).name||'社員'} 設計`}))];
+  const badges=[
+    ['🌱',bb?'第一顆珍珠':'第一滴汁',`得到第一${U}`,army.length>=1],['🪖',bb?'一小杯':'十兵成軍',`收集 10 ${U}`,army.length>=10],['⚔️',bb?'一大杯':'番茄連隊',`收集 50 ${U}`,army.length>=50],['👑',bb?'珍珠星海':'百番大軍',`收集 100 ${U}`,army.length>=100],
+    ['🪑',bb?'認真小幫手':'屁股黏椅子','連續 3 天',st.streak>=3],['🦾',bb?'超級持之以恆':'鋼鐵屁股','連續 7 天',st.streak>=7],['🎯',bb?'今日任務達成':'今日 KPI','達成今日目標',st.todayTom>=S.settings.goal],['🤖',bb?'珍珠製造機':'人形番茄機',`單日 8 ${U}`,st.maxDay>=8],
+    ['🍱','全科雜食者','每一科都讀過',allSubj],['✅','過半了啦','任務完成一半',st.donePct>=50],['🏁','全清！','任務全部完成',st.totalTasks>0&&st.done===st.totalTasks],['🔥','熟到爛掉','熟練度 80%',st.mastPct>=80],
+    ['💰','中樂透',`抽到${rareInfo({rare:'gold'}).name}`,!!cnt.gold],['🌈','傳說降臨',`抽到${rareInfo({rare:'rainbow'}).name}`,!!cnt.rainbow],[T_.failIc,bb?'一次都沒被吸走':'零番茄醬',`10 ${U}以上沒放棄過`,army.length>=10&&!ketchupRaw],
+    ['🙌','六七！',`抽到${rareInfo({rare:'67'}).name}`,!!cnt['67']],['🗿','六七大帝',`收集滿 67 ${U}`,army.length>=67],['🎁','空投獵人','收集 10 個空投',giftTotal>=10],
+    ['🎨','小小設計師','自己設計一個角色',(S.chars||[]).some(c=>c.by===S.me.uid)],
+  ];
+  const last7=Array.from({length:7},(_,i)=>addDays(ymd(),i-6));
+  const maxD=Math.max(1,...last7.map(d=>st.dt[d]||0));
+  return `
+  ${fieldHTML(army, me.pluckTs||0)}
+  <div class="card">
+    <div class="lvl"><div class="num">${lv.idx}</div><div class="grow"><div style="font-weight:900;font-size:1.2rem">${esc(lv.name)}</div><div class="small" style="font-weight:700">${nextTxt}</div><div class="bar" style="margin-top:6px"><i style="width:${pct}%;background:var(--tomato)"></i></div></div></div>
+    <div class="stat" style="grid-template-columns:repeat(4,1fr)"><div><b>${army.length}</b><span>${T_.unit}</span></div><div><b>${st.streak}</b><span>連續天數</span></div><div><b>${ketchup}</b><span>${T_.fail}</span></div><div><b>${Math.round(st.total/6)/10}</b><span>總時數</span></div></div>
+  </div>
+  <div class="card"><div class="row between"><h2>${T_.dexTitle}</h2><span class="small" style="font-weight:700">${dex.filter(d=>cnt[d.key]).length}／${dex.length}</span></div>
+    <p class="small" style="margin:4px 0 10px">讀哪一科就會${bb?'搖出哪一種珍珠':'長出哪一種兵'}，還有機會抽到稀有的和社員設計的角色。</p>
+    <div class="dex">${dex.map(d=>{ const n=cnt[d.key]||0; return `<div class="cell ${n?'':'lock'}">${n?`<span class="n">×${n}</span>`:''}<div class="pic">${soldierSVG(d.so,{lock:!n})}</div>${n?esc(d.name):'？？？'}<div class="tiny" style="font-weight:500">${esc(d.sub)}</div></div>`; }).join('')}</div>
+  </div>
+  <div class="card"><div class="row between"><h2>空投寶物箱</h2><span class="small" style="font-weight:700">${Object.keys(gifts).length}／${GIFTS.length}</span></div>
+    <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
+    <div class="giftbox">${GIFTS.map(g=>{ const n=gifts[g.id]||0; return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
+  </div>
+  ${charCard()}
+  <div class="card"><h2>成就</h2><div class="badges" style="margin-top:10px">${badges.map(([ic,n,d,on])=>`<div class="badge ${on?'':'off'}"><span class="ic">${ic}</span>${n}<span class="d">${d}</span></div>`).join('')}</div></div>
+  <div class="card">
+    <h2>這 7 天</h2>
+    <div class="row" style="align-items:flex-end;gap:6px;height:120px;margin-top:10px">
+      ${last7.map(d=>{ const v=st.dt[d]||0; return `<div class="grow" style="text-align:center"><div class="tiny" style="font-weight:900">${v||''}</div><div style="height:${Math.max(4,v/maxD*76)}px;background:${v?'var(--tomato)':'#fff'};border:2px solid var(--ink);border-radius:6px 6px 2px 2px"></div><div class="tiny" style="font-weight:700">${WD[parseYmd(d).getDay()]}</div></div>`; }).join('')}
+    </div>
+  </div>
+  <div class="card"><h2>各科進度</h2>
+    ${subj.length? subj.map(s=>`<div style="margin-top:12px"><div class="row between small"><span>${chip(s.name)} <b>${s.done}/${s.total}</b></span><span>熟練 ${Math.round(s.mast/(3*s.total)*100)}%・${fmtMin(st.sm[s.name]||0)}</span></div>
+      <div class="bar" style="margin-top:4px"><i style="width:${s.done/s.total*100}%;background:${subjColor(s.name)}"></i></div></div>`).join('') : `<p class="small">新增任務後會出現。</p>`}
+  </div>
+  <div class="card"><h2>${T_.recent}</h2>
+    ${army.length? army.slice(-10).reverse().map(so=>`<button class="row" data-a="soldier" data-id="${so.id}" style="width:100%;border:0;background:transparent;padding:6px 0;border-top:2px dashed #d8cfb8;text-align:left"><span style="width:38px;height:42px;flex:none">${soldierSVG(so)}</span><span class="grow"><b>No.${so.n} ${esc(so.name)}</b><br><span class="tiny">${so.custom?'社員設計角色':so.rare?rareInfo(so).name:typeOf(so.subject).name}・${fmtDate(so.date)}</span></span></button>`).join('') : `<p class="small">還沒有${T_.unit}。</p>`}
+  </div>`;
+}
+function charCard(){
+  const mine=(S.chars||[]).find(c=>c.id===`${S.me.uid}_${weekStart()}`);
+  const list=(S.chars||[]).slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const leader=isLeader();
+  return `<div class="card"><div class="row between"><h2>社員自創角色</h2><span class="small" style="font-weight:700">${list.length} 個</span></div>
+    <p class="small" style="margin:4px 0 10px">每個人每週可以設計 1 個角色。設計好之後，大家專心完成番茄鐘時，有機會${themeKey()==='boba'?'搖到':'種出'}它！</p>
+    ${list.length?`<div class="dex">${list.map(c=>`<div class="cell"><div class="pic">${soldierSVG({subject:'其他',seed:hash('c'+c.id),custom:c})}</div>${esc(c.name)}<div class="tiny" style="font-weight:500">${esc((S.members[c.by]||{}).name||'社員')} 設計</div>${(leader||c.by===S.me.uid)?`<button class="btn ghost sm" style="margin-top:4px;min-height:28px;padding:0 8px;font-size:.72rem" data-a="charDel" data-id="${c.id}">刪除</button>`:''}</div>`).join('')}</div>`:'<p class="small">還沒有人設計角色，來當第一個吧！</p>'}
+    ${mine?`<p class="small" style="margin:10px 0 0;font-weight:700">你這週已經設計了「${esc(mine.name)}」，下週一可以再設計一個。</p>`
+          :`<button class="btn yellow block" style="margin-top:12px" data-a="charNew">＋ 設計我的角色（本週還能 1 個）</button>`}
+  </div>`;
+}
+function openCharDesigner(){
+  const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):ACC_KEYS;
+  const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶'};
+  S.draft={name:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],acc:'',skill:'',quote:''};
+  openModal(`<h2>設計我的角色</h2>
+    <div id="cd_prev" style="width:130px;height:130px;margin:6px auto">${soldierSVG({subject:'其他',seed:7,custom:S.draft})}</div>
+    <label class="f">角色名字</label><input type="text" id="cd_name" maxlength="8" placeholder="${bb?'例如：棉花糖啵啵':'例如：爆汁隊長'}">
+    <label class="f">顏色</label><div class="row wrap" style="gap:6px">${PALETTE.map(c=>`<button class="sw" data-a="cdColor" data-v="${c}" style="width:32px;height:32px;border-radius:10px;border:2.5px solid var(--ink);background:${c}"></button>`).join('')}</div>
+    <label class="f">配件</label><div class="row wrap" style="gap:6px"><button class="pill" data-a="cdAcc" data-v="">不要</button>${accs.map(a=>`<button class="pill" data-a="cdAcc" data-v="${a}">${ACC_LABEL[a]||a}</button>`).join('')}</div>
+    <label class="f">特殊能力</label><input type="text" id="cd_skill" maxlength="30" placeholder="${bb?'例如：會在你讀書時幫你加油':'例如：一生氣就會噴汁'}">
+    <label class="f">口頭禪</label><input type="text" id="cd_quote" maxlength="30" placeholder="例如：今天也要讀書喔！">
+    <p class="tiny" style="margin:8px 0 0">角色會給全社的人看到，請取友善的名字。團長可以刪除不適合的角色。</p>
+    <button class="btn red block" style="margin-top:12px" data-a="charSave">完成設計（本週只能 1 個）</button>
+    <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
+}
+function refreshDraft(){ const el=$('#cd_prev'); if(el) el.innerHTML=soldierSVG({subject:'其他',seed:7,custom:S.draft}); }
+// ----- 朋友 -----
+function viewFriends(){
+  const uids=(S.group.members||[]).filter(u=>S.members[u]);
+  const rows=uids.map(u=>({u, st:memberStats(u), m:S.members[u]}));
+  const k=S.friendSort;
+  rows.sort((a,b)=> k==='name' ? (a.m.name||'').localeCompare(b.m.name||'') : k==='done' ? b.st.donePct-a.st.donePct : b.st.week-a.st.week);
+  const now=Date.now();
+  const link=`${location.origin}${location.pathname}#join-${S.gid}`;
+  const studyingN=rows.filter(r=>r.m.studying&&r.m.studying.endsAt>now).length;
+  // 本週遠征：大家一起把考卷怪搬回基地
+  const ws=weekStart(); let weekTom=0;
+  rows.forEach(({m})=>{ for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0; });
+  const mis=missionOfWeek();
+  const hp=rows.length>=4 ? 67 : Math.max(17, rows.length*17), p=Math.min(1,weekTom/hp), done=p>=1;
+  const bossLeft = 18 + (1-p)*62;
+  const carriers = Math.min(7, Math.max(0,weekTom));
+  const daysLeft = 7-((new Date().getDay()+6)%7);
+  return `
+  <div class="card">
+    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">剩 ${daysLeft} 天</span></div>
+    <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${esc(mis.title)}</div>
+    <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
+    <div class="quest">
+      <div class="trail"></div>
+      <div class="base">${baseSVG()}</div>
+      <div class="boss" style="left:${bossLeft}%">${mis.art(done)}</div>
+      ${carriers?`<div class="carry" style="left:calc(${bossLeft}% + 4px)">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
+      ${weekTom===67?`<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%)"><span class="six7" style="font-size:1.6rem">6 7 !</span></div>`:''}
+    </div>
+    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${weekTom}/${hp}</b></div>
+    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${hp-weekTom} ${TH().cnt}就成功！${hp===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
+    <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}</p>
+  </div>
+  <div class="card">
+    <div class="row between"><h2>戰友們</h2>${studyingN?`<span class="live">${studyingN} 人正在讀</span>`:''}</div>
+    <div class="hscroll" style="margin-top:10px">${[['week','本週時間'],['done','完成度'],['name','名字']].map(([v,l])=>`<button class="pill ${k===v?'on':''}" data-a="fsort" data-v="${v}">${l}</button>`).join('')}</div>
+    ${rows.map(({u,st,m})=>{
+      const live=m.studying&&m.studying.endsAt>now;
+      const subj=subjectStats(u);
+      return `<details style="border-top:2px dashed #d8cfb8;padding:12px 0 4px;margin-top:8px">
+        <summary><div class="friend">${avatar(u,'lg')}<div class="grow">
+          <div class="row between"><b>${esc(m.name||'同學')}${u===S.me.uid&&m.name!=='我'?'（我）':''}</b>${u===S.group.owner?' <span class="tag">團長</span>':''}<span class="small" style="white-space:nowrap;font-weight:900">${st.streak>=2?`🔥${st.streak} 天`:''}${m.ketchup?`　${TH().failIc}${m.ketchup}`:''}</span></div>
+          ${live?`<span class="live">正在讀 ${esc(m.studying.subject)}・剩 ${Math.max(1,Math.ceil((m.studying.endsAt-now)/60000))} 分</span>`:''}
+          ${miniArmy(u)}
+          <div class="stat" style="grid-template-columns:repeat(4,1fr)"><div><b>${st.todayMin}</b><span>今天(分)</span></div><div><b>${Math.round(st.week/6)/10}</b><span>本週(時)</span></div><div><b>${st.donePct}%</b><span>完成</span></div><div><b>${st.mastPct}%</b><span>熟練</span></div></div>
+        </div></div></summary>
+        <div style="padding:6px 0 4px 60px">${subj.map(s=>`<div style="margin-top:8px"><div class="row between tiny"><span>${chip(s.name)} <b>${s.done}/${s.total}</b></span><span>熟練 ${Math.round(s.mast/(3*s.total)*100)}%</span></div><div class="bar" style="height:9px;margin-top:3px"><i style="width:${s.done/s.total*100}%;background:${subjColor(s.name)}"></i></div></div>`).join('')||'<span class="small">還沒有任務</span>'}</div>
+      </details>`; }).join('')}
+  </div>
+  <div class="card">
+    <h2>拉朋友入隊</h2>
+    <div class="row wrap" style="margin-top:10px"><span class="code">${esc(S.gid)}</span><button class="btn soft sm" data-a="copy" data-v="${esc(S.gid)}">複製邀請碼</button><button class="btn yellow sm" data-a="copy" data-v="${esc(link)}">複製邀請連結</button></div>
+    <p class="small" style="margin:8px 0 0">朋友登入後輸入邀請碼，或直接打開邀請連結。</p>
+  </div>
+  <p class="small" style="text-align:center;font-weight:700">遠征是大家一起的，多一個人讀書，考卷怪就被拖近一點。</p>`;
+}
+// ----- 訪客參觀（只看全團合計，不顯示任何人的名字） -----
+function guestToken(){ const A='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; const r=crypto.getRandomValues(new Uint8Array(12)); r.forEach(b=>s+=A[b%A.length]); return s; }
+const guestLink = t => `${location.origin}${location.pathname}#guest-${t}`;
+function buildGuestSummary(){
+  const g=S.group, uids=(g.members||[]).filter(u=>S.members[u]), ws=weekStart(), now=Date.now();
+  let tom=0, min=0, weekTom=0, weekMin=0, todayMin=0, todayTom=0; const sm={}, lives=[];
+  uids.forEach(u=>{ const st=memberStats(u), m=S.members[u];
+    tom+=st.tomatoes; min+=st.total; weekMin+=st.week; todayMin+=st.todayMin; todayTom+=st.todayTom;
+    for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0;
+    Object.entries(st.sm).forEach(([k,v])=>sm[k]=(sm[k]||0)+v);
+    if (m.studying && m.studying.endsAt>now) lives.push({subject:m.studying.subject||'', endsAt:m.studying.endsAt});
+  });
+  const by={};
+  S.tasks.forEach(t=>{ const s=by[t.subject]=by[t.subject]||{total:0,done:0}; s.total++; uids.forEach(u=>{ if(prog(u,t.id).done) s.done++; }); });
+  const order=[...subjNames(), ...Object.keys(by).filter(n=>!subjNames().includes(n))];
+  const subj=order.filter(n=>by[n]).map(n=>({name:n, total:by[n].total, pct:uids.length?Math.round(by[n].done/(by[n].total*uids.length)*100):0}));
+  return { gid:S.gid, name:g.name||'', theme:g.theme||'tomato', subjects:clubSubjects(), examName:g.examName||'', examDate:g.examDate||'',
+    n:uids.length, tom, min, weekTom, weekMin, todayMin, todayTom, sm, lives, subj, week:ws };
+}
+let guestPub={timer:null, last:'', at:0};
+function scheduleGuestPublish(force){
+  const tok=S.group?.guestToken;
+  if (!tok || !S.me || !S.gid || S.guest || !S.api?.setGuest) return;
+  if (force) { guestPub.last=''; clearTimeout(guestPub.timer); guestPub.timer=null; }
+  else if (guestPub.timer) return;
+  const wait = force ? 300 : Math.max(3000, 30000-(Date.now()-guestPub.at));
+  guestPub.timer=setTimeout(async()=>{ guestPub.timer=null;
+    if (S.group?.guestToken!==tok) return;
+    const sum=buildGuestSummary(), key=tok+JSON.stringify(sum);
+    if (key===guestPub.last) return;
+    try { await S.api.setGuest(tok,{...sum, updatedAt:Date.now()}); guestPub.last=key; guestPub.at=Date.now(); }
+    catch(e){ console.warn('guest publish',e); }
+  }, wait);
+}
+async function startGuest(token){
+  S.guest={token, data:null, loaded:false}; S.loading=false; render();
+  const load=async()=>{ try { const d=await S.api.getGuest(token); S.guest.data=d; S.guest.loaded=true;
+      if (d) { S.group={name:d.name, theme:d.theme, subjects:d.subjects, examName:d.examName, examDate:d.examDate, members:[]}; document.title=`${d.name}・訪客參觀`; }
+    } catch(e){ console.error(e); S.guest.loaded=true; S.guest.data=null; } render(); };
+  await load(); setInterval(load, 60000);
+}
+function viewGuest(){
+  const G=S.guest;
+  if (!G.loaded) return `<div class="spin"></div>`;
+  const d=G.data;
+  if (!d) return `<div class="login"><div class="crowd pop">${clubArt('tomato','x')}</div><h1>找不到這個讀書社</h1>
+    <p style="font-weight:700">這個訪客連結可能已經被團長關掉或換新了。<br>請跟社員要新的連結。</p>
+    <button class="btn ghost big block" data-a="guestExit">回番茄園讀書社</button></div>`;
+  const T_=TH(), U=T_.cnt, bb=themeKey()==='boba', now=Date.now();
+  // 全團軍團（依各科讀書時間分配兵種）
+  const sm=d.sm||{}, tot=Object.values(sm).reduce((a,b)=>a+b,0)||1, n=Math.min(d.tom||0, 600), list=[];
+  Object.entries(sm).sort((a,b)=>b[1]-a[1]).forEach(([s,v])=>{ for(let i=0;i<Math.round(v/tot*n);i++) list.push(s); });
+  while(list.length<n) list.push('其他');
+  const army=list.slice(0,n).map((s,i)=>{ const sd=hash(G.token+i); return {id:'g'+i, seed:sd, subject:s, endedAt:0, name:'', rare: sd%67===6?'67':''}; });
+  const left=d.examDate?daysBetween(ymd(),d.examDate):null;
+  const thisWeek = d.week===weekStart();
+  const weekTom=thisWeek?d.weekTom:0, weekMin=thisWeek?d.weekMin:0;
+  const isToday = d.updatedAt && ymd(new Date(d.updatedAt))===ymd();
+  const todayMin=isToday?d.todayMin:0, todayTom=isToday?d.todayTom:0;
+  const live=(d.lives||[]).filter(x=>x.endsAt>now);
+  const mis=missionOfWeek(), hp=d.n>=4?67:Math.max(17,d.n*17), p=Math.min(1,weekTom/hp), done=p>=1, bossLeft=18+(1-p)*62;
+  const ago=d.updatedAt?Math.round((now-d.updatedAt)/60000):null;
+  return `
+  <div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>${esc(d.name)}</div><span class="tag">👀 訪客參觀中</span></div>
+  <div class="banner">你正在參觀「${esc(d.name)}」。這裡只看得到全團一起的成績，不會顯示個人資料，也不能修改任何東西。</div>
+  ${fieldHTML(army, Infinity, {title: bb?'全團的珍奶星球':'全團的番茄兵軍團'})}
+  <div class="card">
+    <div class="row between"><h2>全團成績</h2>${live.length?`<span class="live">${live.length} 人正在讀</span>`:''}</div>
+    <div class="stat" style="grid-template-columns:repeat(4,1fr);margin-top:8px"><div><b>${d.n}</b><span>社員</span></div><div><b>${d.tom||0}</b><span>${T_.unit}</span></div><div><b>${Math.round((d.min||0)/6)/10}</b><span>總時數</span></div><div><b>${left!=null&&left>=0?left:'—'}</b><span>考試倒數(天)</span></div></div>
+    <div class="stat" style="grid-template-columns:repeat(3,1fr)"><div><b>${todayTom}</b><span>今天(${U})</span></div><div><b>${todayMin}</b><span>今天(分)</span></div><div><b>${Math.round(weekMin/6)/10}</b><span>本週(時)</span></div></div>
+    ${d.examName?`<p class="small" style="margin:8px 0 0;font-weight:700">目標：${esc(d.examName)}${d.examDate?`（${esc(d.examDate)}）`:''}</p>`:''}
+  </div>
+  <div class="card">
+    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">${weekTom}/${hp}</span></div>
+    <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${esc(mis.title)}</div>
+    <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
+    <div class="quest"><div class="trail"></div><div class="base">${baseSVG()}</div><div class="boss" style="left:${bossLeft}%">${mis.art(done)}</div></div>
+    <div class="bar" style="margin-top:8px"><i style="width:${p*100}%;background:var(--tomato)"></i></div>
+    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}`:`全團再 ${hp-weekTom} ${U}${T_.unit}就成功！`}</p>
+  </div>
+  <div class="card"><h2>各科讀書時間</h2>
+    ${Object.keys(sm).length?Object.entries(sm).sort((a,b)=>b[1]-a[1]).map(([s,v])=>`<div style="margin-top:10px"><div class="row between small"><span>${chip(s)}</span><b>${fmtMin(v)}</b></div><div class="bar" style="margin-top:4px"><i style="width:${v/Math.max(...Object.values(sm))*100}%;background:${subjColor(s)}"></i></div></div>`).join(''):'<p class="small">還沒有讀書紀錄。</p>'}
+  </div>
+  <div class="card"><h2>考試範圍完成度（全團平均）</h2>
+    ${(d.subj||[]).length?d.subj.map(s=>`<div style="margin-top:10px"><div class="row between small"><span>${chip(s.name)} <span class="tiny">${s.total} 項</span></span><b>${s.pct}%</b></div><div class="bar" style="margin-top:4px"><i style="width:${s.pct}%;background:${subjColor(s.name)}"></i></div></div>`).join(''):'<p class="small">還沒有任務。</p>'}
+  </div>
+  <p class="tiny" style="text-align:center">${ago!=null?`資料更新於 ${ago<1?'剛剛':ago<60?ago+' 分鐘前':Math.round(ago/60)+' 小時前'}・`:''}每分鐘自動更新</p>
+  <div class="card" style="text-align:center"><b>想一起讀書？</b><p class="small" style="margin:6px 0 10px">請社員給你邀請碼，登入後就能加入。</p>
+    <button class="btn red block" data-a="guestExit">我要登入／加入</button></div>`;
+}
+function guestCard(){
+  const g=S.group, tok=g.guestToken, leader=isLeader();
+  if (!tok && !leader) return '';
+  return `<div class="card"><div class="row between"><h2>訪客參觀</h2>${tok?'<span class="tag">開啟中</span>':''}</div>
+    <p class="small" style="margin:4px 0 10px">給家長或還沒加入的同學看的連結，不用登入。<b>只會看到全團合計</b>（總${TH().unit}、總時數、遠征、各科進度），不會出現任何人的名字或個人紀錄，也不能修改。</p>
+    ${tok?`<div class="row wrap"><button class="btn yellow sm" data-a="copy" data-v="${esc(guestLink(tok))}">複製訪客連結</button><a class="btn ghost sm" style="text-decoration:none" href="${esc(guestLink(tok))}" target="_blank" rel="noopener">預覽</a></div>
+      ${leader?`<div class="row wrap" style="margin-top:8px"><button class="btn ghost sm" data-a="guestReset">換新連結（舊的失效）</button><button class="btn ghost sm" data-a="guestOff">關閉訪客參觀</button></div>`:`<p class="tiny" style="margin:8px 0 0">只有團長可以關閉或換新連結。</p>`}`
+      :`<button class="btn soft block" data-a="guestOn">開啟訪客參觀</button>`}
+  </div>`;
+}
+// ----- 設定 -----
+function viewSettings(){
+  const g=S.group, s=S.settings, isOwner=g.owner===S.me.uid;
+  return `
+  ${S.me.anon?`<div class="card" style="background:#fff3c4"><h2>你現在是免帳號登入</h2>
+    <p class="small" style="margin:6px 0 10px">紀錄只綁在<b>這支手機的這個瀏覽器</b>。換手機、清除瀏覽器資料或登出，就找不回來了。<br>之後有可用的 Google 帳號（家長的或學校的），按下面綁定，紀錄會完整保留，換手機也能登入。</p>
+    <button class="btn block" data-a="linkGoogle">綁定 Google 帳號，保存我的紀錄</button>
+    <button class="btn yellow block" style="margin-top:8px" data-a="linkEmailStart">綁定 Email＋密碼，保存我的紀錄</button></div>`:''}
+  <div class="card"><h2>我的資料</h2>
+    <label class="f">暱稱（朋友看到的名字）</label><input type="text" id="sname" data-keep="sname" value="${esc(myName())}" maxlength="16">
+    <button class="btn soft sm" style="margin-top:8px" data-a="saveName">儲存暱稱</button></div>
+  <div class="card"><h2>番茄鐘</h2>
+    <div class="row" style="margin-top:6px"><div class="grow"><label class="f">專心（分）</label><input type="number" id="sfocus" min="5" max="60" value="${s.focus}"></div><div class="grow"><label class="f">休息（分）</label><input type="number" id="sbrk" min="1" max="30" value="${s.brk}"></div><div class="grow"><label class="f">每日目標（顆）</label><input type="number" id="sgoal" min="1" max="20" value="${s.goal}"></div></div>
+    <button class="btn soft sm" style="margin-top:10px" data-a="saveTimer">儲存</button>
+    <p class="tiny muted" style="margin:8px 0 0">撐滿一個專心時段才會得到${TH().unit}；中途放棄會${TH().fail==='番茄醬'?'變成番茄醬':'被吸管吸走'}，但滿 5 分鐘的時間仍會記錄。</p></div>
+  <div class="card"><div class="row between"><h2>科目</h2><span class="small" style="font-weight:700">${clubSubjects().length} 科</span></div>
+    <p class="small" style="margin:4px 0 8px">這個讀書社自己的科目清單，大家共用。每一科會出現不同的${TH().unit}。${isLeader()?'':`<br><b>只有團長（${esc(leaderName())}）可以修改科目。</b>`}</p>
+    ${clubSubjects().map((x,i)=>{ const T=typeOf(x.name), n=S.tasks.filter(t=>t.subject===x.name).length; return `<div class="row" style="padding:7px 0;border-top:2px dashed #d8cfb8">
+      <span style="width:40px;height:44px;flex:none">${soldierSVG({subject:x.name,seed:hash('dex'+x.name)})}</span>
+      <div class="grow">${chip(x.name)} <b class="small">${esc(T.name)}</b><div class="tiny">${n?`${n} 個任務`:'還沒有任務'}</div></div>
+      ${isLeader()?`<button class="iconbtn" data-a="subjUp" data-v="${i}" aria-label="往上" ${i?'':'disabled style="opacity:.25"'}>▲</button>
+      <button class="btn ghost sm" data-a="subjEdit" data-v="${i}">編輯</button>`:''}</div>`; }).join('')}
+    ${isLeader()?`<button class="btn soft block" style="margin-top:10px" data-a="subjEdit" data-v="new">＋ 新增科目</button>`:''}</div>
+  ${guestCard()}
+  <div class="card"><div class="row between"><h2>讀書社</h2><span class="tag">團長：${esc(leaderName())}</span></div>
+    <label class="f">讀書社名稱${isOwner?'':'（團長才能改）'}</label><input type="text" id="sgname" data-keep="sgname" value="${esc(g.name)}" ${isOwner?'':'disabled'}>
+    <label class="f">角色${isOwner?'':'（團長才能改）'}</label><select id="stheme" ${isOwner?'':'disabled'}>${Object.entries(THEMES).map(([k,t])=>`<option value="${k}" ${(g.theme||'tomato')===k?'selected':''}>${esc(t.label)}${t.ready?'':'（先用番茄兵）'}</option>`).join('')}</select>
+    <label class="f">考試名稱</label><input type="text" id="sexam" data-keep="sexam" value="${esc(g.examName||'')}">
+    <label class="f">考試第一天</label><input type="date" id="sedate" data-keep="sedate" value="${esc(g.examDate||'')}">
+    <button class="btn soft sm" style="margin-top:10px" data-a="saveGroup">儲存讀書社設定</button>
+    <p class="small muted" style="margin:10px 0 0">邀請碼 <b>${esc(S.gid)}</b>${isOwner?'・你是團長':''}</p>
+    <div class="row wrap" style="margin-top:10px">
+      <button class="btn ghost sm" data-a="home">回讀書社大廳</button>
+      <button class="btn ghost sm" data-a="leave">退出這個讀書社</button>
+    </div></div>
+  <div class="card"><div class="row between"><div><b>${esc(S.me.name)}</b><div class="small muted">${S.api.mode==='demo'?'示範模式':S.me.anon?'免帳號登入':'已登入'}</div></div><button class="btn ghost sm" data-a="signout">登出</button></div>
+    ${S.api.mode==='demo'?`<button class="btn ghost sm" style="margin-top:10px" data-a="resetDemo">重設示範資料</button>`:''}</div>`;
+}
+
+// ======================================================================
+//  番茄鐘
+// ======================================================================
+let audioCtx=null;
+function ensureAudio(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume?.(); }catch{} }
+function chime(){
+  try { if(!audioCtx) return; const t0=audioCtx.currentTime;
+    [523.25,659.25,783.99,1046.5].forEach((f,i)=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(0,t0+i*.14); g.gain.linearRampToValueAtTime(.25,t0+i*.14+.02); g.gain.exponentialRampToValueAtTime(.001,t0+i*.14+.6); o.connect(g).connect(audioCtx.destination); o.start(t0+i*.14); o.stop(t0+i*.14+.65); });
+  } catch {}
+  try { navigator.vibrate?.([200,100,200]); } catch {}
+}
+let wakeLock=null;
+async function keepAwake(on){ try{ if(on&&'wakeLock' in navigator&&!wakeLock){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener?.('release',()=>wakeLock=null); } else if(!on&&wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{} }
+function saveTimer(){ if(S.timer) lsSet('tg-timer',S.timer); else lsDel('tg-timer'); }
+
+async function startFocus(subject, taskId){
+  ensureAudio();
+  const dur=S.settings.focus*60000;
+  S.timer={mode:'focus', startAt:Date.now(), dur, subject, taskId:taskId||'', gid:S.gid};
+  saveTimer(); keepAwake(true); render();
+  const task=S.tasks.find(t=>t.id===taskId);
+  S.api.setMember(S.gid,S.me.uid,{studying:{subject, title:task?.title||'', endsAt:S.timer.startAt+dur}}).catch(()=>{});
+}
+let finishing=false;
+async function finishFocus(){
+  if (finishing) return; finishing=true;
+  const t=S.timer; const minutes=Math.round(t.dur/60000);
+  try { await S.api.recordSession(t.gid||S.gid, S.me.uid, {subject:t.subject, taskId:t.taskId, minutes, tomato:true}); }
+  catch(e){ console.error(e); toast('記錄失敗，請檢查網路'); }
+  chime();
+  S.timer={mode:'break', startAt:Date.now(), dur:S.settings.brk*60000, gid:t.gid};
+  saveTimer(); finishing=false; render();
+  showCelebrate(t);
+}
+async function giveUp(){
+  const t=S.timer; if(!t) return;
+  const el=Date.now()-t.startAt, minutes=Math.floor(el/60000);
+  S.timer=null; saveTimer(); keepAwake(false);
+  const plant=$('#plant'); if(plant) plant.innerHTML=failArt();
+  const gid=t.gid||S.gid;
+  if (minutes>=5) await S.api.recordSession(gid,S.me.uid,{subject:t.subject,taskId:t.taskId,minutes,tomato:false}).catch(()=>{});
+  await S.api.bumpKetchup(gid,S.me.uid).catch(()=>{});
+  toast(minutes>=5?`${TH().failMsg}。不過 ${minutes} 分鐘有記錄下來`:TH().failMsg);
+  setTimeout(render,1800);
+}
+function tickTimer(){
+  const t=S.timer; const clock=$('#clock'), plant=$('#plant');
+  if (!t || !S.me || !S.gid) return;
+  const el=Date.now()-t.startAt, left=t.dur-el;
+  if (t.mode==='focus' && left<=0) { finishFocus(); return; }
+  if (t.mode==='break' && left<=0) { S.timer=null; saveTimer(); keepAwake(false); chime(); toast(TH().breakEnd); render(); return; }
+  if (clock) clock.textContent=mmss(left);
+  if (t.mode==='focus') { const sec=Math.ceil(left/1000), sl=$('#sayline');
+    if (sec<=367 && sec>360) { if(sl && sl.dataset.six!=='1'){ sl.dataset.six='1'; sl.textContent=TH().six7; } plant?.classList.add('shake'); }
+    else if (sl?.dataset.six==='1') { sl.dataset.six=''; sl.textContent='好，繼續專心'; plant?.classList.remove('shake'); } }
+  if (plant && t.mode==='focus') {
+    const p=el/t.dur, stage=Math.floor(p*60);
+    if (plant.dataset.stage!==String(stage)) { plant.dataset.stage=stage; plant.innerHTML=growArt(Math.min(p,.99)); }
+  }
+  document.title = `${mmss(left)} ${t.mode==='focus'?'專心中':'休息'}・番茄園`;
+}
+setInterval(()=>{ if(S.timer) tickTimer(); else if(document.title!=='番茄園讀書社') document.title='番茄園讀書社'; },500);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ tickTimer(); if(S.timer) keepAwake(true); render(); } });
+setInterval(()=>{ if(S.view==='friends' && !S.timer) render(); },30000);
+setInterval(()=>{
+  const d=new Date(); if (!(d.getMinutes()===7 && (d.getHours()===6||d.getHours()===18))) return;
+  const key='tg-67-'+ymd()+'-'+d.getHours(); if (lsGet(key) || (S.timer&&S.timer.mode==='focus') || !S.me || $('#modal-root').innerHTML) return;
+  lsSet(key,1);
+  openModal(`<div class="celebrate"><div class="six7">6 : 0 7</div><div class="big">六七時刻降臨！</div><div style="width:120px;height:130px;margin:6px auto">${soldierSVG({subject:'其他',rare:'67',seed:67})}</div><p style="font-weight:700">這一分鐘內拔出的番茄兵，保證掉稀有空投。<br>（明天同一時間還會再來）</p><button class="btn yellow block" data-a="closeModal">六七！</button></div>`);
+},15000);
+
+// ======================================================================
+//  彈出視窗
+// ======================================================================
+function openModal(html){ if(EMBED) window.scrollTo(0,0); $('#modal-root').innerHTML=`<div class="modal" data-a="closeModal"><div class="sheet">${html}</div></div>`; }
+function closeModal(){ $('#modal-root').innerHTML=''; }
+function showCelebrate(t){
+  const st=memberStats(S.me.uid);
+  const U=TH().cnt;
+  openModal(`<div class="celebrate"><div class="plantbox shake">${growArt(1)}</div>
+    <div class="big">${TH().pending}</div>
+    <p style="font-weight:700;margin:4px 0 12px">今天第 ${st.todayTom} ${U}${st.todayTom>=S.settings.goal?'・今日目標達成 🎯':`・離目標還差 ${S.settings.goal-st.todayTom} ${U}`}</p>
+    <button class="btn red big block" data-a="pluckNew" data-task="${esc(t.taskId||'')}">${TH().pluck}</button>
+    <button class="btn ghost block" style="margin-top:10px" data-a="closeModal">等一下再拔，先休息</button></div>`);
+}
+async function pluckAndShow(which='newest', taskId='', tries=0){
+  const me=S.members[S.me.uid]||{}, ts=me.pluckTs||0;
+  const army=myArmy(), waiting=army.filter(s=>s.endedAt>ts);
+  if (!waiting.length) { if (tries<8) return setTimeout(()=>pluckAndShow(which,taskId,tries+1),400); closeModal(); return toast(TH().none); }
+  const so = which==='newest' ? waiting.at(-1) : waiting[0];
+  await S.api.setMember(S.gid,S.me.uid,{pluckTs: which==='newest' ? so.endedAt : so.endedAt}).catch(()=>{});
+  soldierCard(so,true,taskId);
+}
+function openGift(id, taskId=''){
+  const so=myArmy().find(x=>x.id===id); const g=giftOf(so); if(!g) return closeModal();
+  openModal(`<div class="celebrate"><div class="drop" style="width:150px;height:160px;margin:0 auto">${crateSVG()}</div>
+    <div class="big">空投到了！</div>${g.why?`<p class="small" style="font-weight:700;margin:4px 0">${esc(g.why)}</p>`:''}
+    <button class="btn red big block" style="margin-top:10px" data-a="revealGift" data-id="${so.id}" data-task="${esc(taskId)}">打開！</button></div>`);
+}
+function revealGift(id, taskId=''){
+  const so=myArmy().find(x=>x.id===id); const g=giftDisp(giftOf(so)); if(!g) return closeModal();
+  const task = taskId && !prog(S.me.uid,taskId).done ? S.tasks.find(x=>x.id===taskId) : null;
+  openModal(`<div class="celebrate"><div class="pop" style="font-size:5.5rem;line-height:1.1">${g.ic}</div>
+    <span class="rar r-${g.rar}">${g.rar}</span>
+    <div class="big">${esc(g.name)}</div><p style="font-weight:700;margin:6px 0">${esc(g.d)}</p>
+    ${g.id==='antidote'?`<p class="small">${TH().fail} −1 ${TH().failIc}</p>`:''}
+    ${task?`<p class="small" style="margin:12px 0 6px;font-weight:700">「${esc(task.title)}」完成了嗎？</p><button class="btn block" data-a="doneFromCelebrate" data-id="${task.id}">完成了，打勾！</button>`:''}
+    <button class="btn ${task?'ghost':'yellow'} block" style="margin-top:10px" data-a="closeModal">收進寶物箱</button></div>`);
+}
+function soldierCard(so,isNew=false,taskId=''){
+  const T=so.custom?{name:'社員設計角色',skill:so.custom.skill||'還沒有寫特殊能力'}:typeOf(so.subject), R=rareInfo(so);
+  const gift = giftDisp(giftOf(so));
+  const task = taskId && !(gift&&isNew) && !prog(S.me.uid,taskId).done ? S.tasks.find(x=>x.id===taskId) : null;
+  openModal(`<div class="celebrate">
+    ${so.n===67?`<div class="six7">6 7 !!</div><div class="big">第 67 ${TH().cnt}！六七大帝降臨！</div>`:''}
+    ${so.custom?`<div class="big" style="color:var(--purple)">是 ${esc((S.members[so.custom.by]||{}).name||'社員')} 設計的角色！</div>`:''}
+    ${R?`<div class="big" style="color:#e09a00">${so.rare==='67'?'六……七……！':'！！稀有！！'}</div>`:''}
+    <div class="say">${esc(so.quote)}</div>
+    <div class="${isNew?'pop':''}" style="width:150px;height:150px;margin:6px auto 0">${soldierSVG(so)}</div>
+    <div class="big">${esc(so.name)}</div>
+    <div class="row" style="justify-content:center;gap:6px;margin-top:4px"><span class="card-id">No.${so.n}</span>${chip(so.subject)}<b>${R?R.name:T.name}</b></div>
+    <p class="small" style="margin:10px 0 2px"><b>特殊能力：</b>${esc(R?R.skill:T.skill)}</p>
+    <p class="tiny" style="margin:0">${fmtDate(so.date)} ${TH().born}</p>
+    ${gift? (isNew ? `<button class="btn yellow big block" style="margin-top:12px" data-a="openGift" data-id="${so.id}" data-task="${esc(taskId)}">咦？天上掉下一個空投箱！</button>`
+                   : `<p class="small" style="margin:10px 0 0">附帶空投：${gift.ic} <b>${esc(gift.name)}</b></p>`) : ''}
+    ${task?`<p class="small" style="margin:12px 0 6px;font-weight:700">「${esc(task.title)}」完成了嗎？</p><button class="btn block" data-a="doneFromCelebrate" data-id="${task.id}">完成了，打勾！</button>`:''}
+    <button class="btn ${task?'ghost':'yellow'} block" style="margin-top:10px" data-a="closeModal">${isNew?TH().keep:'好'}</button></div>`);
+}
+function openEditTask(id){
+  const t=S.tasks.find(x=>x.id===id); if(!t) return;
+  openModal(`<h2>編輯任務</h2>
+    <div class="row" style="margin-top:10px"><select id="esubj" style="flex:0 0 100px">${subjOptions(t.subject)}${subjNames().includes(t.subject)?'':`<option selected>${esc(t.subject)}</option>`}</select><input type="date" id="edate" class="grow" value="${esc(t.date||'')}"></div>
+    <input type="text" id="etitle" value="${esc(t.title)}" style="margin-top:8px">
+    <p class="tiny muted">群組裡的任務大家共用，改了每個人都會看到。</p>
+    <button class="btn block" style="margin-top:8px" data-a="saveTask" data-id="${id}">儲存</button>
+    <div class="row" style="margin-top:8px"><button class="btn ghost grow" data-a="closeModal">取消</button><button class="btn ghost grow" style="color:var(--tomato-d)" data-a="delTask" data-id="${id}">刪除</button></div>`);
+}
+function openSubjEdit(idx){
+  const list=clubSubjects(), isNew=idx==='new', x=isNew?{name:'',color:PALETTE[list.length%PALETTE.length]}:list[+idx];
+  const T=isNew?null:typeOf(x.name);
+  openModal(`<h2>${isNew?'新增科目':'編輯科目'}</h2>
+    <label class="f">科目名稱</label><input type="text" id="sj_name" value="${esc(x.name)}" maxlength="6" placeholder="例如：超修">
+    <label class="f">顏色</label><div class="row wrap" id="sj_colors" style="gap:6px">${PALETTE.map(c=>`<button class="sw" data-a="pickColor" data-v="${c}" style="width:34px;height:34px;border-radius:10px;border:${c===x.color?'4px':'2.5px'} solid var(--ink);background:${c}" aria-label="${c}"></button>`).join('')}</div>
+    <input type="hidden" id="sj_color" value="${esc(x.color||PALETTE[0])}">
+    <label class="f">兵種名稱（可留空）</label><input type="text" id="sj_unit" value="${esc(x.unit||'')}" maxlength="8" placeholder="${esc(T?.name||'例如：超修兵')}">
+    <label class="f">特殊能力（可留空，越無厘頭越好）</label><input type="text" id="sj_skill" value="${esc(x.skill||'')}" maxlength="40" placeholder="${esc(T?.skill||'例如：讀到一半頭上會冒煙')}">
+    <button class="btn block" style="margin-top:14px" data-a="subjSave" data-v="${idx}">儲存</button>
+    <div class="row" style="margin-top:8px"><button class="btn ghost grow" data-a="closeModal">取消</button>${isNew?'':`<button class="btn ghost grow" style="color:var(--tomato-d)" data-a="subjDel" data-v="${idx}">刪除這科</button>`}</div>`);
+}
+function authMsg(err){
+  const c=err?.code||'';
+  return ({'auth/invalid-email':'Email 格式不對','auth/email-already-in-use':'這個 Email 已經註冊過了，請改用「登入」',
+    'auth/weak-password':'密碼至少要 6 個字','auth/invalid-credential':'Email 或密碼不對','auth/wrong-password':'Email 或密碼不對',
+    'auth/user-not-found':'找不到這個 Email，請先註冊','auth/too-many-requests':'嘗試太多次了，請等一下再試',
+    'auth/credential-already-in-use':'這個帳號已經在番茄園用過了，不能再綁定','auth/provider-already-linked':'已經綁定過了',
+    'auth/operation-not-allowed':'Firebase 還沒開啟這種登入方式（見 SETUP.md）','auth/network-request-failed':'網路有問題，請再試一次'})[c] || ('登入失敗：'+(c||err?.message||''));
+}
+function openEmailModal(){
+  const up=S.emailMode==='up';
+  openModal(`<h2>${up?'用 Email 註冊':'用 Email 登入'}</h2>
+    <div class="seg" style="margin-top:10px"><button class="${up?'':'on'}" data-a="emailStart" data-v="in">登入</button><button class="${up?'on':''}" data-a="emailStart" data-v="up">第一次用？註冊</button></div>
+    ${up?`<label class="f">暱稱（朋友看到的名字）</label><input type="text" id="em_nick" maxlength="12" placeholder="例如：小宇">`:''}
+    <label class="f">Email（學校信箱或家長信箱都可以）</label><input type="text" id="em_email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="name@example.com">
+    <label class="f">密碼${up?'（至少 6 個字）':''}</label><input type="password" id="em_pw" autocomplete="${up?'new-password':'current-password'}" style="width:100%;border:var(--b);border-radius:12px;padding:10px 12px;min-height:46px">
+    ${up?`<label class="f">再輸入一次密碼</label><input type="password" id="em_pw2" autocomplete="new-password" style="width:100%;border:var(--b);border-radius:12px;padding:10px 12px;min-height:46px">`:''}
+    <button class="btn red block" style="margin-top:14px" data-a="emailGo">${up?'註冊並登入':'登入'}</button>
+    ${up?'':`<button class="btn ghost sm" style="margin-top:10px" data-a="emailReset">忘記密碼？寄重設信</button>`}
+    <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
+}
+function confirmBox(msg, action, extra=''){
+  openModal(`<p style="font-weight:700">${msg}</p><div class="row" style="margin-top:12px"><button class="btn ghost grow" data-a="closeModal">取消</button><button class="btn red grow" data-a="${action}" ${extra}>確定</button></div>`);
+}
+
+// ======================================================================
+//  動作
+// ======================================================================
+async function doJoin(code, fromHash=false){
+  try {
+    const gid=await S.api.joinGroup({...S.me, name:S.me.name}, code);
+    const groups=[...new Set([...(S.userDoc.groups||[]),gid])];
+    await S.api.setUser(S.me.uid,{groups,current:gid}); S.userDoc={...S.userDoc,groups,current:gid};
+    S.creating=false; subscribe(gid); toast('加入成功！');
+  } catch(e){ console.error(e); toast(e.message||'加入失敗'); if(fromHash){ S.loading=false; render(); } }
+}
+const val = id => ($('#'+id)?.value||'').trim();
+
+document.addEventListener('click', async e=>{
+  const el=e.target.closest('[data-a]'); if(!el) return;
+  const a=el.dataset.a, id=el.dataset.id;
+  if (a==='closeModal' && e.target!==el && el.classList.contains('modal')) return;
+  if (S.guest && !['closeModal','guestExit','reload'].includes(a)) return;
+  try {
+  switch(a){
+    case 'reload': location.reload(); break;
+    case 'guestExit': location.href=location.pathname; break;
+    case 'guestOn': { if(!isLeader()) return toast('只有團長可以開啟');
+      await S.api.updateGroup(S.gid,{guestToken:guestToken()}); scheduleGuestPublish(true); toast('訪客參觀開啟了，複製連結給家長吧'); break; }
+    case 'guestReset': { if(!isLeader()) return; const old=S.group.guestToken;
+      await S.api.updateGroup(S.gid,{guestToken:guestToken()}); if(old) S.api.delGuest(old).catch(()=>{}); scheduleGuestPublish(true); toast('已換新連結，舊連結失效'); break; }
+    case 'guestOff': confirmBox('關閉訪客參觀？已經分享出去的連結會打不開。','guestOffOk'); break;
+    case 'guestOffOk': { if(!isLeader()) return; const old=S.group.guestToken; closeModal();
+      await S.api.updateGroup(S.gid,{guestToken:''}); if(old) await S.api.delGuest(old).catch(()=>{}); toast('訪客參觀已關閉'); break; }
+    case 'closeModal': closeModal(); break;
+    case 'pluckNew': await pluckAndShow('newest', el.dataset.task||''); break;
+    case 'pluck': await pluckAndShow('oldest'); break;
+    case 'openGift': openGift(id, el.dataset.task||''); break;
+    case 'subjEdit': if(!isLeader()) return toast('只有團長可以修改科目'); openSubjEdit(el.dataset.v); break;
+    case 'charNew': openCharDesigner(); break;
+    case 'cdColor': S.draft.color=el.dataset.v; refreshDraft(); break;
+    case 'cdAcc': S.draft.acc=el.dataset.v; refreshDraft(); break;
+    case 'charSave': {
+      const name=val('cd_name'); if(!name) return toast('幫角色取個名字吧');
+      try { await S.api.addChar(S.gid,S.me.uid,{name, color:S.draft.color, acc:S.draft.acc, skill:val('cd_skill'), quote:val('cd_quote')}); closeModal(); toast(`「${name}」誕生了！`); }
+      catch(e){ console.error(e); toast('這週已經設計過角色了，下週一再來'); } break;
+    }
+    case 'charDel': confirmBox('刪除這個角色？','charDelOk',`data-id="${id}"`); break;
+    case 'charDelOk': await S.api.deleteChar(S.gid,id); closeModal(); toast('已刪除'); break;
+    case 'pickColor': { $('#sj_color').value=el.dataset.v; document.querySelectorAll('#sj_colors .sw').forEach(b=>b.style.borderWidth=b.dataset.v===el.dataset.v?'4px':'2.5px'); break; }
+    case 'subjSave': { if(!isLeader()) return toast('只有團長可以修改科目');
+      const list=clubSubjects().map(x=>({...x})), idx=el.dataset.v, name=val('sj_name');
+      if (!name) return toast('科目名稱不能空白');
+      const dup=list.findIndex(x=>x.name===name); if (dup>=0 && String(dup)!==idx) return toast('已經有這個科目了');
+      const item={name, color:$('#sj_color').value}; const unit=val('sj_unit'), skill=val('sj_skill'); if(unit) item.unit=unit; if(skill) item.skill=skill;
+      if (idx==='new') { const oi=list.findIndex(x=>x.name==='其他'); if(oi>=0) list.splice(oi,0,item); else list.push(item); }
+      else {
+        const old=list[+idx].name; list[+idx]=item;
+        if (old!==name) { const ts=S.tasks.filter(t=>t.subject===old); for(const t of ts) await S.api.updateTask(S.gid,t.id,{subject:name}); }
+      }
+      await S.api.updateGroup(S.gid,{subjects:list}); closeModal(); toast('科目已儲存'); break;
+    }
+    case 'subjDel': { if(!isLeader()) return toast('只有團長可以修改科目');
+      const i=+el.dataset.v, x=clubSubjects()[i], n=S.tasks.filter(t=>t.subject===x.name).length;
+      confirmBox(`刪除「${esc(x.name)}」？${n?`<br><span class="small">已經有 ${n} 個任務用這科，任務會保留，只是科目選單裡不會再出現。</span>`:''}`,'subjDelOk',`data-v="${i}"`); break;
+    }
+    case 'subjDelOk': { if(!isLeader()) return toast('只有團長可以修改科目'); const list=clubSubjects().filter((_,i)=>i!==+el.dataset.v); if(!list.length) return toast('至少要留一科'); await S.api.updateGroup(S.gid,{subjects:list}); closeModal(); toast('已刪除'); break; }
+    case 'subjUp': { if(!isLeader()) return toast('只有團長可以修改科目'); const i=+el.dataset.v; if(!i) break; const list=clubSubjects().map(x=>({...x})); [list[i-1],list[i]]=[list[i],list[i-1]]; await S.api.updateGroup(S.gid,{subjects:list}); break; }
+    case 'revealGift': revealGift(id, el.dataset.task||''); break;
+    case 'giftInfo': { const g=giftDisp(GIFTS.find(x=>x.id===el.dataset.v)); const own=el.classList.contains('off')?0:1;
+      openModal(`<div class="celebrate"><div style="font-size:4rem;${own?'':'filter:grayscale(1) brightness(.2);opacity:.3'}">${g.ic}</div><span class="rar r-${g.rar}">${g.rar}</span><div class="big">${own?esc(g.name):'？？？'}</div><p style="font-weight:700">${own?esc(g.d):'還沒拿到。繼續種番茄兵，說不定下一個空投就是它。'}</p><button class="btn yellow block" data-a="closeModal">好</button></div>`); break; }
+    case 'soldier': { const so=myArmy().find(x=>x.id===id); if(so) soldierCard(so); break; }
+    case 'signin': try{ await S.api.signIn(); }catch(err){ console.error(err); toast(err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':err.code==='auth/unauthorized-domain'?'這個網址還沒加到 Firebase 授權網域（見 SETUP.md）':'登入失敗：'+(err.code||err.message)); } break;
+    case 'signout':
+      if (S.me?.anon) { confirmBox('免帳號登入的人登出後，<b>就再也回不到這個帳號</b>，紀錄也找不回來。<br>建議先到「設定」綁定 Google 帳號。確定要登出嗎？','signoutOk'); break; }
+      if(S.timer) await giveUp(); await S.api.signOut(); break;
+    case 'signoutOk': closeModal(); if(S.timer) await giveUp(); await S.api.signOut(); break;
+    case 'emailStart': S.emailMode=el.dataset.v||S.emailMode||'in'; openEmailModal(); break;
+    case 'emailGo': {
+      const email=val('em_email'), pw=$('#em_pw').value, mode=S.emailMode;
+      if (!email || !pw) return toast('請輸入 Email 和密碼');
+      try {
+        if (mode==='up') { const nick=val('em_nick'); if(!nick) return toast('請輸入暱稱'); if(pw.length<6) return toast('密碼至少 6 個字'); if(pw!==$('#em_pw2').value) return toast('兩次密碼不一樣'); closeModal(); await S.api.emailSignUp(email,pw,nick); }
+        else { closeModal(); await S.api.emailSignIn(email,pw); }
+      } catch(err){ console.error(err); toast(authMsg(err)); } break; }
+    case 'emailReset': { const email=val('em_email'); if(!email) return toast('先在上面填 Email'); try{ await S.api.emailReset(email); toast('重設密碼的信寄出了，請到信箱收信（也看看垃圾郵件）'); }catch(err){ toast(authMsg(err)); } break; }
+    case 'linkEmailStart': openModal(`<h2>綁定 Email＋密碼</h2>
+      <p class="small" style="margin:6px 0">綁定後，換手機用這組 Email 和密碼登入，紀錄都還在。</p>
+      <label class="f">Email</label><input type="text" id="lk_email" inputmode="email" autocomplete="email" placeholder="例如 學校信箱或家長信箱">
+      <label class="f">設定密碼（至少 6 個字）</label><input type="password" id="lk_pw" autocomplete="new-password" style="width:100%;border:var(--b);border-radius:12px;padding:10px 12px;min-height:46px">
+      <button class="btn block" style="margin-top:12px" data-a="linkEmailGo">綁定</button><button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`); break;
+    case 'linkEmailGo': { const email=val('lk_email'), pw=$('#lk_pw').value; if(!email||pw.length<6) return toast('請填 Email，密碼至少 6 個字');
+      try { await S.api.linkEmail(email,pw); closeModal(); S.me={...S.me, anon:false}; toast('綁定成功！換手機時用這組 Email 登入'); render(); } catch(err){ console.error(err); toast(authMsg(err)); } break; }
+    case 'anonStart': openModal(`<h2>免帳號登入</h2>
+      <p class="small" style="margin:6px 0 4px">輸入一個暱稱就能開始。朋友會看到這個名字。</p>
+      <input type="text" id="anon_nick" maxlength="12" placeholder="例如：小宇">
+      <div class="banner" style="margin-top:10px">注意：紀錄只會存在這支手機的這個瀏覽器。換手機或清除瀏覽器資料就找不回來。之後可以在「設定」綁定 Google 帳號保存紀錄。</div>
+      <button class="btn red block" style="margin-top:12px" data-a="anonGo">開始</button>
+      <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`); setTimeout(()=>$('#anon_nick')?.focus(),50); break;
+    case 'anonGo': { const n=val('anon_nick'); if(!n) return toast('請先輸入暱稱'); closeModal();
+      try { await S.api.signInAnon(n); } catch(err){ console.error(err); toast(authMsg(err)); } break; }
+    case 'linkGoogle': try {
+        const r=await S.api.linkGoogle(); S.me={...S.me, anon:false, photo:r.photo||S.me.photo};
+        if (S.gid) await S.api.setMember(S.gid,S.me.uid,{photo:r.photo||''}).catch(()=>{});
+        toast('綁定成功！之後換手機用這個 Google 帳號登入就好'); render();
+      } catch(err){ console.error(err); toast(err.code==='auth/credential-already-in-use'?'這個 Google 帳號已經在番茄園用過了，不能再綁定':err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':'綁定失敗：'+(err.code||err.message)); } break;
+    case 'go': S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
+    case 'join': { const c=val('joincode'); if(c.length!==6) return toast('邀請碼是 6 個字'); await doJoin(c); break; }
+    case 'create': {
+      const name=val('gname')||`${myName()}的讀書小隊`;
+      const gid=await S.api.createGroup(S.me,{name, examName:val('gexam'), examDate:val('gdate'), theme:$('#gtheme')?.value||'tomato'});
+      const groups=[...new Set([...(S.userDoc.groups||[]),gid])];
+      await S.api.setUser(S.me.uid,{groups,current:gid}); S.userDoc={...S.userDoc,groups,current:gid};
+      S.creating=false; subscribe(gid); S.view='friends'; toast('讀書社建立好了，把邀請碼傳給朋友吧！'); break;
+    }
+    case 'start': { const subj=$('#tsubj').value, tid=$('#ttask').value; const task=S.tasks.find(x=>x.id===tid); await startFocus(task?.subject||subj, tid); break; }
+    case 'startTask': { const task=S.tasks.find(x=>x.id===id); S.view='today'; history.replaceState(null,'','#today'); await startFocus(task.subject,id); window.scrollTo({top:0,behavior:'smooth'}); break; }
+    case 'giveup': confirmBox(TH().failAsk,'confirmGiveup'); break;
+    case 'confirmGiveup': closeModal(); await giveUp(); break;
+    case 'skipbreak': S.timer=null; saveTimer(); keepAwake(false); render(); break;
+    case 'toggle': { const p=prog(S.me.uid,id); await S.api.setProgress(S.gid,S.me.uid,id,{done:!p.done, mastery:p.mastery||(p.done?0:1)}); if(!p.done) toast('完成一項！記得幫熟練度打星星'); break; }
+    case 'doneFromCelebrate': { const p=prog(S.me.uid,id); await S.api.setProgress(S.gid,S.me.uid,id,{done:true,mastery:p.mastery||1}); closeModal(); toast('打勾了！'); break; }
+    case 'mast': { const p=prog(S.me.uid,id), n=+el.dataset.n; await S.api.setProgress(S.gid,S.me.uid,id,{mastery:(p.mastery===n?n-1:n)}); break; }
+    case 'editTask': openEditTask(id); break;
+    case 'saveTask': { const title=val('etitle'); if(!title) return toast('內容不能空白'); await S.api.updateTask(S.gid,id,{subject:$('#esubj').value,date:val('edate'),title}); closeModal(); break; }
+    case 'delTask': confirmBox('確定刪除這個任務？大家的清單都會少這一項。','confirmDel',`data-id="${id}"`); break;
+    case 'confirmDel': await S.api.deleteTask(S.gid,id); closeModal(); toast('已刪除'); break;
+    case 'filter': S.taskFilter=el.dataset.v; render(); break;
+    case 'addmode': S.addMode=el.dataset.v; render(); break;
+    case 'addOne': { const title=val('ntitle'); if(!title) return toast('請輸入任務內容'); await S.api.addTasks(S.gid,S.me.uid,[{subject:$('#nsubj').value,title,date:val('ndate')}]); $('#ntitle').value=''; toast('新增了！'); break; }
+    case 'addBulk': {
+      const year = S.group.examDate ? +S.group.examDate.slice(0,4) : null;
+      const list=parseLines($('#nbulk').value, year); if(!list.length) return toast('沒有讀到任務，檢查一下格式');
+      el.disabled=true; await S.api.addTasks(S.gid,S.me.uid,list); $('#nbulk').value=''; toast(`加入了 ${list.length} 個任務`); break;
+    }
+    case 'template': confirmBox(`把「${TEMPLATE.name}」11/16–12/2 的 80 個任務加進這個群組？`,'confirmTemplate'); break;
+    case 'confirmTemplate': { closeModal(); toast('加入中…'); await S.api.addTasks(S.gid,S.me.uid,parseLines(TEMPLATE.lines,2026)); if(!S.group.examDate) await S.api.updateGroup(S.gid,{examName:TEMPLATE.name,examDate:TEMPLATE.examDate}); toast('80 個任務加好了！'); break; }
+    case 'fsort': S.friendSort=el.dataset.v; render(); break;
+    case 'copy': { const v=el.dataset.v; try{ await navigator.clipboard.writeText(v); toast('已複製'); }catch{ openModal(`<p>請長按下面文字複製：</p><input type="text" value="${esc(v)}" onfocus="this.select()"><button class="btn block" style="margin-top:10px" data-a="closeModal">好</button>`); } break; }
+    case 'saveName': { const n=val('sname'); if(!n) return; await S.api.setMember(S.gid,S.me.uid,{name:n}); toast('已儲存'); break; }
+    case 'saveTimer': { const c=(id,lo,hi,d)=>Math.min(hi,Math.max(lo,parseInt(val(id))||d)); S.settings={focus:c('sfocus',5,60,25),brk:c('sbrk',1,30,5),goal:c('sgoal',1,20,4)}; lsSet('tg-settings',S.settings); toast('已儲存'); render(); break; }
+    case 'saveGroup': await S.api.updateGroup(S.gid, isLeader() ? {name:val('sgname')||S.group.name, theme:$('#stheme')?.value||'tomato', examName:val('sexam'), examDate:val('sedate')} : {examName:val('sexam'), examDate:val('sedate')}); toast('已儲存'); break;
+    case 'home': case 'switchGroup': closeModal(); goHome(); break;
+    case 'enter': { const g=el.dataset.v; await S.api.setUser(S.me.uid,{current:g}).catch(()=>{}); S.userDoc.current=g; S.view='today'; subscribe(g); window.scrollTo(0,0); break; }
+    case 'newGroup': closeModal(); unsubs.forEach(f=>f()); unsubs=[]; S.group=null; S.gid=null; S.creating=true; render(); window.scrollTo(0,0); break;
+    case 'leave': confirmBox('確定退出這個讀書社？你的紀錄會留在群組裡，但你就看不到了。','confirmLeave'); break;
+    case 'confirmLeave': { closeModal(); const g=S.gid; await S.api.leaveGroup(S.me,g); const groups=(S.userDoc.groups||[]).filter(x=>x!==g); await S.api.setUser(S.me.uid,{groups,current:''}); S.userDoc={...S.userDoc,groups,current:''}; goHome(); break; }
+    case 'resetDemo': S.api.resetDemo(); toast('示範資料已重設'); break;
+  }
+  } catch(err){ console.error(err); toast('出錯了：'+(err.code||err.message)); }
+});
+document.addEventListener('input', e=>{
+  if (!S.draft) return; const id=e.target.id;
+  if (id==='cd_name') S.draft.name=e.target.value; if (id==='cd_skill') S.draft.skill=e.target.value; if (id==='cd_quote') S.draft.quote=e.target.value;
+});
+document.addEventListener('change', e=>{
+  const el=e.target;
+  if (el.dataset.a==='showdone'){ S.taskShowDone=el.checked; render(); }
+  if (el.id==='ttask'){ const t=S.tasks.find(x=>x.id===el.value); if(t){ const s=$('#tsubj'); if(s) s.value=t.subject; } }
+});
+document.addEventListener('keydown', e=>{
+  if (e.key==='Enter' && e.target.id==='ntitle') { e.preventDefault(); document.querySelector('[data-a="addOne"]')?.click(); }
+  if (e.key==='Enter' && e.target.id==='joincode') { e.preventDefault(); document.querySelector('[data-a="join"]')?.click(); }
+});
+
+// 回復中斷的番茄鐘（例如重新整理）
+if (S.timer && S.timer.mode==='focus' && Date.now()-S.timer.startAt>S.timer.dur+6*3600000) { S.timer=null; saveTimer(); }
+
+boot();
+</script>
+</body>
+</html>
