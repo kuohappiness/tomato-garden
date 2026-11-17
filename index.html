@@ -916,6 +916,10 @@ async function makeFirebaseAPI(cfg){
       return code;
     },
     async leaveGroup(me,gid){ await updateDoc(gref(gid), {members:arrayRemove(me.uid)}); },
+    removeMember(gid,uid){ return updateDoc(gref(gid), {members:arrayRemove(uid)}); },
+    // 交棒：先刪掉舊團長登記的名錄（新團長的 App 會自動重新登記），再換團長
+    async transferOwner(gid,uid,did){ if(did) await deleteDoc(doc(db,'directory',did)).catch(()=>{}); await updateDoc(gref(gid), {owner:uid, dirId:''}); },
+    delDir(did){ return deleteDoc(doc(db,'directory',did)); },
     watchGroup(gid,cb,err){ return onSnapshot(gref(gid), s=>cb(s.exists()?{id:s.id,...s.data()}:null), err); },
     updateGroup(gid,data){ return updateDoc(gref(gid), data); },
     watchMembers(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'members'), qs=>{ const o={}; qs.forEach(d=>o[d.id]=d.data()); cb(o); }, err); },
@@ -1022,6 +1026,9 @@ function makeLocalAPI(){
     async createGroup(me,{name,examName,examDate,theme='tomato'}){ const code=randCode(); D.groups[code]={doc:{name,examName,examDate,theme,subjects:structuredClone(theme==='boba'?BOBA_SUBJECTS:SUBJECTS),owner:me.uid,members:[me.uid]},members:{[me.uid]:{name:me.name,photo:me.photo,joinedAt:Date.now()}},tasks:{},progress:{},sessions:{}}; save(); return code; },
     async joinGroup(me,code){ code=code.trim().toUpperCase(); const g=G(code); if(!g) throw new Error('找不到這個邀請碼'); if(!g.doc.members.includes(me.uid)) g.doc.members.push(me.uid); g.members[me.uid]={...(g.members[me.uid]||{}),name:me.name,photo:me.photo}; save(); return code; },
     async leaveGroup(me,gid){ const g=G(gid); g.doc.members=g.doc.members.filter(x=>x!==me.uid); save(); },
+    async removeMember(gid,uid){ const g=G(gid); g.doc.members=g.doc.members.filter(x=>x!==uid); save(); },
+    async transferOwner(gid,uid,did){ if(did&&D.directory) delete D.directory[did]; Object.assign(G(gid).doc,{owner:uid, dirId:''}); save(); },
+    async delDir(did){ if(D.directory) delete D.directory[did]; save(); },
     watchGroup(gid,cb){ return watch(()=>cb(G(gid)?{id:gid,...G(gid).doc}:null)); },
     async updateGroup(gid,data){ Object.assign(G(gid).doc,data); save(); },
     watchMembers(gid,cb){ return watch(()=>cb(structuredClone(G(gid)?.members||{}))); },
@@ -1688,6 +1695,18 @@ function guestCard(){
   </div>`;
 }
 // ----- 設定 -----
+const memberName = uid => (S.members[uid]||{}).name || '同學';
+const otherMembers = () => (S.group?.members||[]).filter(u=>u!==S.me?.uid);
+// 團長才看得到：交棒、移除成員
+function memberAdmin(){
+  const others=otherMembers();
+  if (!others.length) return `<p class="small" style="margin:10px 0 0">現在只有你一個人。把邀請碼傳給好朋友吧！</p>`;
+  return `<label class="f" style="margin-top:14px">成員管理（只有團長看得到）</label>
+    ${others.map(u=>`<div class="row" style="padding:7px 0;border-top:2px dashed #d8cfb8">
+      ${avatar(u)}<b class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(memberName(u))}</b>
+      <button class="btn ghost sm" data-a="giveLead" data-v="${esc(u)}">交棒</button>
+      <button class="btn ghost sm" data-a="kick" data-v="${esc(u)}">移除</button></div>`).join('')}`;
+}
 function viewSettings(){
   const g=S.group, s=S.settings, isOwner=g.owner===S.me.uid;
   return `
@@ -1718,6 +1737,7 @@ function viewSettings(){
     <label class="f">考試第一天</label><input type="date" id="sedate" data-keep="sedate" value="${esc(g.examDate||'')}">
     <button class="btn soft sm" style="margin-top:10px" data-a="saveGroup">儲存讀書社設定</button>
     <p class="small muted" style="margin:10px 0 0">邀請碼 <b>${esc(S.gid)}</b>${isOwner?'・你是團長':''}</p>
+    ${isOwner?memberAdmin():''}
     <div class="row wrap" style="margin-top:10px">
       <button class="btn ghost sm" data-a="home">回讀書社大廳</button>
       <button class="btn ghost sm" data-a="leave">退出這個讀書社</button>
@@ -2054,8 +2074,16 @@ document.addEventListener('click', async e=>{
     case 'home': case 'switchGroup': closeModal(); goHome(); break;
     case 'enter': { const g=el.dataset.v; await S.api.setUser(S.me.uid,{current:g}).catch(()=>{}); S.userDoc.current=g; S.view='today'; subscribe(g); window.scrollTo(0,0); break; }
     case 'newGroup': closeModal(); unsubs.forEach(f=>f()); unsubs=[]; S.group=null; S.gid=null; S.creating=true; render(); window.scrollTo(0,0); break;
-    case 'leave': confirmBox('確定退出這個讀書社？你的紀錄會留在群組裡，但你就看不到了。','confirmLeave'); break;
-    case 'confirmLeave': { closeModal(); const g=S.gid; await S.api.leaveGroup(S.me,g); const groups=(S.userDoc.groups||[]).filter(x=>x!==g); await S.api.setUser(S.me.uid,{groups,current:''}); S.userDoc={...S.userDoc,groups,current:''}; goHome(); break; }
+    case 'leave': {
+      if (isLeader() && otherMembers().length) { openModal(`<p style="font-weight:700">你是團長，要先把團長交給別人才能退出。</p><p class="small">在下面「成員管理」選一位隊友按「交棒」，之後就可以退出了。</p><button class="btn block" style="margin-top:12px" data-a="closeModal">知道了</button>`); break; }
+      confirmBox(isLeader()?'你是這個讀書社唯一的成員，退出之後裡面就沒有人了。確定退出？':'確定退出這個讀書社？你的紀錄會留在群組裡，但你就看不到了。','confirmLeave'); break; }
+    case 'confirmLeave': { closeModal(); const g=S.gid, did=isLeader()?S.group.dirId:''; await S.api.leaveGroup(S.me,g); if(did) S.api.delDir(did).catch(()=>{}); const groups=(S.userDoc.groups||[]).filter(x=>x!==g); await S.api.setUser(S.me.uid,{groups,current:''}); S.userDoc={...S.userDoc,groups,current:''}; goHome(); break; }
+    case 'kick': { if(!isLeader()) return toast('只有團長可以移除成員'); const u=el.dataset.v;
+      confirmBox(`把「${esc(memberName(u))}」移出讀書社？<br><span class="small">對方的讀書紀錄會留著；之後如果拿到邀請碼，還是可以再加入。</span>`,'kickOk',`data-v="${esc(u)}"`); break; }
+    case 'kickOk': { closeModal(); if(!isLeader()) return; const u=el.dataset.v, n=memberName(u); await S.api.removeMember(S.gid,u); toast(`已經把 ${n} 移出讀書社`); break; }
+    case 'giveLead': { if(!isLeader()) return toast('只有團長可以交棒'); const u=el.dataset.v;
+      confirmBox(`把團長交給「${esc(memberName(u))}」？<br><span class="small">交出去之後，讀書社名稱、角色、科目、訪客參觀和成員都改由對方管理，你會變成一般成員。</span>`,'giveLeadOk',`data-v="${esc(u)}"`); break; }
+    case 'giveLeadOk': { closeModal(); if(!isLeader()) return; const u=el.dataset.v; if(!(S.group.members||[]).includes(u)) return toast('對方已經不在讀書社裡了'); await S.api.transferOwner(S.gid,u,S.group.dirId||''); toast(`${memberName(u)} 現在是團長了`); break; }
     case 'resetDemo': S.api.resetDemo(); toast('示範資料已重設'); break;
   }
   } catch(err){ console.error(err); toast('出錯了：'+(err.code||err.message)); }
