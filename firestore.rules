@@ -54,9 +54,10 @@ service cloud.firestore {
           && request.resource.data.members.size() == resource.data.members.size() + 1
           && me() in request.resource.data.members )
         ||
-        // 退出：只能把「自己」移出
+        // 退出：只能把「自己」移出；團長要先交棒，除非只剩自己一個人
         ( onlyChanged(['members'])
           && me() in resource.data.members
+          && (resource.data.owner != me() || resource.data.members.size() == 1)
           && !(me() in request.resource.data.members)
           && resource.data.members.hasAll(request.resource.data.members)
           && request.resource.data.members.size() == resource.data.members.size() - 1 )
@@ -67,9 +68,16 @@ service cloud.firestore {
         // 團長（建立者）可以改讀書社名稱、角色、科目、考試設定
         ( resource.data.owner == me() && onlyChanged(['name', 'theme', 'subjects', 'examName', 'examDate', 'guestToken', 'dirId']) )
         ||
-        // 團長可以移除成員
+        // 團長可以移除成員（不能移除自己）
         ( resource.data.owner == me() && onlyChanged(['members'])
-          && resource.data.members.hasAll(request.resource.data.members) )
+          && resource.data.members.hasAll(request.resource.data.members)
+          && me() in request.resource.data.members )
+        ||
+        // 團長交棒：只能交給現有成員，名錄編號要清空（新團長會重新登記）
+        ( resource.data.owner == me() && onlyChanged(['owner', 'dirId'])
+          && request.resource.data.owner in resource.data.members
+          && request.resource.data.owner != me()
+          && request.resource.data.get('dirId', '') == '' )
       );
 
       allow delete: if signedIn() && resource.data.owner == me();
