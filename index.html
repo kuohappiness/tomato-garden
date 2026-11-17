@@ -1076,6 +1076,9 @@ const guestFromHash = (location.hash.match(/^#guest-([A-Za-z0-9]{12})$/)||[])[1]
 
 // ---------- 衍生資料 ----------
 const isLeader = () => !!S.group && S.group.owner===S.me?.uid;
+// 團長設定的最短專心時間（沒設定就是 5 分鐘）；實際使用的專心時間不會低於它
+const clubMinFocus = () => { const v=parseInt(S.group?.minFocus); return v>=5&&v<=60 ? v : 5; };
+const focusMin = () => Math.max(S.settings.focus, clubMinFocus());
 const leaderName = () => (S.members[S.group?.owner]||{}).name || '團長';
 const prog = (uid,tid) => S.progress[`${uid}_${tid}`] || {};
 const sortTasks = a => [...a].sort((x,y)=> (x.date||'9999').localeCompare(y.date||'9999') || (x.order||0)-(y.order||0));
@@ -1298,12 +1301,12 @@ function viewToday(){
   if (!t) {
     timerHTML = `<div class="say">${st.todayTom>=goal?'今天 KPI 達成了！還要再種嗎？':st.todayTom?`今天已經有 ${st.todayTom} ${TH().cnt}了，繼續！`:TH().ready}</div>
       <div class="plantbox" id="plant">${growArt(0)}</div>
-      <div class="clock" id="clock">${pad(S.settings.focus)}:00</div>
+      <div class="clock" id="clock">${pad(focusMin())}:00</div>
       <div class="row" style="margin-top:12px">
         <select id="tsubj" data-keep="tsubj" style="flex:0 0 96px">${subjOpts}</select>
         <select id="ttask" data-keep="ttask" class="grow"><option value="">（不指定任務）</option>${pickTasks.map(x=>`<option value="${x.id}">${esc(x.subject)}｜${esc(x.title)}</option>`).join('')}</select>
       </div>
-      <button class="btn red big block" style="margin-top:12px" data-a="start">${ICONS.play} ${TH().plant}（${S.settings.focus} 分）</button>`;
+      <button class="btn red big block" style="margin-top:12px" data-a="start">${ICONS.play} ${TH().plant}（${focusMin()} 分）</button>`;
   } else if (t.mode==='focus') {
     const task=S.tasks.find(x=>x.id===t.taskId);
     const lines=TH().focusLines;
@@ -1700,6 +1703,7 @@ function viewSettings(){
     <button class="btn soft sm" style="margin-top:8px" data-a="saveName">儲存暱稱</button></div>
   <div class="card"><h2>番茄鐘</h2>
     <div class="row" style="margin-top:6px"><div class="grow"><label class="f">專心（分）</label><input type="number" id="sfocus" min="5" max="60" value="${s.focus}"></div><div class="grow"><label class="f">休息（分）</label><input type="number" id="sbrk" min="1" max="30" value="${s.brk}"></div><div class="grow"><label class="f">每日目標（顆）</label><input type="number" id="sgoal" min="1" max="20" value="${s.goal}"></div></div>
+    ${clubMinFocus()>5?`<p class="small" style="margin:8px 0 0"><b>團長規定這個讀書社每次至少專心 ${clubMinFocus()} 分鐘。</b>${s.focus<clubMinFocus()?`你設的 ${s.focus} 分鐘比較短，在這裡會自動用 ${clubMinFocus()} 分鐘。`:''}</p>`:''}
     <button class="btn soft sm" style="margin-top:10px" data-a="saveTimer">儲存</button>
     <p class="tiny muted" style="margin:8px 0 0">撐滿一個專心時段才會得到${TH().unit}；中途放棄會${TH().fail==='番茄醬'?'變成番茄醬':'被吸管吸走'}，但滿 5 分鐘的時間仍會記錄。</p></div>
   <div class="card"><div class="row between"><h2>科目</h2><span class="small" style="font-weight:700">${clubSubjects().length} 科</span></div>
@@ -1714,6 +1718,8 @@ function viewSettings(){
   <div class="card"><div class="row between"><h2>讀書社</h2><span class="tag">團長：${esc(leaderName())}</span></div>
     <label class="f">讀書社名稱${isOwner?'':'（團長才能改）'}</label><input type="text" id="sgname" data-keep="sgname" value="${esc(g.name)}" ${isOwner?'':'disabled'}>
     <label class="f">角色${isOwner?'':'（團長才能改）'}</label><select id="stheme" ${isOwner?'':'disabled'}>${Object.entries(THEMES).map(([k,t])=>`<option value="${k}" ${(g.theme||'tomato')===k?'selected':''}>${esc(t.label)}${t.ready?'':'（先用番茄兵）'}</option>`).join('')}</select>
+    <label class="f">最短專心時間（分）${isOwner?'':'（團長才能改）'}</label><input type="number" id="sminfocus" data-keep="sminfocus" min="5" max="60" value="${clubMinFocus()}" ${isOwner?'':'disabled'}>
+    ${isOwner?'<p class="tiny muted" style="margin:4px 0 0">社員每次專心至少要這麼久，設得比較短的人會自動拉長。例如大孩子 25 分鐘、小小孩 20 分鐘。</p>':''}
     <label class="f">考試名稱</label><input type="text" id="sexam" data-keep="sexam" value="${esc(g.examName||'')}">
     <label class="f">考試第一天</label><input type="date" id="sedate" data-keep="sedate" value="${esc(g.examDate||'')}">
     <button class="btn soft sm" style="margin-top:10px" data-a="saveGroup">儲存讀書社設定</button>
@@ -1743,7 +1749,7 @@ function saveTimer(){ if(S.timer) lsSet('tg-timer',S.timer); else lsDel('tg-time
 
 async function startFocus(subject, taskId){
   ensureAudio();
-  const dur=S.settings.focus*60000;
+  const dur=focusMin()*60000;
   S.timer={mode:'focus', startAt:Date.now(), dur, subject, taskId:taskId||'', gid:S.gid};
   saveTimer(); keepAwake(true); render();
   const task=S.tasks.find(t=>t.id===taskId);
@@ -2050,7 +2056,7 @@ document.addEventListener('click', async e=>{
     case 'copy': { const v=el.dataset.v; try{ await navigator.clipboard.writeText(v); toast('已複製'); }catch{ openModal(`<p>請長按下面文字複製：</p><input type="text" value="${esc(v)}" onfocus="this.select()"><button class="btn block" style="margin-top:10px" data-a="closeModal">好</button>`); } break; }
     case 'saveName': { const n=val('sname'); if(!n) return; await S.api.setMember(S.gid,S.me.uid,{name:n}); toast('已儲存'); break; }
     case 'saveTimer': { const c=(id,lo,hi,d)=>Math.min(hi,Math.max(lo,parseInt(val(id))||d)); S.settings={focus:c('sfocus',5,60,25),brk:c('sbrk',1,30,5),goal:c('sgoal',1,20,4)}; lsSet('tg-settings',S.settings); toast('已儲存'); render(); break; }
-    case 'saveGroup': await S.api.updateGroup(S.gid, isLeader() ? {name:val('sgname')||S.group.name, theme:$('#stheme')?.value||'tomato', examName:val('sexam'), examDate:val('sedate')} : {examName:val('sexam'), examDate:val('sedate')}); toast('已儲存'); break;
+    case 'saveGroup': await S.api.updateGroup(S.gid, isLeader() ? {name:val('sgname')||S.group.name, theme:$('#stheme')?.value||'tomato', minFocus:Math.min(60,Math.max(5,parseInt(val('sminfocus'))||clubMinFocus())), examName:val('sexam'), examDate:val('sedate')} : {examName:val('sexam'), examDate:val('sedate')}); toast('已儲存'); break;
     case 'home': case 'switchGroup': closeModal(); goHome(); break;
     case 'enter': { const g=el.dataset.v; await S.api.setUser(S.me.uid,{current:g}).catch(()=>{}); S.userDoc.current=g; S.view='today'; subscribe(g); window.scrollTo(0,0); break; }
     case 'newGroup': closeModal(); unsubs.forEach(f=>f()); unsubs=[]; S.group=null; S.gid=null; S.creating=true; render(); window.scrollTo(0,0); break;

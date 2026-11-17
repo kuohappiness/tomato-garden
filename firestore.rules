@@ -64,8 +64,10 @@ service cloud.firestore {
         // 一般成員只能改考試名稱與日期
         ( me() in resource.data.members && onlyChanged(['examName', 'examDate']) )
         ||
-        // 團長（建立者）可以改讀書社名稱、角色、科目、考試設定
-        ( resource.data.owner == me() && onlyChanged(['name', 'theme', 'subjects', 'examName', 'examDate', 'guestToken', 'dirId']) )
+        // 團長（建立者）可以改讀書社名稱、角色、科目、最短專心時間、考試設定
+        ( resource.data.owner == me() && onlyChanged(['name', 'theme', 'subjects', 'minFocus', 'examName', 'examDate', 'guestToken', 'dirId'])
+          && (!('minFocus' in request.resource.data)
+              || (request.resource.data.minFocus is int && request.resource.data.minFocus >= 5 && request.resource.data.minFocus <= 60)) )
         ||
         // 團長可以移除成員
         ( resource.data.owner == me() && onlyChanged(['members'])
