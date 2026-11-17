@@ -201,6 +201,7 @@ body.embed .tabbar{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:
 body.embed .modal{align-items:flex-start}
 body.embed .sheet{border-radius:0 0 22px 22px;border:var(--b);border-top:0;max-height:none}
 body.embed .toast{top:80px;bottom:auto;position:absolute}
+.giftbox .g.on{outline:4px solid var(--tomato);outline-offset:1px;background:#fff3c4}
 </style>
 </head>
 <body>
@@ -455,6 +456,7 @@ const ACC = {
   tie:k=>`<path d="M45 96l5-6 5 6-5 15z" fill="${k}"/><rect x="74" y="78" width="20" height="9" rx="3" fill="#8b5e3c" stroke="${k}" stroke-width="2.5" transform="rotate(-30 84 82)"/>`,
 };
 function soldierSVG(so,{lock=false}={}){
+  if (so.mut && !lock) return mutSVG(so);
   if (themeKey(so.theme)==='boba') return pearlSVG(so,{lock});
   const r=rng(so.seed||7), T=so.custom?{color:so.custom.color,acc:so.custom.acc}:typeOf(so.subject), k=INK;
   const is67 = so.rare==='67' && !lock;
@@ -492,32 +494,126 @@ function soldierSVG(so,{lock=false}={}){
 
 // ---------- 空投禮物 ----------
 const GIFTS = [
-  {id:'sock',ic:'🧦',name:'一隻不成對的襪子',rar:'普通',w:10,d:'另一隻在哪？沒人知道。'},
-  {id:'pudding',ic:'🍮',name:'過期三天的布丁',rar:'普通',w:10,d:'聞起來還可以，但建議不要。'},
-  {id:'egg',ic:'🥚',name:'半顆滷蛋',rar:'普通',w:10,d:'另一半被番茄兵偷吃了。'},
-  {id:'pen',ic:'🖍️',name:'沒水的紅筆',rar:'普通',w:10,d:'老師改考卷改到沒水的那一支。'},
-  {id:'fry',ic:'🍟',name:'一根軟掉的薯條',rar:'普通',w:10,d:'它曾經很脆。'},
-  {id:'rock',ic:'🪨',name:'一顆普通的石頭',rar:'普通',w:10,d:'真的，非常普通。'},
-  {id:'boba',ic:'🧋',name:'珍奶的最後一顆珍珠',rar:'少見',w:5,d:'吸不到，永遠吸不到。'},
-  {id:'chicken',ic:'🍗',name:'不切不要辣的雞排',rar:'少見',w:5,d:'老闆說今天特別大塊。'},
-  {id:'cape',ic:'🫥',name:'隱形斗篷',rar:'少見',w:5,d:'看不到，所以不確定有沒有拿到。'},
-  {id:'mic',ic:'🎤',name:'會走音的麥克風',rar:'少見',w:5,d:'不管唱什麼都會變成「六七」。'},
-  {id:'balloon',ic:'🎈',name:'6 和 7 的數字氣球',rar:'稀有',w:2,d:'綁在一起會一上一下地飄。'},
-  {id:'note67',ic:'📜',name:'第 67 號神秘紙條',rar:'稀有',w:2,d:'打開來寫著：「好好讀書。」'},
+  {id:'sock',cat:'gross',ic:'🧦',name:'一隻不成對的襪子',rar:'普通',w:10,d:'另一隻在哪？沒人知道。'},
+  {id:'pudding',cat:'gross',ic:'🍮',name:'過期三天的布丁',rar:'普通',w:10,d:'聞起來還可以，但建議不要。'},
+  {id:'egg',cat:'odd',ic:'🥚',name:'半顆滷蛋',rar:'普通',w:10,d:'另一半被番茄兵偷吃了。'},
+  {id:'pen',cat:'odd',ic:'🖍️',name:'沒水的紅筆',rar:'普通',w:10,d:'老師改考卷改到沒水的那一支。'},
+  {id:'fry',cat:'gross',ic:'🍟',name:'一根軟掉的薯條',rar:'普通',w:10,d:'它曾經很脆。'},
+  {id:'rock',cat:'odd',ic:'🪨',name:'一顆普通的石頭',rar:'普通',w:10,d:'真的，非常普通。'},
+  {id:'boba',cat:'love',ic:'🧋',name:'珍奶的最後一顆珍珠',rar:'少見',w:5,d:'吸不到，永遠吸不到。'},
+  {id:'chicken',cat:'love',ic:'🍗',name:'不切不要辣的雞排',rar:'少見',w:5,d:'老闆說今天特別大塊。'},
+  {id:'cape',cat:'odd',ic:'🫥',name:'隱形斗篷',rar:'少見',w:5,d:'看不到，所以不確定有沒有拿到。'},
+  {id:'mic',cat:'odd',ic:'🎤',name:'會走音的麥克風',rar:'少見',w:5,d:'不管唱什麼都會變成「六七」。'},
+  {id:'balloon',cat:'love',ic:'🎈',name:'6 和 7 的數字氣球',rar:'稀有',w:2,d:'綁在一起會一上一下地飄。'},
+  {id:'note67',cat:'odd',ic:'📜',name:'第 67 號神秘紙條',rar:'稀有',w:2,d:'打開來寫著：「好好讀書。」'},
   {id:'antidote',ic:'🧪',name:'番茄醬解藥',rar:'稀有',w:2,d:'可以抵銷一瓶番茄醬！'},
-  {id:'spatula',ic:'🥄',name:'黃金鍋鏟',rar:'稀有',w:2,d:'番茄炒蛋專用，閃閃發光。'},
+  {id:'spatula',cat:'odd',ic:'🥄',name:'黃金鍋鏟',rar:'稀有',w:2,d:'番茄炒蛋專用，閃閃發光。'},
+  {id:'toast',cat:'gross',v2:1,ic:'🍞',name:'發霉的吐司',rar:'普通',w:8,d:'綠綠的部分是「天然的」。'},
+  {id:'tissue',cat:'gross',v2:1,ic:'🤧',name:'用過的衛生紙',rar:'普通',w:8,d:'溫溫的，不要問為什麼。'},
+  {id:'tofu',cat:'gross',v2:1,ic:'🧆',name:'隔夜臭豆腐',rar:'普通',w:7,d:'放了一個晚上，味道升級了。'},
+  {id:'bitter',cat:'gross',v2:1,ic:'🥒',name:'一整條苦瓜',rar:'普通',w:7,d:'吃苦當吃補，但這也太苦。'},
+  {id:'fart',cat:'gross',v2:1,ic:'💨',name:'一罐屁',rar:'少見',w:4,d:'密封保存，開罐請小心。'},
+  {id:'roach',cat:'gross',v2:1,ic:'🪳',name:'塑膠蟑螂',rar:'少見',w:4,d:'是假的。應該是假的。'},
+  {id:'cake',cat:'love',v2:1,ic:'🍰',name:'草莓蛋糕',rar:'普通',w:7,d:'上面那顆是最大顆的草莓。'},
+  {id:'candy',cat:'love',v2:1,ic:'🍬',name:'彩虹糖',rar:'普通',w:7,d:'吃了會突然很想讀數學（可能）。'},
+  {id:'cat',cat:'love',v2:1,ic:'🐱',name:'小貓的照片',rar:'普通',w:7,d:'看一眼，心情好三分鐘。'},
+  {id:'hug',cat:'love',v2:1,ic:'🧸',name:'抱抱熊',rar:'少見',w:4,d:'讀書讀累了可以抱一下。'},
+  {id:'star',cat:'love',v2:1,ic:'🌟',name:'會發光的星星',rar:'少見',w:4,d:'晚上讀書的時候幫你照亮。'},
+  {id:'luck',cat:'love',v2:1,ic:'🍀',name:'考試幸運草',rar:'稀有',w:2,d:'四片葉子，段考會順利（大概）。'},
   {id:'crown67',ic:'👑',name:'六七大帝的王冠',rar:'傳說',w:0.6,d:'戴上去之後，手會自己開始上下晃。'},
 ];
 function weightedGift(r, pool){ const tot=pool.reduce((a,b)=>a+b.w,0); let x=r()*tot; for(const g of pool){ x-=g.w; if(x<=0) return g; } return pool[0]; }
 function is67Time(ts){ const d=new Date(ts); return d.getMinutes()===7 && (d.getHours()===6 || d.getHours()===18); }
+const GIFTS_V1 = () => GIFTS.filter(g=>!g.v2);
 function giftOf(so){
   if (!so || !so.endedAt) return null;
+  const pool = so.endedAt<NEW_FX_TS ? GIFTS_V1() : GIFTS;
   if (so.n===67) return {...GIFTS.find(g=>g.id==='crown67'), why:'第 67 個角色出現，六七大帝親自送禮！'};
   const r=rng(hash(String(so.id)+'gift'));
-  if (is67Time(so.endedAt)) return {...weightedGift(r, GIFTS.filter(g=>g.rar==='稀有'||g.rar==='傳說')), why:'六七時刻出土，必掉稀有空投！'};
-  if (r()<0.25) return weightedGift(r, GIFTS);
+  if (is67Time(so.endedAt)) return {...weightedGift(r, pool.filter(g=>g.rar==='稀有'||g.rar==='傳說')), why:'六七時刻出土，必掉稀有空投！'};
+  if (r()<0.25) return weightedGift(r, pool);
   return null;
 }
+// ---------- 意外狀況（基因突變）：每天第 2 隻以後，約 30% 機率 ----------
+const NEW_FX_TS = Date.UTC(2026,10,17,14,0); // 這個時間以後完成的番茄鐘才有突變和新寶物（舊紀錄不變）
+const MUTS_T = [
+  {id:'corn', name:'玉米兵', w:3, title:'基因突變！', story:'番茄兵出土到一半，突然覺得自己是玉米。DNA 檢驗中……', quote:'我是番茄……吧？為什麼我身上一粒一粒的？'},
+  {id:'durian', name:'榴槤兵', w:2, title:'剝開來是榴槤！', story:'番茄皮一剝開，裡面長出一顆榴槤。全班都聞到了。', quote:'不要捏鼻子，這是我的香水。'},
+  {id:'splat', name:'番茄餅', w:3, title:'被踩爆了！', story:'剛出土就被路過的大象踩扁。大象有說對不起。（還是算一隻）', quote:'我……很好……只是有點扁。'},
+  {id:'eggplant', name:'茄子兵', w:2, title:'曬太久了！', story:'太陽太大，番茄兵曬成紫色，還被拉長了。', quote:'我現在是茄子了，請叫我茄子哥。'},
+  {id:'pineapple', name:'鳳梨頭番茄', w:2, title:'頭上長出鳳梨！', story:'番茄兵的葉子不知道吃了什麼，長成鳳梨的頭。', quote:'旺～旺～旺～（我也不知道為什麼要這樣叫）'},
+  {id:'alien', name:'外星番茄', w:1, title:'被外星人改造了！', story:'番茄兵被外星人抓走 0.67 秒，回來多了一隻眼睛和兩根天線。', quote:'嗶嗶。地球的段考，好可怕。嗶。'},
+];
+const MUTS_B = [
+  {id:'grass', name:'仙草凍', color:'#3a2a22', w:3, title:'變成仙草凍了！', story:'珍珠在仙草裡泡太久，變成黑黑亮亮的仙草凍。', quote:'我還是 QQ 的，只是換了一種 QQ。'},
+  {id:'taro', name:'芋圓', color:'#b58cd9', w:3, title:'變成芋圓了！', story:'珍珠滾進芋頭堆裡，出來就變成紫色的芋圓。', quote:'我現在是芋圓，香香的喔！'},
+  {id:'tangyuan', name:'湯圓', color:'#fff7ef', w:2, title:'變成湯圓了！', story:'冬至到了嗎？珍珠變成白白胖胖的湯圓。', quote:'好燙好燙，誰把我丟進熱湯裡！'},
+  {id:'pudding', name:'布丁', color:'#ffcf5a', w:2, title:'變成布丁了！', story:'珍珠跳進布丁杯，出來就變成會抖抖的布丁。', quote:'抖抖抖，我停不下來～'},
+  {id:'mango', name:'芒果丁', color:'#ffa62b', w:1, title:'變成芒果丁了！', story:'夏天的魔法！珍珠變成一顆香甜的芒果丁。', quote:'我是夏天限定，現在出現很稀有喔！'},
+];
+function mutsOf(){ return themeKey()==='boba'?MUTS_B:MUTS_T; }
+function mutInfo(so){ return so&&so.mut ? mutsOf().find(m=>m.id===so.mut)||null : null; }
+function applyMut(so){
+  if (!so || so.rare || so.custom || so.n===67 || (so.dayIdx||0)<2 || (so.endedAt||0)<NEW_FX_TS) return so;
+  const r=rng(hash(String(so.id)+'mut')); if (r()>=0.3) return so;
+  const m=weightedGift(r, mutsOf()); so.mut=m.id; so.quote=m.quote; return so;
+}
+function mutSVG(so){
+  const m=mutInfo(so), k=INK;
+  if (themeKey(so.theme)==='boba') return pearlSVG({...so, mut:'', rare:'', custom:{color:m?.color||'#fff', acc:''}});
+  const legs=`<path d="M40 97L37 112h-9M60 97L63 112h9" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const eyes=(cx,cy,n=2)=>{ const xs=n===3?[cx-15,cx,cx+15]:[cx-10,cx+10]; return xs.map(x=>`<circle cx="${x}" cy="${cy}" r="6" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="${x+1}" cy="${cy+1}" r="2.6" fill="${k}"/>`).join(''); };
+  let g='';
+  switch (so.mut) {
+    case 'corn': {
+      g+=legs+`<path d="M19 72q-11-14-12-24M81 72q11 6 12 15" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
+      g+=`<ellipse cx="50" cy="64" rx="23" ry="38" fill="#ffd23f" stroke="${k}" stroke-width="4"/>`;
+      for (let y=36;y<=96;y+=9) for (let x=36;x<=64;x+=9) if (((x-50)/22)**2+((y-64)/36)**2<0.8) g+=`<circle cx="${x+(y%18?4:0)}" cy="${y}" r="3.2" fill="#ffe680" stroke="#d9a800" stroke-width="1.5"/>`;
+      g+=`<path d="M30 104Q12 72 22 38Q36 70 46 104Z" fill="#5fcf62" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/><path d="M70 104Q88 72 78 38Q64 70 54 104Z" fill="#5fcf62" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/>`;
+      g+=eyes(50,58)+`<ellipse cx="50" cy="74" rx="4" ry="5" fill="#7a1010" stroke="${k}" stroke-width="2.5"/>`;
+      g+=`<path d="M50 26q-6-10 2-14M44 28q-8-6-6-12M56 28q8-6 7-13" fill="none" stroke="#c98b2c" stroke-width="2.5" stroke-linecap="round"/>`;
+      break; }
+    case 'durian': {
+      g+=legs;
+      const pts=[]; for(let i=0;i<32;i++){ const a=i/32*Math.PI*2, rr=i%2?28:36; pts.push(`${(50+Math.cos(a)*rr).toFixed(1)},${(64+Math.sin(a)*rr*0.95).toFixed(1)}`); }
+      g+=`<polygon points="${pts.join(' ')}" fill="#b9c94a" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/><ellipse cx="50" cy="64" rx="25" ry="23" fill="#cfdc6a"/>`;
+      g+=`<path d="M12 96Q6 66 30 58Q24 84 42 104Z" fill="#ff4b3e" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/><path d="M88 96Q94 66 70 58Q76 84 58 104Z" fill="#ff4b3e" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/>`;
+      g+=eyes(50,60)+`<path d="M38 76q4-4 8 0t8 0t8 0" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`;
+      g+=`<path d="M22 30q4-6 0-12t0-12M50 24q4-6 0-12M78 30q4-6 0-12t0-12" fill="none" stroke="#7bbf3a" stroke-width="3" stroke-linecap="round"/>`;
+      break; }
+    case 'splat': {
+      g+=`<path d="M6 104q4-14 18-10q2-14 16-8q8-12 22-2q14-8 18 6q16-2 14 14q8 6-2 10H8q-8-4-2-10z" fill="#ff4b3e" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>`;
+      g+=`<circle cx="14" cy="88" r="4" fill="#ff4b3e" stroke="${k}" stroke-width="2.5"/><circle cx="90" cy="84" r="3" fill="#ff4b3e" stroke="${k}" stroke-width="2.5"/><circle cx="26" cy="80" r="2.5" fill="#ff4b3e" stroke="${k}" stroke-width="2"/>`;
+      g+=`<path d="M34 98l7 7m0-7l-7 7M58 98l7 7m0-7l-7 7" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/>`;
+      g+=`<path d="M72 92l-8-3 6 6-7 4 9-2 1 5 2-5 8 2-7-4 5-6z" fill="#2fbf5b" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`;
+      g+=`<rect x="26" y="30" width="48" height="26" rx="8" fill="#ffd23f" stroke="${k}" stroke-width="3.5" transform="rotate(-8 50 43)"/><text x="50" y="51" text-anchor="middle" font-size="20" font-weight="900" fill="${k}" transform="rotate(-8 50 43)">啪！</text>`;
+      break; }
+    case 'eggplant': {
+      g+=legs+`<path d="M19 74q-11-14-12-24M81 74q11 6 12 15" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
+      g+=`<ellipse cx="52" cy="70" rx="25" ry="36" fill="#7d3cff" stroke="${k}" stroke-width="4" transform="rotate(-14 52 70)"/>`;
+      g+=`<ellipse cx="40" cy="52" rx="5" ry="10" fill="#fff" opacity=".45" transform="rotate(-14 40 52)"/>`;
+      g+=`<path d="M38 40l-6 10 12-4 6 10 6-10 12 4-6-10z" fill="#2fbf5b" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M48 38q0-12 8-16" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/>`;
+      g+=eyes(52,68)+`<path d="M42 84q10 9 20 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+      break; }
+    case 'pineapple': {
+      g+=legs+`<path d="M19 72q-11-14-12-24M81 72q11 6 12 15" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
+      g+=`<path d="M50 46L30 14l14 18L36 2l14 28 4-30 6 30L72 6l-8 26 18-16z" fill="#3fae4a" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+      g+=`<ellipse cx="50" cy="72" rx="34" ry="30" fill="#ff4b3e" stroke="${k}" stroke-width="4"/>`;
+      g+=`<path d="M26 58l48 30M24 76l40 24M36 46l40 26M74 56L28 86M76 74L40 100M64 46L22 72" stroke="#ffb21e" stroke-width="2" opacity=".75"/>`;
+      g+=eyes(50,66)+`<path d="M40 82q10 10 20 0z" fill="#7a1010" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+      break; }
+    case 'alien': default: {
+      g+=legs+`<path d="M19 72q-11-14-12-24M81 72q11 6 12 15" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
+      g+=`<path d="M40 46L28 20M60 46L72 20" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><circle cx="28" cy="18" r="6" fill="#ff7aa0" stroke="${k}" stroke-width="3"/><circle cx="72" cy="18" r="6" fill="#ff7aa0" stroke="${k}" stroke-width="3"/>`;
+      g+=`<ellipse cx="50" cy="70" rx="34" ry="31" fill="#7be36b" stroke="${k}" stroke-width="4"/>`;
+      g+=`<path d="M50 44l-14-4 9 9-12 6 15-3 2 9 2-9 15 3-12-6 9-9z" fill="#2fbf5b" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+      g+=eyes(50,66,3)+`<path d="M40 84q10-6 20 0" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`;
+      break; }
+  }
+  g+=`<path d="M86 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#7be36b" stroke="${k}" stroke-width="2"/>`;
+  return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true">${GRAD}${g}</svg>`;
+}
+
 function crateSVG(){
   const k=INK;
   return `<svg viewBox="0 0 120 130" width="100%" height="100%" aria-hidden="true">
@@ -844,6 +940,9 @@ async function makeFirebaseAPI(cfg){
       b.update(doc(db,'groups',gid,'members',uid), up);
       await b.commit();
     },
+    watchSends(gid,cb){ return onSnapshot(collection(db,'groups',gid,'sends'), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); cb(a); }, ()=>{}); },
+    sendGift(gid,d){ return setDoc(doc(db,'groups',gid,'sends',`${d.from}_${d.date}`), d); },
+    reactGift(gid,id,d){ return updateDoc(doc(db,'groups',gid,'sends',id), d); },
     watchChars(gid,cb){ return onSnapshot(collection(db,'groups',gid,'chars'), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); cb(a); }, ()=>{}); },
     async addChar(gid,uid,data){ const ref=doc(db,'groups',gid,'chars',`${uid}_${weekStart()}`); const s=await getDoc(ref); if(s.exists()) throw new Error('week'); await setDoc(ref,{...data,by:uid,createdAt:Date.now()}); },
     deleteChar(gid,id){ return deleteDoc(doc(db,'groups',gid,'chars',id)); },
@@ -942,6 +1041,9 @@ function makeLocalAPI(){
       g.sessions['s'+Date.now()]={uid,subject,taskId:taskId||'',minutes,tomato:!!tomato,date:day,endedAt:Date.now()};
       save();
     },
+    watchSends(gid,cb){ return watch(()=>cb(Object.entries(G(gid)?.sends||{}).map(([id,x])=>({id,...x})))); },
+    async sendGift(gid,d){ const g=G(gid); g.sends=g.sends||{}; const id=`${d.from}_${d.date}`; if(g.sends[id]) { const e=new Error('今天已經送過了'); e.code='permission-denied'; throw e; } g.sends[id]=d; save(); },
+    async reactGift(gid,id,d){ const g=G(gid); if(g?.sends?.[id]) { Object.assign(g.sends[id],d); save(); } },
     watchChars(gid,cb){ return watch(()=>cb(Object.entries(G(gid)?.chars||{}).map(([id,c])=>({id,...c})))); },
     async addChar(gid,uid,data){ const g=G(gid); g.chars=g.chars||{}; const id=`${uid}_${weekStart()}`; if(g.chars[id]) throw new Error('week'); g.chars[id]={...data,by:uid,createdAt:Date.now()}; save(); },
     async deleteChar(gid,id){ delete G(gid).chars[id]; save(); },
@@ -1029,7 +1131,7 @@ async function boot(){
 }
 function goHome(){
   unsubs.forEach(f=>f()); unsubs=[];
-  S.group=null; S.gid=null; S.loading=false; S.creating=false; S.view='today'; S.members={}; S.tasks=[]; S.progress={}; S.sessions=[]; S.chars=[];
+  S.group=null; S.gid=null; S.loading=false; S.creating=false; S.view='today'; S.members={}; S.tasks=[]; S.progress={}; S.sessions=[]; S.chars=[]; S.sends=[];
   try{ history.replaceState(null,'',location.pathname); }catch{}
   loadHome(); render(); window.scrollTo(0,0);
 }
@@ -1071,6 +1173,7 @@ function subscribe(gid){
   unsubs.push(S.api.watchProgress(gid, p=>{ S.progress=p; render(); }, fail));
   unsubs.push(S.api.watchMySessions(gid, S.me.uid, s=>{ S.sessions=s; render(); }));
   unsubs.push(S.api.watchChars(gid, c=>{ S.chars=c; render(); }));
+  unsubs.push(S.api.watchSends(gid, a=>{ S.sends=a; render(); }));
   // 確保自己的成員資料存在
   S.api.setMember(gid, S.me.uid, {photo:S.me.photo||''}).catch(()=>{});
 }
@@ -1095,6 +1198,7 @@ function doRender(){
   renderTabbar();
   tickTimer();
   scheduleGuestPublish();
+  setTimeout(checkIncoming, 600);
   if (S.group && S.gid && S.me && S.group.owner===S.me.uid) ensureDir(S.gid,{...S.group}).catch(e=>console.warn('dir',e));
 }
 function renderTabbar(){
@@ -1277,7 +1381,66 @@ function viewTasks(){
 }
 
 // ----- 番茄園 -----
-function myArmy(){ return S.sessions.filter(s=>s.tomato).sort((a,b)=>a.endedAt-b.endedAt).map((s,i)=>soldierOf(s,i+1)); }
+function myArmy(){ const per={}; return S.sessions.filter(s=>s.tomato).sort((a,b)=>a.endedAt-b.endedAt).map((s,i)=>{ const so=soldierOf(s,i+1), d=s.date||ymd(new Date(s.endedAt)); per[d]=(per[d]||0)+1; so.dayIdx=per[d]; return applyMut(so); }); }
+// ---------- 送寶物給隊友：一天一個，可附一句話 ----------
+const GIFT_CAT = {gross:'🤢 令人厭惡', love:'💝 令人喜歡', odd:'🤔 莫名其妙'};
+const REACTS = [['love','❤️','謝謝'],['lol','😆','哈哈'],['eww','🤮','噁心']];
+function giftable(g){ return g && g.id!=='antidote' && g.id!=='crown67'; }
+function giftInv(){
+  const me=S.members[S.me.uid]||{}, inv={};
+  myArmy().filter(s=>s.endedAt<=(me.pluckTs||0)).forEach(so=>{ const g=giftOf(so); if(g) inv[g.id]=(inv[g.id]||0)+1; });
+  (S.sends||[]).forEach(x=>{ if(x.to===S.me.uid) inv[x.item]=(inv[x.item]||0)+1; if(x.from===S.me.uid) inv[x.item]=(inv[x.item]||0)-1; });
+  return inv;
+}
+const sentToday = () => (S.sends||[]).some(x=>x.from===S.me.uid && x.date===ymd());
+function openSend(pre=''){
+  if (sentToday()) return toast('今天已經送過了，明天再來');
+  const inv=giftInv(), items=GIFTS.filter(g=>giftable(g) && (inv[g.id]||0)>0);
+  const mates=(S.group.members||[]).filter(u=>u!==S.me.uid && S.members[u]);
+  if (!items.length) return toast('寶物箱裡還沒有可以送的東西');
+  if (!mates.length) return toast('讀書社裡還沒有其他隊友');
+  S.sendSel={item:items.some(g=>g.id===pre)?pre:'', to:''};
+  openModal(`<h2>送一個寶物給隊友</h2><p class="small" style="margin:4px 0 0">一天只能送一個，送出去就是對方的了。好東西、噁心的東西都可以送。</p>
+    <label class="f">要送什麼</label>
+    <div class="giftbox" id="sendItems">${items.map(g=>`<button class="g ${g.id===S.sendSel.item?'on':''}" data-a="sendPick" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900"><span class="n">×${inv[g.id]}</span><span class="ic">${g.ic}</span>${esc(g.name)}</button>`).join('')}</div>
+    <label class="f">送給誰</label>
+    <div class="row wrap" id="sendTo" style="gap:6px">${mates.map(u=>`<button class="pill" data-a="sendTo" data-v="${esc(u)}">${esc(S.members[u].name||'同學')}</button>`).join('')}</div>
+    <label class="f">附上一句話（可不寫，30 字內）</label><input type="text" id="sendMsg" maxlength="30" placeholder="例如：送你一罐屁，數學加油">
+    <button class="btn red block" style="margin-top:12px" data-a="sendGo">送出！</button>
+    <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
+}
+let shownGifts=new Set();
+function checkIncoming(){
+  if (!S.me || !S.gid || S.guest || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  const x=(S.sends||[]).filter(x=>x.to===S.me.uid && !x.seen && !shownGifts.has(x.id)).sort((a,b)=>a.ts-b.ts)[0];
+  if (!x) return; shownGifts.add(x.id);
+  const from=(S.members[x.from]||{}).name||'隊友';
+  openModal(`<div class="celebrate"><div class="drop" style="width:130px;height:140px;margin:0 auto">${crateSVG()}</div>
+    <div class="big">${esc(from)} 送你一個禮物！</div><p class="small" style="font-weight:700;margin:4px 0">是好東西還是噁心的東西呢……</p>
+    <button class="btn red big block" style="margin-top:10px" data-a="giftOpenIn" data-id="${esc(x.id)}">打開看看</button></div>`);
+}
+function showIncoming(id){
+  const x=(S.sends||[]).find(s=>s.id===id); if(!x) return closeModal();
+  const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物',d:'',rar:'普通'}, from=(S.members[x.from]||{}).name||'隊友';
+  openModal(`<div class="celebrate"><div class="pop" style="font-size:5.5rem;line-height:1.1">${g.ic}</div>
+    ${g.cat?`<span class="rar r-${g.rar}">${GIFT_CAT[g.cat]||g.rar}</span>`:''}
+    <div class="big">${esc(g.name)}</div><p style="font-weight:700;margin:6px 0">${esc(g.d||'')}</p>
+    ${x.msg?`<div class="say" style="margin:8px 0">「${esc(x.msg)}」<br><span class="tiny">— ${esc(from)}</span></div>`:`<p class="small">— ${esc(from)} 送的</p>`}
+    <p class="small" style="font-weight:700;margin:10px 0 6px">回應一下：</p>
+    <div class="row" style="gap:8px">${REACTS.map(([v,ic,l])=>`<button class="btn ghost grow" data-a="giftReact" data-id="${esc(x.id)}" data-v="${v}">${ic} ${l}</button>`).join('')}</div></div>`);
+}
+function giftFeedHTML(){
+  const list=(S.sends||[]).slice().sort((a,b)=>b.ts-a.ts).slice(0,10);
+  const nm=u=>u===S.me.uid?'我':((S.members[u]||{}).name||'隊友');
+  const done=sentToday();
+  return `<div class="card"><div class="row between"><h2>禮物動態</h2><button class="btn ${done?'ghost':'yellow'} sm" data-a="sendOpen">${done?'今天送過了':'🎁 送禮物'}</button></div>
+    <p class="small" style="margin:4px 0 6px">空投拿到的寶物可以送給隊友，一天限送一個。</p>
+    ${list.length?list.map(x=>{ const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}; const re=REACTS.find(r=>r[0]===x.re);
+      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span></div>`; }).join('')
+      :'<p class="small">還沒有人送過禮物。當第一個吧！</p>'}
+  </div>`;
+}
+
 function viewGarden(){
   const st=memberStats(S.me.uid), army=myArmy(), me=S.members[S.me.uid]||{};
   const lv=levelOf(army.length);
@@ -1286,15 +1449,17 @@ function viewGarden(){
   const pct = lv.next ? Math.round((army.length-lv.min)/(lv.next.min-lv.min)*100) : 100;
   const subj=subjectStats(S.me.uid);
   const allSubj=dexSubjects().length>0 && dexSubjects().every(s=>(st.sm[s]||0)>0);
-  const cnt={}; army.forEach(s=>{ const k=s.rare||(s.custom?'c:'+s.custom.id:s.subject); cnt[k]=(cnt[k]||0)+1; });
+  const cnt={}; army.forEach(s=>{ const k=s.mut?'m:'+s.mut:s.rare||(s.custom?'c:'+s.custom.id:s.subject); cnt[k]=(cnt[k]||0)+1; });
   const pluckedArmy=army.filter(s=>s.endedAt<=(me.pluckTs||0));
-  const gifts={}; pluckedArmy.forEach(so=>{ const g=giftOf(so); if(g) gifts[g.id]=(gifts[g.id]||0)+1; });
+  const earned={}; pluckedArmy.forEach(so=>{ const g=giftOf(so); if(g) earned[g.id]=(earned[g.id]||0)+1; });
+  const gifts=giftInv(); gifts.antidote=earned.antidote||0;
   const giftTotal=Object.values(gifts).reduce((a,b)=>a+b,0);
   const ketchupRaw=me.ketchup||0, ketchup=Math.max(0, ketchupRaw-(gifts.antidote||0));
   const dex=[...dexSubjects().map(s=>({key:s, so:{subject:s,seed:hash('dex'+s)}, name:typeOf(s).name, sub:s})),
              {key:'gold', so:{subject:'其他',rare:'gold',seed:hash('dexg')}, name:rareInfo({rare:'gold'}).name, sub:'稀有 5%'},
              {key:'67', so:{subject:'其他',rare:'67',seed:hash('dex67')}, name:rareInfo({rare:'67'}).name, sub:'稀有 6.7%'},
              {key:'rainbow', so:{subject:'其他',rare:'rainbow',seed:hash('dexr')}, name:rareInfo({rare:'rainbow'}).name, sub:'傳說 1%'},
+             ...mutsOf().map(m=>({key:'m:'+m.id, so:{subject:'其他',seed:hash('dm'+m.id),mut:m.id}, name:m.name, sub:'意外狀況'})),
              ...(S.chars||[]).slice().sort((a,b)=>a.createdAt-b.createdAt).map(c=>({key:'c:'+c.id, so:{subject:'其他',seed:hash('c'+c.id),custom:c}, name:c.name, sub:`${(S.members[c.by]||{}).name||'社員'} 設計`}))];
   const badges=[
     ['🌱',bb?'第一顆珍珠':'第一滴汁',`得到第一${U}`,army.length>=1],['🪖',bb?'一小杯':'十兵成軍',`收集 10 ${U}`,army.length>=10],['⚔️',bb?'一大杯':'番茄連隊',`收集 50 ${U}`,army.length>=50],['👑',bb?'珍珠星海':'百番大軍',`收集 100 ${U}`,army.length>=100],
@@ -1302,6 +1467,7 @@ function viewGarden(){
     ['🍱','全科雜食者','每一科都讀過',allSubj],['✅','過半了啦','任務完成一半',st.donePct>=50],['🏁','全清！','任務全部完成',st.totalTasks>0&&st.done===st.totalTasks],['🔥','熟到爛掉','熟練度 80%',st.mastPct>=80],
     ['💰','中樂透',`抽到${rareInfo({rare:'gold'}).name}`,!!cnt.gold],['🌈','傳說降臨',`抽到${rareInfo({rare:'rainbow'}).name}`,!!cnt.rainbow],[T_.failIc,bb?'一次都沒被吸走':'零番茄醬',`10 ${U}以上沒放棄過`,army.length>=10&&!ketchupRaw],
     ['🙌','六七！',`抽到${rareInfo({rare:'67'}).name}`,!!cnt['67']],['🗿','六七大帝',`收集滿 67 ${U}`,army.length>=67],['🎁','空投獵人','收集 10 個空投',giftTotal>=10],
+    ['🧬',bb?'神奇變身':'基因工程師','遇到 3 次意外狀況',army.filter(s=>s.mut).length>=3],['🎁','送禮達人','送出第一個禮物',(S.sends||[]).some(x=>x.from===S.me.uid)],
     ['🎨','小小設計師','自己設計一個角色',(S.chars||[]).some(c=>c.by===S.me.uid)],
   ];
   const last7=Array.from({length:7},(_,i)=>addDays(ymd(),i-6));
@@ -1318,7 +1484,8 @@ function viewGarden(){
   </div>
   <div class="card"><div class="row between"><h2>空投寶物箱</h2><span class="small" style="font-weight:700">${Object.keys(gifts).length}／${GIFTS.length}</span></div>
     <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
-    <div class="giftbox">${GIFTS.map(g=>{ const n=gifts[g.id]||0; return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
+    <div class="row" style="margin:0 0 10px"><button class="btn ${sentToday()?'ghost':'yellow'} block" data-a="sendOpen">${sentToday()?'今天已經送過禮物了，明天再來':'🎁 送一個寶物給隊友（一天一個）'}</button></div>
+    <div class="giftbox">${GIFTS.map(g=>{ const n=Math.max(0,gifts[g.id]||0); return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
   </div>
   ${charCard()}
   <div class="card"><h2>成就</h2><div class="badges" style="margin-top:10px">${badges.map(([ic,n,d,on])=>`<div class="badge ${on?'':'off'}"><span class="ic">${ic}</span>${n}<span class="d">${d}</span></div>`).join('')}</div></div>
@@ -1333,7 +1500,7 @@ function viewGarden(){
       <div class="bar" style="margin-top:4px"><i style="width:${s.done/s.total*100}%;background:${subjColor(s.name)}"></i></div></div>`).join('') : `<p class="small">新增任務後會出現。</p>`}
   </div>
   <div class="card"><h2>${T_.recent}</h2>
-    ${army.length? army.slice(-10).reverse().map(so=>`<button class="row" data-a="soldier" data-id="${so.id}" style="width:100%;border:0;background:transparent;padding:6px 0;border-top:2px dashed #d8cfb8;text-align:left"><span style="width:38px;height:42px;flex:none">${soldierSVG(so)}</span><span class="grow"><b>No.${so.n} ${esc(so.name)}</b><br><span class="tiny">${so.custom?'社員設計角色':so.rare?rareInfo(so).name:typeOf(so.subject).name}・${fmtDate(so.date)}</span></span></button>`).join('') : `<p class="small">還沒有${T_.unit}。</p>`}
+    ${army.length? army.slice(-10).reverse().map(so=>`<button class="row" data-a="soldier" data-id="${so.id}" style="width:100%;border:0;background:transparent;padding:6px 0;border-top:2px dashed #d8cfb8;text-align:left"><span style="width:38px;height:42px;flex:none">${soldierSVG(so)}</span><span class="grow"><b>No.${so.n} ${esc(so.name)}</b><br><span class="tiny">${so.custom?'社員設計角色':so.mut?'⚠️ '+mutInfo(so).name:so.rare?rareInfo(so).name:typeOf(so.subject).name}・${fmtDate(so.date)}</span></span></button>`).join('') : `<p class="small">還沒有${T_.unit}。</p>`}
   </div>`;
 }
 function charCard(){
@@ -1396,6 +1563,7 @@ function viewFriends(){
     <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${hp-weekTom} ${TH().cnt}就成功！${hp===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
     <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}</p>
   </div>
+  ${giftFeedHTML()}
   <div class="card">
     <div class="row between"><h2>戰友們</h2>${studyingN?`<span class="live">${studyingN} 人正在讀</span>`:''}</div>
     <div class="hscroll" style="margin-top:10px">${[['week','本週時間'],['done','完成度'],['name','名字']].map(([v,l])=>`<button class="pill ${k===v?'on':''}" data-a="fsort" data-v="${v}">${l}</button>`).join('')}</div>
@@ -1674,12 +1842,13 @@ function soldierCard(so,isNew=false,taskId=''){
   openModal(`<div class="celebrate">
     ${so.n===67?`<div class="six7">6 7 !!</div><div class="big">第 67 ${TH().cnt}！六七大帝降臨！</div>`:''}
     ${so.custom?`<div class="big" style="color:var(--purple)">是 ${esc((S.members[so.custom.by]||{}).name||'社員')} 設計的角色！</div>`:''}
+    ${mutInfo(so)?`<div class="${isNew?'shake':''}" style="display:inline-block;background:var(--tomato);color:#fff;border:3px solid var(--ink);border-radius:12px;padding:2px 12px;font-weight:900">⚠️ 意外狀況</div><div class="big" style="color:var(--tomato-d)">${esc(mutInfo(so).title)}</div><p class="small" style="font-weight:700;margin:2px 0 6px">${esc(mutInfo(so).story)}</p>`:''}
     ${R?`<div class="big" style="color:#e09a00">${so.rare==='67'?'六……七……！':'！！稀有！！'}</div>`:''}
     <div class="say">${esc(so.quote)}</div>
     <div class="${isNew?'pop':''}" style="width:150px;height:150px;margin:6px auto 0">${soldierSVG(so)}</div>
     <div class="big">${esc(so.name)}</div>
-    <div class="row" style="justify-content:center;gap:6px;margin-top:4px"><span class="card-id">No.${so.n}</span>${chip(so.subject)}<b>${R?R.name:T.name}</b></div>
-    <p class="small" style="margin:10px 0 2px"><b>特殊能力：</b>${esc(R?R.skill:T.skill)}</p>
+    <div class="row" style="justify-content:center;gap:6px;margin-top:4px"><span class="card-id">No.${so.n}</span>${chip(so.subject)}<b>${mutInfo(so)?mutInfo(so).name:R?R.name:T.name}</b></div>
+    <p class="small" style="margin:10px 0 2px"><b>特殊能力：</b>${esc(mutInfo(so)?'（突變中，能力不明）':R?R.skill:T.skill)}</p>
     <p class="tiny" style="margin:0">${fmtDate(so.date)} ${TH().born}</p>
     ${gift? (isNew ? `<button class="btn yellow big block" style="margin-top:12px" data-a="openGift" data-id="${so.id}" data-task="${esc(taskId)}">咦？天上掉下一個空投箱！</button>`
                    : `<p class="small" style="margin:10px 0 0">附帶空投：${gift.ic} <b>${esc(gift.name)}</b></p>`) : ''}
@@ -1796,7 +1965,21 @@ document.addEventListener('click', async e=>{
     case 'subjUp': { if(!isLeader()) return toast('只有團長可以修改科目'); const i=+el.dataset.v; if(!i) break; const list=clubSubjects().map(x=>({...x})); [list[i-1],list[i]]=[list[i],list[i-1]]; await S.api.updateGroup(S.gid,{subjects:list}); break; }
     case 'revealGift': revealGift(id, el.dataset.task||''); break;
     case 'giftInfo': { const g=giftDisp(GIFTS.find(x=>x.id===el.dataset.v)); const own=el.classList.contains('off')?0:1;
+      if (own && giftable(g)) { openModal(`<div class="celebrate"><div style="font-size:4rem">${g.ic}</div><span class="rar r-${g.rar}">${g.cat?GIFT_CAT[g.cat]:g.rar}</span><div class="big">${esc(g.name)}</div><p style="font-weight:700">${esc(g.d)}</p>
+        ${sentToday()?'<p class="small">今天已經送過禮物了，明天可以送這個給隊友。</p>':`<button class="btn red block" data-a="sendOpen" data-v="${g.id}">送給隊友</button>`}
+        <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">好</button></div>`); break; }
       openModal(`<div class="celebrate"><div style="font-size:4rem;${own?'':'filter:grayscale(1) brightness(.2);opacity:.3'}">${g.ic}</div><span class="rar r-${g.rar}">${g.rar}</span><div class="big">${own?esc(g.name):'？？？'}</div><p style="font-weight:700">${own?esc(g.d):'還沒拿到。繼續種番茄兵，說不定下一個空投就是它。'}</p><button class="btn yellow block" data-a="closeModal">好</button></div>`); break; }
+    case 'sendOpen': closeModal(); openSend(el.dataset.v||''); break;
+    case 'sendPick': S.sendSel.item=el.dataset.v; document.querySelectorAll('#sendItems .g').forEach(b=>b.classList.toggle('on',b.dataset.v===S.sendSel.item)); break;
+    case 'sendTo': S.sendSel.to=el.dataset.v; document.querySelectorAll('#sendTo .pill').forEach(b=>b.classList.toggle('on',b.dataset.v===S.sendSel.to)); break;
+    case 'sendGo': { const sel=S.sendSel||{}; if(!sel.item) return toast('先選要送的寶物'); if(!sel.to) return toast('選一個隊友');
+      if (sentToday()) { closeModal(); return toast('今天已經送過了，明天再來'); }
+      if (!((giftInv()[sel.item]||0)>0)) return toast('你沒有這個寶物了');
+      const msg=val('sendMsg').slice(0,30), to=(S.members[sel.to]||{}).name||'隊友';
+      try { await S.api.sendGift(S.gid,{from:S.me.uid,to:sel.to,item:sel.item,msg,date:ymd(),ts:Date.now()}); closeModal(); toast(`送給 ${to} 了！`); }
+      catch(e){ console.error(e); toast(e.code==='permission-denied'?'今天已經送過了，明天再來':'送出失敗：'+(e.message||e.code)); } break; }
+    case 'giftOpenIn': showIncoming(id); break;
+    case 'giftReact': { const v=el.dataset.v; closeModal(); await S.api.reactGift(S.gid,id,{seen:true,re:v}).catch(e=>console.warn(e)); toast(v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); break; }
     case 'soldier': { const so=myArmy().find(x=>x.id===id); if(so) soldierCard(so); break; }
     case 'signin': try{ await S.api.signIn(); }catch(err){ console.error(err); toast(err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':err.code==='auth/unauthorized-domain'?'這個網址還沒加到 Firebase 授權網域（見 SETUP.md）':'登入失敗：'+(err.code||err.message)); } break;
     case 'signout':
