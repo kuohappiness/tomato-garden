@@ -1,0 +1,124 @@
+rules_version = '2';
+// 番茄園讀書社：Firestore 安全規則
+// 到 Firebase 主控台 → Firestore Database → 規則，整份貼上後按「發布」。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function groupData(gid) { return get(/databases/$(database)/documents/groups/$(gid)).data; }
+    function isMember(gid) { return signedIn() && me() in groupData(gid).members; }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // 每個人自己的設定（加入了哪些群組）
+    match /users/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+    }
+
+    // 訪客參觀：只放全團合計（沒有任何人的名字），知道連結的人不用登入就能看
+    match /guests/{token} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isMember(request.resource.data.gid)
+        && groupData(request.resource.data.gid).get('guestToken', '') == token
+        && request.resource.data.keys().hasOnly(['gid','name','theme','subjects','examName','examDate','n','tom','min',
+             'weekTom','weekMin','todayMin','todayTom','sm','lives','subj','week','updatedAt'])
+        && (resource == null || resource.data.gid == request.resource.data.gid);
+      allow delete: if signedIn() && groupData(resource.data.gid).owner == me();
+    }
+
+    // 讀書社名錄：只有名稱、角色、人數（沒有邀請碼），登入的人都看得到；只有建立這筆的團長能改
+    match /directory/{did} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.resource.data.by == me()
+        && (resource == null || resource.data.by == me())
+        && request.resource.data.keys().hasOnly(['name','theme','n','by','updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 30;
+      allow delete: if signedIn() && resource.data.by == me();
+    }
+
+    match /groups/{gid} {
+      // 知道 6 碼邀請碼才能讀到群組（不能列出所有群組）
+      allow get: if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && request.resource.data.owner == me()
+        && request.resource.data.members == [me()];
+
+      allow update: if signedIn() && (
+        // 用邀請碼加入：只能把「自己」加進成員名單
+        ( onlyChanged(['members'])
+          && !(me() in resource.data.members)
+          && request.resource.data.members.hasAll(resource.data.members)
+          && request.resource.data.members.size() == resource.data.members.size() + 1
+          && me() in request.resource.data.members )
+        ||
+        // 退出：只能把「自己」移出
+        ( onlyChanged(['members'])
+          && me() in resource.data.members
+          && !(me() in request.resource.data.members)
+          && resource.data.members.hasAll(request.resource.data.members)
+          && request.resource.data.members.size() == resource.data.members.size() - 1 )
+        ||
+        // 一般成員只能改考試名稱與日期
+        ( me() in resource.data.members && onlyChanged(['examName', 'examDate']) )
+        ||
+        // 團長（建立者）可以改讀書社名稱、角色、科目、考試設定
+        ( resource.data.owner == me() && onlyChanged(['name', 'theme', 'subjects', 'examName', 'examDate', 'guestToken', 'dirId']) )
+        ||
+        // 團長可以移除成員
+        ( resource.data.owner == me() && onlyChanged(['members'])
+          && resource.data.members.hasAll(request.resource.data.members) )
+      );
+
+      allow delete: if signedIn() && resource.data.owner == me();
+
+      // 成員資料（暱稱、番茄數、讀書分鐘）：大家看得到，只能改自己的
+      match /members/{uid} {
+        allow read: if isMember(gid);
+        allow write: if isMember(gid) && me() == uid;
+      }
+
+      // 考試範圍／任務：群組共用
+      match /tasks/{tid} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid) && request.resource.data.createdBy == me();
+        allow update, delete: if isMember(gid);
+      }
+
+      // 每個人的完成與熟練度：大家看得到，只能改自己的
+      match /progress/{pid} {
+        allow read: if isMember(gid);
+        allow create, update: if isMember(gid) && request.resource.data.uid == me() && pid.matches(me() + '_.*');
+        allow delete: if isMember(gid) && resource.data.uid == me();
+      }
+
+      // 社員自創角色：文件編號是「自己的 uid_該週星期一日期」，所以每人每週只能建一個；不能修改，只能刪除
+      match /chars/{cid} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid) && request.resource.data.by == me() && cid.matches(me() + '_.*')
+                      && request.resource.data.name is string && request.resource.data.name.size() <= 8;
+        allow delete: if isMember(gid) && (resource.data.by == me() || groupData(gid).owner == me());
+      }
+
+      // 送寶物給隊友：文件編號是「自己的 uid_日期」，所以每人每天只能送一個；收禮的人只能標記已讀和回應
+      match /sends/{sid} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid) && request.resource.data.from == me()
+          && sid == me() + '_' + request.resource.data.date
+          && request.resource.data.to in groupData(gid).members && request.resource.data.to != me()
+          && request.resource.data.msg is string && request.resource.data.msg.size() <= 30
+          && request.resource.data.keys().hasOnly(['from','to','item','msg','date','ts']);
+        allow update: if isMember(gid) && resource.data.to == me() && onlyChanged(['seen','re']);
+      }
+
+      // 每一次番茄鐘紀錄
+      match /sessions/{sid} {
+        allow read: if isMember(gid);
+        allow create: if isMember(gid) && request.resource.data.uid == me();
+        allow delete: if isMember(gid) && resource.data.uid == me();
+      }
+    }
+  }
+}
