@@ -111,6 +111,8 @@ label.f{display:block;font-size:.85rem;font-weight:700;margin:10px 0 4px}
 .sol>span{display:block;width:100%;height:100%;animation:bob .42s ease-in-out infinite alternate;transform-origin:50% 100%}
 @keyframes walk{from{transform:translateX(0)}to{transform:translateX(var(--dx))}}
 @keyframes bob{from{transform:translateY(0) rotate(-5deg)}to{transform:translateY(-5px) rotate(5deg)}}
+.crate{position:absolute;border:0;background:transparent;padding:0;z-index:20;transform-origin:50% 100%;animation:sway 3.2s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
 .sprout{position:absolute;border:0;background:transparent;padding:0;z-index:3;animation:wiggle 1.2s ease-in-out infinite}
 @keyframes wiggle{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
 .cloud{position:absolute;animation:drift linear infinite}
@@ -849,6 +851,32 @@ function miniCupSVG(){
   <rect x="38" y="0" width="20" height="20" rx="6" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/><text x="48" y="16" text-anchor="middle" font-size="15" font-weight="900" fill="${k}">!</text></svg>`;
 }
 
+// ---------- 裝箱：番茄兵太多時，舊的每 10 隻裝一箱 ----------
+let FIELD_BOXES=[];
+function packSVG(count, isBig){
+  const k=INK, boba=themeKey()==='boba';
+  const tag=`<rect x="${isBig?20:26}" y="64" width="${isBig?60:48}" height="22" rx="7" fill="${isBig?'#ffd23f':'#fff'}" stroke="${k}" stroke-width="3"/><text x="50" y="81" text-anchor="middle" font-size="${isBig?17:16}" font-weight="900" fill="${k}" font-family="Bungee,sans-serif">×${count}</text>`;
+  if (boba) return `<svg viewBox="0 0 100 105" width="100%" height="100%" aria-hidden="true">
+    <path d="M60 16L74 -2" stroke="${k}" stroke-width="10" stroke-linecap="round"/><path d="M60 16L74 -2" stroke="#ff7aa2" stroke-width="6" stroke-linecap="round"/>
+    <path d="M14 18H86L78 100H22Z" fill="${isBig?'#f2c27a':'#e3b583'}" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>
+    ${[[30,50],[46,46],[62,52],[38,92],[54,94],[68,90],[28,92]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="7" fill="#3b2416" stroke="${k}" stroke-width="1.5"/>`).join('')}
+    <rect x="9" y="11" width="82" height="11" rx="4" fill="#fff" stroke="${k}" stroke-width="3"/>${isBig?`<path d="M24 32l3 -6 3 6" fill="none" stroke="${k}" stroke-width="2.5"/>`:''}${tag}</svg>`;
+  const tom=(x,y,c)=>`<circle cx="${x}" cy="${y}" r="13" fill="${c}" stroke="${k}" stroke-width="3"/><path d="M${x-6} ${y-11}l6 4 6-4" fill="#2fbf5b" stroke="${k}" stroke-width="2" stroke-linejoin="round"/>`;
+  return `<svg viewBox="0 0 100 105" width="100%" height="100%" aria-hidden="true">
+    ${tom(30,30,'#ff4b3e')}${tom(70,30,isBig?'url(#gGoldC)':'#ff6a3d')}${tom(50,22,'#ff4b3e')}
+    ${isBig?`<defs><linearGradient id="gGoldC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6b0"/><stop offset="1" stop-color="#e29600"/></linearGradient></defs>`:''}
+    <rect x="8" y="36" width="84" height="64" rx="6" fill="${isBig?'#d18b45':'#c98a52'}" stroke="${k}" stroke-width="4"/>
+    <path d="M8 56H92M8 78H92" stroke="${k}" stroke-width="2.5" opacity=".45"/>
+    <path d="M14 40l72 56" stroke="${k}" stroke-width="2.5" opacity=".3"/>${tag}</svg>`;
+}
+function openCrate(i){
+  const list=FIELD_BOXES[i]; if(!list) return;
+  const T_=TH(), first=list[0], last=list[list.length-1];
+  openModal(`<h2 style="margin:0 0 4px">${list.length>=100?'超大箱':list.length>=50?'大箱子':'一箱'}・${list.length} ${esc(T_.cnt)}${esc(T_.unit)}</h2>
+    <p class="small" style="margin:0 0 10px">${first.n&&last.n?`No.${first.n}～No.${last.n}，`:''}${themeKey()==='boba'?'星球':'草地'}太擠了，早期的夥伴先裝箱休息。</p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;max-height:50vh;overflow:auto">${list.map(so=>`<button data-a="soldier" data-id="${so.id}" style="border:0;background:transparent;padding:0;height:52px" aria-label="${esc(so.name||'')}">${soldierSVG(so)}</button>`).join('')}</div>
+    <button class="btn ghost block" style="margin-top:10px" data-a="closeModal">關閉</button>`);
+}
 // ---------- 戰場（番茄兵在草地上亂走） ----------
 function skyNow(){
   const h=new Date().getHours();
@@ -861,24 +889,37 @@ function fieldHTML(army, pluckTs, {title='', height=300}={}){
   title = title || TH().army;
   const sk=skyNow(), k=INK;
   const plucked=army.filter(s=>s.endedAt<=pluckTs), sprouts=army.filter(s=>s.endedAt>pluckTs);
-  const shown=plucked.slice(-30);
   let deco = sk.night
     ? Array.from({length:14},(_,i)=>{ const r=rng(i+9); return `<span style="position:absolute;left:${r()*96}%;top:${r()*40}%;width:4px;height:4px;border-radius:50%;background:#fff;opacity:${.4+r()*.6}"></span>`; }).join('')
       + `<span style="position:absolute;right:18%;top:14%;width:34px;height:34px;border-radius:50%;background:${sk.sun};border:2.5px solid ${k};box-shadow:inset -9px -4px 0 rgba(0,0,0,.18)"></span>`
     : `<span style="position:absolute;right:16%;top:12%;width:40px;height:40px;border-radius:50%;background:${sk.sun};border:2.5px solid ${k}"></span>`
       + [0,1].map(i=>`<span class="cloud" style="top:${16+i*18}%;animation-duration:${38+i*17}s;animation-delay:-${i*20}s"><svg width="74" height="30" viewBox="0 0 74 30"><path d="M10 26a9 9 0 0 1 4-17a12 12 0 0 1 22-4a11 11 0 0 1 20 5a8 8 0 0 1 8 16z" fill="#fff" stroke="${k}" stroke-width="2.5"/></svg></span>`).join('');
-  const sol = shown.map(so=>{
-    const r=rng(so.seed+3), y=4+r()*36, w=Math.round(46+(40-y)*0.45), x=3+r()*78;
-    const dx=Math.round((r()<.5?-1:1)*(18+r()*50)), d=(2.6+r()*3).toFixed(1), dl=(r()*4).toFixed(1);
+  // 太多就裝箱：最新的 5～14 隻在草地上走，較早的按 100／50／10 隻一箱裝起來
+  const n=plucked.length, boxedN = n<=14 ? 0 : Math.floor((n-5)/10)*10;
+  const walkers=plucked.slice(boxedN);
+  FIELD_BOXES = []; let at=0;
+  for (const size of [100,50,10]) while (boxedN-at>=size){ FIELD_BOXES.push(plucked.slice(at,at+size)); at+=size; }
+  const hillAt = x => 2.5 + 42.5*Math.sqrt(Math.max(0, 1-((x-50)/60)**2));   // 山丘表面高度（%）
+  const nb=FIELD_BOXES.length, span=Math.min(80, nb*13), boxes=FIELD_BOXES.map((list,i)=>{
+    const isBig=list.length>=50, w=list.length>=100?58:isBig?51:44, x = nb===1 ? 50 : 50-span/2+span*i/(nb-1);
+    return `<button class="crate" data-a="crate" data-i="${i}" style="left:calc(${x.toFixed(1)}% - ${w/2}px);bottom:${(hillAt(x)-7).toFixed(1)}%;width:${w}px;height:${Math.round(w*1.05)}px;animation-delay:-${(i*.37).toFixed(2)}s" aria-label="${list.length} ${esc(TH().cnt)}${esc(TH().unit)}">${packSVG(list.length, isBig)}</button>`;
+  }).join('');
+  // 草地上的兵排成三排，每排平均分配位置，只在自己附近小範圍走動
+  const rows=walkers.length<=4?1:walkers.length<=9?2:3, per=Math.ceil(walkers.length/rows);
+  const sol = walkers.map((so,i)=>{
+    const r=rng(so.seed+3), row=i%rows, col=Math.floor(i/rows), cnt=Math.min(per, Math.ceil((walkers.length-row)/rows));
+    const y=(sprouts.length?8:0)+(rows===1?10:[5,14,23][row]+(rows===2?3:0))+r()*3, w=Math.round(46+(40-y)*0.45);
+    const x=(rows===1?18:6+row*5)+ (cnt>1 ? col*((rows===1?60:70)/(cnt-1||1)) : 34) + (r()-.5)*5;
+    const dx=Math.round((r()<.5?-1:1)*(8+r()*14)), d=(2.6+r()*3).toFixed(1), dl=(r()*4).toFixed(1);
     return `<button class="sol" data-a="soldier" data-id="${so.id}" style="left:${x.toFixed(1)}%;bottom:${y.toFixed(1)}%;width:${w}px;height:${Math.round(w*1.1)}px;z-index:${60-Math.round(y)};--dx:${dx}px;--d:${d}s;--dl:-${dl}s" aria-label="${so.name}"><span>${soldierSVG(so)}</span></button>`;
   }).join('');
   const spr = sprouts.slice(0,8).map((s,i)=>`<button class="sprout" data-a="pluck" style="left:${8+i*11}%;bottom:${2+(i%2)*6}%;width:48px;height:56px;z-index:70;animation-delay:-${i*.3}s" aria-label="${esc(TH().pluck)}">${themeKey()==='boba'?miniCupSVG():sproutSVG()}</button>`).join('');
-  const emptyMsg = (!shown.length && !sprouts.length) ? `<div style="position:absolute;left:50%;bottom:34%;transform:translateX(-50%);width:80%;text-align:center;z-index:6"><span class="say">${TH().empty}</span></div>` : '';
+  const emptyMsg = (!plucked.length && !sprouts.length) ? `<div style="position:absolute;left:50%;bottom:34%;transform:translateX(-50%);width:80%;text-align:center;z-index:6"><span class="say">${TH().empty}</span></div>` : '';
   return `<div class="field" style="height:${height}px">
     <div class="sky" style="background:${sk.sky}">${deco}</div>
     <div class="hill" style="background:${sk.hill}"></div>
     <div class="title">${esc(title)}</div><div class="count">×${plucked.length}</div>
-    ${sol}${spr}${emptyMsg}
+    ${boxes}${sol}${spr}${emptyMsg}
     ${sprouts.length?`<div style="position:absolute;right:10px;bottom:10px;z-index:80"><span class="say" style="font-size:.8rem">${TH().pendingField(sprouts.length)}</span></div>`:''}
   </div>`;
 }
@@ -1989,6 +2030,7 @@ document.addEventListener('click', async e=>{
     case 'closeModal': closeModal(); break;
     case 'pluckNew': await pluckAndShow('newest', el.dataset.task||''); break;
     case 'pluck': await pluckAndShow('oldest'); break;
+    case 'crate': openCrate(+el.dataset.i); break;
     case 'openGift': openGift(id, el.dataset.task||''); break;
     case 'subjEdit': if(!isLeader()) return toast('只有團長可以修改科目'); openSubjEdit(el.dataset.v); break;
     case 'charNew': openCharDesigner(); break;
