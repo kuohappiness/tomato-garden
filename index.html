@@ -625,7 +625,8 @@ function mutSVG(so){
 //  特殊收成：活動彩蛋（聖誕節等）＋ 每日班級新鮮事
 //  想加新活動或新鮮事，只要在下面的清單加一筆，不用改其他程式。
 // ======================================================================
-const FX2_FROM = '2026-11-20'; // 這一天以後的番茄鐘才有彩蛋和新鮮事（舊紀錄不變）
+const FX2_FROM = '2026-11-19'; // 這一天以後的番茄鐘才有彩蛋和新鮮事
+const FX2_TS = Date.UTC(2026,10,19,9,30); // 11/19 17:30（台灣）以後完成的才算，之前已經收成的不變
 // 特殊角色：拔出來不是番茄兵，而是這些（番茄、珍奶兩種主題都通用）
 const SPECIALS = {
   xtree:  {name:'聖誕樹兵', tag:'🎄 聖誕彩蛋', title:'拔出來的是……聖誕樹？！', story:'土裡的番茄兵提早一個月換好聖誕裝，連星星都自己戴上了。',
@@ -653,23 +654,28 @@ const NEWS = [
   {id:'fan', ic:'🥵', title:'教室的冷氣壞了', story:'全班都在用考卷搧風，有人把墊板折成扇子。讀書的時候記得多喝水。'},
   {id:'board', ic:'🔢', title:'黑板角落出現神秘的「67」', story:'沒有人承認是自己寫的。值日生擦掉之後，下一節課又出現了。'},
 ];
-const NEWS_FIXED = {'2026-11-20':'orange', '2026-11-21':'curry'}; // 指定某天出現哪一則（沒指定就輪流）
+const NEWS_FIXED = {'2026-11-19':'orange', '2026-11-20':'curry'}; // 指定某天出現哪一則（沒指定就輪流）
+// 每 NEWS.length 天為一輪，每輪把全部新鮮事洗牌輪一次；指定日期的那則會被換到那一天，同一輪不會重複
 function newsOrder(cyc){
-  const r=rng(hash('news'+cyc)), o=NEWS.map((_,i)=>i);
-  for (let i=o.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; }
+  const L=NEWS.length, r=rng(hash('news'+cyc)), o=NEWS.map((_,i)=>i);
+  for (let i=L-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; }
+  const fixedPos=new Set();
+  Object.entries(NEWS_FIXED).forEach(([d,id])=>{
+    if (d<FX2_FROM) return; const days=daysBetween(FX2_FROM,d); if (Math.floor(days/L)!==cyc) return;
+    const want=NEWS.findIndex(n=>n.id===id), pos=days%L, at=o.indexOf(want); if (want<0) return;
+    [o[pos],o[at]]=[o[at],o[pos]]; fixedPos.add(pos);
+  });
+  if (cyc>0 && !fixedPos.has(0) && o[0]===newsOrder(cyc-1)[L-1]) { const k=fixedPos.has(1)?2:1; [o[0],o[k]]=[o[k],o[0]]; } // 不要連續兩天同一則
   return o;
 }
 function newsOf(d=ymd()){
   if (!d || d<FX2_FROM) return null;
-  if (NEWS_FIXED[d]) return NEWS.find(n=>n.id===NEWS_FIXED[d]) || null;
-  const days=daysBetween(FX2_FROM,d), L=NEWS.length, cyc=Math.floor(days/L);
-  const o=newsOrder(cyc);
-  if (cyc>0 && o[0]===newsOrder(cyc-1)[L-1]) [o[0],o[1]]=[o[1],o[0]]; // 不要連續兩天同一則
-  return NEWS[o[days%L]];
+  const days=daysBetween(FX2_FROM,d), L=NEWS.length;
+  return NEWS[newsOrder(Math.floor(days/L))[days%L]];
 }
 function spInfo(so){ return so&&so.sp ? SPECIALS[so.sp]||null : null; }
 function applySpecial(so){
-  if (!so || !so.date || so.date<FX2_FROM || so.n===67) return so;
+  if (!so || !so.date || so.date<FX2_FROM || (so.endedAt||0)<FX2_TS || so.n===67) return so;
   const setSp=(id,r)=>{ const s=SPECIALS[id]; so.sp=id; so.rare=''; delete so.custom; so.name=pick(r,s.names); so.quote=pick(r,s.quotes); return so; };
   const nw=newsOf(so.date);
   if (nw?.fx?.harvest) return setSp(nw.fx.harvest, rng(hash(String(so.id)+'news')));
