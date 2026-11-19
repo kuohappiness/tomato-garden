@@ -1170,7 +1170,7 @@ async function ensureDir(gid,g){
 }
 function subscribe(gid){
   unsubs.forEach(f=>f()); unsubs=[];
-  S.gid=gid; S.loading=true;
+  S.gid=gid; S.loading=true; S.loaded={};
   const fail = e => { console.error(e); toast('讀取資料失敗：'+(e.code||e.message)); };
   const to=setTimeout(()=>{ if(S.loading){ S.loading=false; render(); } },10000);
   unsubs.push(S.api.watchGroup(gid, g=>{
@@ -1178,12 +1178,12 @@ function subscribe(gid){
     if (!g || !(g.members||[]).includes(S.me.uid)) { goHome(); return; }
     S.group=g; S.loading=false; render();
   }, fail));
-  unsubs.push(S.api.watchMembers(gid, m=>{ S.members=m; render(); }, fail));
+  unsubs.push(S.api.watchMembers(gid, m=>{ S.members=m; S.loaded.members=1; render(); }, fail));
   unsubs.push(S.api.watchTasks(gid, t=>{ S.tasks=t; render(); }, fail));
   unsubs.push(S.api.watchProgress(gid, p=>{ S.progress=p; render(); }, fail));
-  unsubs.push(S.api.watchMySessions(gid, S.me.uid, s=>{ S.sessions=s; render(); }));
-  unsubs.push(S.api.watchChars(gid, c=>{ S.chars=c; render(); }));
-  unsubs.push(S.api.watchSends(gid, a=>{ S.sends=a; render(); }));
+  unsubs.push(S.api.watchMySessions(gid, S.me.uid, s=>{ S.sessions=s; S.loaded.sessions=1; render(); }));
+  unsubs.push(S.api.watchChars(gid, c=>{ S.chars=c; S.loaded.chars=1; render(); }));
+  unsubs.push(S.api.watchSends(gid, a=>{ S.sends=a; S.loaded.sends=1; render(); }));
   // 確保自己的成員資料存在
   S.api.setMember(gid, S.me.uid, {photo:S.me.photo||''}).catch(()=>{});
 }
@@ -1209,6 +1209,7 @@ function doRender(){
   tickTimer();
   scheduleGuestPublish();
   setTimeout(checkIncoming, 600);
+  setTimeout(checkDaily, 1200);
   if (S.group && S.gid && S.me && S.group.owner===S.me.uid) ensureDir(S.gid,{...S.group}).catch(e=>console.warn('dir',e));
 }
 function renderTabbar(){
@@ -1438,6 +1439,51 @@ function showIncoming(id){
     ${x.msg?`<div class="say" style="margin:8px 0">「${esc(x.msg)}」<br><span class="tiny">— ${esc(from)}</span></div>`:`<p class="small">— ${esc(from)} 送的</p>`}
     <p class="small" style="font-weight:700;margin:10px 0 6px">回應一下：</p>
     <div class="row" style="gap:8px">${REACTS.map(([v,ic,l])=>`<button class="btn ghost grow" data-a="giftReact" data-id="${esc(x.id)}" data-v="${v}">${ic} ${l}</button>`).join('')}</div></div>`);
+}
+// ---------- 每日活動提醒：每天第一次打開讀書社時跳出，挑 2～3 則 ----------
+// 想加新的提醒（例如「今日班級新鮮事」），在 DAILY_TIPS 加一筆就好：
+//   id    唯一名稱
+//   pri   優先順序，數字越小越前面（新鮮事這類一定要看的可以設 0）
+//   show  ()=>true/false，這則今天要不要出現
+//   make  ()=>({ic, title, text, btn:[按鈕文字, 動作, 參數]})；btn 可省略
+// 動作可以用 dailyGo（切到某個分頁，參數是 today/tasks/garden/friends/settings），或任何現有的 data-a。
+function groupWeekTom(){ const ws=weekStart(); let n=0; (S.group?.members||[]).forEach(u=>{ const dt=(S.members[u]||{}).dt||{}; for(let i=0;i<7;i++) n+=dt[addDays(ws,i)]||0; }); return n; }
+function missionHp(){ const n=(S.group?.members||[]).filter(u=>S.members[u]).length; return n>=4 ? 67 : Math.max(17, n*17); }
+const DAILY_TIPS = [
+  {id:'char', pri:10,
+    show:()=>!(S.chars||[]).some(c=>c.id===`${S.me.uid}_${weekStart()}`),
+    make:()=>({ic:'🎨', title:'這週還沒設計自己的角色', text:`每週可以設計 1 個角色，大家讀書時就有機會${themeKey()==='boba'?'搖到':'種出'}它。`, btn:['去設計','charNew']})},
+  {id:'gift', pri:20,
+    show:()=>!sentToday() && (S.group?.members||[]).some(u=>u!==S.me.uid && S.members[u]) && Object.keys(giftInv()).some(k=>giftable(GIFTS.find(g=>g.id===k))),
+    make:()=>({ic:'🎁', title:'今天可以送同學一個禮物', text:'寶物箱裡的東西可以送給隊友，好的、噁心的都行，一天一個。', btn:['送禮物','sendOpen']})},
+  {id:'mission', pri:30,
+    show:()=>groupWeekTom()<missionHp(),
+    make:()=>{ const left=missionHp()-groupWeekTom(), days=7-((new Date().getDay()+6)%7);
+      return {ic:'🚩', title:`本週遠征：${missionOfWeek().title}`, text:`全社還差 ${left} 個番茄鐘，剩 ${days} 天。`, btn:['看遠征','dailyGo','friends']}; }},
+  {id:'streak', pri:40,
+    show:()=>{ const st=memberStats(S.me.uid); return st.streak>=2 && !st.todayTom; },
+    make:()=>({ic:'🔥', title:`已經連續讀 ${memberStats(S.me.uid).streak} 天了`, text:'今天完成一個番茄鐘，就能把連續紀錄接下去。', btn:['開始讀書','dailyGo','today']})},
+  {id:'six7', pri:90, show:()=>true,
+    make:()=>{ const h=new Date().getHours(), next=(h<6||(h===6&&new Date().getMinutes()<7))?'6:07':(h<18||(h===18&&new Date().getMinutes()<7))?'18:07':'明天 6:07';
+      return {ic:'🙌', title:`下一次六七時刻：${next}`, text:'那一分鐘完成的番茄鐘，必掉稀有空投。'}; }},
+];
+const DAILY_MAX=3;
+const dailyKey = () => `tg-daily:${S.me?.uid}:${S.gid}`;
+function dailyReady(){ const L=S.loaded||{}; return L.chars && L.sends && L.sessions && L.members && S.group; }
+function checkDaily(){
+  if (!S.me || !S.gid || S.guest || S.loading || !dailyReady() || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  if (lsGet(dailyKey())===ymd()) return;
+  // 有禮物還沒拆，先讓拆禮物的畫面跳
+  if ((S.sends||[]).some(x=>x.to===S.me.uid && !x.seen && !shownGifts.has(x.id))) return;
+  const list=DAILY_TIPS.filter(t=>{ try{ return t.show(); }catch(e){ console.warn('daily',t.id,e); return false; } })
+    .sort((a,b)=>a.pri-b.pri).slice(0,DAILY_MAX)
+    .map(t=>{ try{ return t.make(); }catch(e){ console.warn('daily',t.id,e); return null; } }).filter(Boolean);
+  lsSet(dailyKey(), ymd());
+  if (!list.length) return;
+  const name=(S.members[S.me.uid]||{}).name||'';
+  openModal(`<h2>${name?esc(name)+'，':''}今天的活動提醒</h2>
+    ${list.map(x=>`<div class="row" style="border-top:2px dashed #d8cfb8;padding:10px 0;gap:10px;align-items:center"><span style="font-size:2rem;line-height:1;flex:none">${x.ic}</span><span class="grow"><b>${esc(x.title)}</b><br><span class="small">${esc(x.text)}</span></span>${x.btn?`<button class="btn yellow sm" style="flex:none" data-a="${esc(x.btn[1])}" data-v="${esc(x.btn[2]||'')}">${esc(x.btn[0])}</button>`:''}</div>`).join('')}
+    <button class="btn red block" style="margin-top:10px" data-a="closeModal">知道了，開始讀書</button>`);
 }
 function giftFeedHTML(){
   const list=(S.sends||[]).slice().sort((a,b)=>b.ts-a.ts).slice(0,10);
@@ -2041,6 +2087,7 @@ document.addEventListener('click', async e=>{
         if (S.gid) await S.api.setMember(S.gid,S.me.uid,{photo:r.photo||''}).catch(()=>{});
         toast('綁定成功！之後換手機用這個 Google 帳號登入就好'); render();
       } catch(err){ console.error(err); toast(err.code==='auth/credential-already-in-use'?'這個 Google 帳號已經在番茄園用過了，不能再綁定':err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':'綁定失敗：'+(err.code||err.message)); } break;
+    case 'dailyGo': closeModal(); S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'go': S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'join': { const c=val('joincode'); if(c.length!==6) return toast('邀請碼是 6 個字'); await doJoin(c); break; }
     case 'create': { if(!CREATE_OK) return toast('目前暫停建立新的讀書社');
