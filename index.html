@@ -793,7 +793,7 @@ const MISSIONS = [
 //   goal：這一關要幾顆番茄（4 人以上的目標；人少時照週任務的比例縮小）。沒寫就和週任務一樣。
 //   art(done, p)：p 是這一關的進度 0~1，畫面可以跟著變。
 const BONUS_MISSIONS = [
-  {title:'拿到培碩老師的簽名照', goal:167, story:'週任務提早破關！導師培碩老師答應：大家再一起讀 167 顆番茄，就送全班一張親筆簽名照。', win:'簽名照到手！培碩老師還多畫了一顆愛心，快掛到基地牆上。', art:d=>photoSVG(d)},
+  {title:'拿到培碩老師的簽名照', story:'週任務提早破關！導師培碩老師答應：大家再一起讀一輪，就送全班一張親筆簽名照。', win:'簽名照到手！培碩老師還多畫了一顆愛心，快掛到基地牆上。', art:d=>photoSVG(d)},
   {title:'把料理阿嬤煮成肉醬', goal:167, stay:true, story:'料理阿嬤不小心跳進自己的大鍋子，現在舉雙手投降中！每讀完一顆番茄，鍋底的火就旺一點。大家一起讀到火力全開，就能把阿嬤燉成一鍋香噴噴的「阿嬤肉醬」！', win:'叮！阿嬤肉醬燉好了！阿嬤從鍋子裡探出頭說：「乖孫，有讀書的才可以拌麵喔！」', art:(d,p)=>grannySVG(d,p)},
 ];
 function missionGoal(m, hp){ return m.goal ? (hp===67 ? m.goal : Math.max(hp, Math.round(hp*m.goal/67))) : hp; }
@@ -1887,7 +1887,7 @@ function viewFriends(){
     </div>
     <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${W.goal}</b></div>
     <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${W.last?'本週任務全破，下週一再來！':''}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${W.goal===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
-    <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}・提早破關會出現加碼任務（目標 167 ${TH().cnt}）</p>
+    <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}・提早破關會出現加碼任務</p>
   </div>
   ${giftFeedHTML()}
   <div class="card">
