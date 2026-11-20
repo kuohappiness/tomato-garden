@@ -222,11 +222,14 @@ const SUBJECTS = [
   {name:'國文', color:'#ff4b3e'}, {name:'英文', color:'#3b8cff'}, {name:'數學', color:'#ff9a1f'},
   {name:'生物', color:'#46c84f'}, {name:'理化', color:'#9bd12f'}, {name:'歷史', color:'#b5733f'},
   {name:'地理', color:'#18b3a3'}, {name:'公民', color:'#9b5de5'}, {name:'社會', color:'#7a74a8'},
-  {name:'其他', color:'#6b6558'}
+  {name:'運動', color:'#ffc300'}, {name:'其他', color:'#6b6558'}
 ];
+// 運動跟讀書一樣重要：運動完成一個專心時段，也算一顆番茄。
+// 舊的讀書社科目清單裡沒有「運動」，會自動補在「其他」前面；團長刪掉後會留一筆 off 記號，就不會再補回來。
+const SPORT = {name:'運動', color:'#ffc300', unit:'動滋兵', acc:'band', skill:'跑完步全身會「動滋動滋」作響，越跑越有精神'};
 const SUBJ_COLOR = Object.fromEntries(SUBJECTS.map(s=>[s.name,s.color]));
 const ALIAS = {'國':'國文','國文':'國文','英':'英文','英文':'英文','數':'數學','數學':'數學','生':'生物','生物':'生物','自然':'生物',
-  '理':'理化','理化':'理化','歷':'歷史','歷史':'歷史','地':'地理','地理':'地理','公':'公民','公民':'公民','社':'社會','社會':'社會','歷地公':'社會','其他':'其他'};
+  '理':'理化','理化':'理化','歷':'歷史','歷史':'歷史','地':'地理','地理':'地理','公':'公民','公民':'公民','社':'社會','社會':'社會','歷地公':'社會','運':'運動','運動':'運動','體':'運動','體育':'運動','其他':'其他'};
 const LEVELS = [
   {min:0,name:'番茄醬預備役'},{min:5,name:'番茄籽'},{min:15,name:'小番茄'},{min:30,name:'番茄炒蛋'},
   {min:50,name:'番茄大將軍'},{min:80,name:'番茄元帥'},{min:120,name:'番茄之神'},{min:200,name:'宇宙番茄霸主'}
@@ -333,7 +336,14 @@ const daysBetween = (a,b) => Math.round((parseYmd(b)-parseYmd(a))/86400000);
 const mmss = ms => { const s=Math.max(0,Math.ceil(ms/1000)); return `${pad(Math.floor(s/60))}:${pad(s%60)}`; };
 const fmtMin = m => m>=60 ? `${Math.floor(m/60)} 時 ${m%60} 分` : `${m} 分`;
 const PALETTE = ['#ff4b3e','#3b8cff','#ff9a1f','#46c84f','#9bd12f','#b5733f','#18b3a3','#9b5de5','#7a74a8','#ff5fa2','#ffcc1f','#6b6558'];
-function clubSubjects(){ const l=S.group?.subjects; return (Array.isArray(l)&&l.length) ? l : SUBJECTS; }
+function clubSubjects(){
+  const raw=S.group?.subjects; if (!(Array.isArray(raw)&&raw.length)) return SUBJECTS;
+  const l=raw.filter(x=>!x.off);
+  if (raw.some(x=>x.name===SPORT.name)) return l;
+  const out=[...l], oi=out.findIndex(x=>x.name==='其他'); out.splice(oi>=0?oi:out.length,0,{...SPORT}); return out;
+}
+// 寫回科目清單時，保留「團長不要運動」的記號
+function subjWrite(list){ const off=(S.group?.subjects||[]).filter(x=>x.off && !list.some(y=>y.name===x.name)); return [...list, ...off]; }
 function subjNames(){ return clubSubjects().map(x=>x.name); }
 function subjColor(s){ const c=clubSubjects().find(x=>x.name===s)?.color || SUBJ_COLOR[s]; return c || PALETTE[hash(s)%PALETTE.length]; }
 const subjOptions = (sel) => subjNames().map(n=>`<option ${n===sel?'selected':''}>${esc(n)}</option>`).join('');
@@ -394,6 +404,7 @@ const TYPES = {
   '地理':{color:'#18b3a3', name:'迷路兵', acc:'flag',    skill:'拿著地圖還是會迷路'},
   '公民':{color:'#9b5de5', name:'法官兵', acc:'tie',     skill:'動不動就說「這樣違法喔」'},
   '社會':{color:'#7a74a8', name:'雜學兵', acc:'tie',     skill:'什麼都懂一點點，真的只有一點點'},
+  '運動':{color:SPORT.color, name:SPORT.unit, acc:SPORT.acc, skill:SPORT.skill},
   '其他':{color:'#ff4b3e', name:'普通兵', acc:'',        skill:'沒有特別專長，但非常努力'},
 };
 const RARE = {
@@ -455,6 +466,7 @@ const ACC = {
   goggles:k=>`<rect x="22" y="52" width="56" height="21" rx="10" fill="rgba(160,235,255,.55)" stroke="${k}" stroke-width="3.5"/><path d="M15 60h7M78 60h7" stroke="${k}" stroke-width="5"/>`,
   crown:k=>`<path d="M36 33l4-13 6 8 4-12 4 12 6-8 4 13z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M37 79q6-6 13 0q7-6 13 0q-6 6-13 1q-7 5-13-1z" fill="${k}"/>`,
   flag:k=>`<path d="M93 92V38" stroke="${k}" stroke-width="3.5"/><path d="M93 38l-20 7 20 8z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><text x="16" y="34" font-size="20" font-weight="900" fill="${k}">?</text>`,
+  band:k=>`<path d="M18 56q32-16 64 0" fill="none" stroke="${k}" stroke-width="10" stroke-linecap="round"/><path d="M18 56q32-16 64 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M30 50l3 3M70 50l-3 3" stroke="#ff4b3e" stroke-width="2.5" stroke-linecap="round"/><path d="M50 44l-14-4 9 9-12 6 15-3 2 9 2-9 15 3-12-6 9-9z" fill="#2fbf5b" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M50 44q-2-12 7-17" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/><path d="M81 56q10-2 15-10M81 58q11 3 13 13" fill="none" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><path d="M13 68q-4 6 0 9q4-3 0-9z" fill="#9ee4ff" stroke="${k}" stroke-width="2"/><path d="M24 112q0-7 8-7h6v7zM62 105h6q8 0 8 7H62z" fill="#ff4b3e" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
   tie:k=>`<path d="M45 96l5-6 5 6-5 15z" fill="${k}"/><rect x="74" y="78" width="20" height="9" rx="3" fill="#8b5e3c" stroke="${k}" stroke-width="2.5" transform="rotate(-30 84 82)"/>`,
 };
 function soldierSVG(so,{lock=false}={}){
@@ -727,6 +739,16 @@ function spSVG(so){
   }
   return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true">${g}</svg>`;
 }
+// 週末公告：週六、週日在「今天」頁提醒大家去跑一跑
+function weekendCard(){
+  if (!isWeekend()) return '';
+  const sp=hasSport(), done=(S.sessions||[]).some(x=>x.uid===S.me.uid && x.date===ymd() && x.subject===SPORT.name && x.tomato);
+  return `<div class="card"><div class="row between"><h2>📣 週末公告</h2><span class="small" style="font-weight:700">${fmtDate(ymd())}</span></div>
+    <div class="row" style="gap:10px;align-items:center;margin-top:6px"><span style="font-size:2.4rem;line-height:1">🏃</span>
+    <div class="grow"><b>適逢週末，可以去跑一跑！</b><p class="small" style="margin:2px 0 0">運動跟讀書一樣重要。${sp?'選「運動」完成一個專心時段，跟讀書一樣算一個番茄鐘，還會種出動滋兵。':''}</p>
+    ${done?`<p class="small" style="margin:6px 0 0;font-weight:900;color:var(--leaf-d)">今天已經動過了，讚！</p>`:''}</div>
+    ${sp&&!S.timer&&!done?`<button class="btn yellow sm" style="flex:none" data-a="sportGo">去運動</button>`:''}</div></div>`;
+}
 // 今天的班級新鮮事卡片（在「今天」頁）
 function newsCard(){
   const today=ymd(), nw=newsOf(today); if (!nw) return '';
@@ -929,6 +951,7 @@ function TH(){ return THEME_TXT[themeKey()]; }
 function rareInfo(so){ return so.rare ? (themeKey()==='boba' ? BOBA_RARE[so.rare] : RARE[so.rare]) : null; }
 
 const CUTE_ACC = {
+  band:k=>`<path d="M24 52q26-13 52 0" fill="none" stroke="${k}" stroke-width="9" stroke-linecap="round"/><path d="M24 52q26-13 52 0" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/><path d="M75 52q9-1 13-8M75 54q9 3 11 11" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`,
   hat:k=>`<path d="M30 37l20-10 20 10-20 10z" fill="${k}"/><path d="M66 39v11" stroke="#ffd23f" stroke-width="2.5"/><circle cx="66" cy="51" r="2.6" fill="#ffd23f"/>`,
   glasses:k=>`<g fill="rgba(255,255,255,.2)" stroke="${k}" stroke-width="3"><circle cx="37" cy="68" r="11"/><circle cx="63" cy="68" r="11"/></g><path d="M48 68h4" stroke="${k}" stroke-width="3"/>`,
   leaf:k=>`<path d="M50 35q-2-11 6-15" fill="none" stroke="${k}" stroke-width="3"/><path d="M55 21q12-11 21 0q-10 8-21 0z" fill="#8ff09a" stroke="${k}" stroke-width="2.5"/>`,
@@ -1544,6 +1567,7 @@ function viewToday(){
     <div class="small" style="margin-top:12px;font-weight:700">今日目標 ${Math.min(st.todayTom,goal)}／${goal} ${TH().cnt}・已讀 ${fmtMin(st.todayMin)}</div>
     <div class="goal">${Array.from({length:Math.max(goal,st.todayTom)},(_,i)=>`<span>${themeKey()==='boba'?pearlIcon(i<st.todayTom):tomatoIcon(i<st.todayTom)}</span>`).join('')}</div>
   </div>
+  ${weekendCard()}
   ${newsCard()}
   <div class="card">
     <div class="row between"><h2>今天的任務</h2><span class="small" style="font-weight:700">${fmtDate(today)}</span></div>
@@ -1658,7 +1682,11 @@ function showIncoming(id){
 // 動作可以用 dailyGo（切到某個分頁，參數是 today/tasks/garden/friends/settings），或任何現有的 data-a。
 function groupWeekTom(){ const ws=weekStart(); let n=0; (S.group?.members||[]).forEach(u=>{ const dt=(S.members[u]||{}).dt||{}; for(let i=0;i<7;i++) n+=dt[addDays(ws,i)]||0; }); return n; }
 function missionHp(){ const n=(S.group?.members||[]).filter(u=>S.members[u]).length; return n>=4 ? 67 : Math.max(17, n*17); }
+const isWeekend = (d=new Date()) => d.getDay()===0 || d.getDay()===6;
+const hasSport = () => subjNames().includes(SPORT.name);
 const DAILY_TIPS = [
+  {id:'weekend-run', pri:0, show:()=>isWeekend(),
+    make:()=>({ic:'🏃', title:'適逢週末，去跑一跑吧！', text:hasSport()?'運動跟讀書一樣重要。選「運動」按開始，跑完回來一樣算一個番茄鐘，還會種出動滋兵。':'運動跟讀書一樣重要。讀累了就出去跑一跑，回來腦袋更清楚。', btn:hasSport()?['去運動','sportGo']:null})},
   {id:'char', pri:10,
     show:()=>!(S.chars||[]).some(c=>c.id===`${S.me.uid}_${weekStart()}`),
     make:()=>({ic:'🎨', title:'這週還沒設計自己的角色', text:`每週可以設計 1 個角色，大家讀書時就有機會${themeKey()==='boba'?'搖到':'種出'}它。`, btn:['去設計','charNew']})},
@@ -2242,14 +2270,15 @@ document.addEventListener('click', async e=>{
         const old=list[+idx].name; list[+idx]=item;
         if (old!==name) { const ts=S.tasks.filter(t=>t.subject===old); for(const t of ts) await S.api.updateTask(S.gid,t.id,{subject:name}); }
       }
-      await S.api.updateGroup(S.gid,{subjects:list}); closeModal(); toast('科目已儲存'); break;
+      if (idx!=='new' && list[+idx]?.name!==SPORT.name && clubSubjects()[+idx]?.name===SPORT.name) list.push({name:SPORT.name, off:true});
+      await S.api.updateGroup(S.gid,{subjects:subjWrite(list)}); closeModal(); toast('科目已儲存'); break;
     }
     case 'subjDel': { if(!isLeader()) return toast('只有團長可以修改科目');
       const i=+el.dataset.v, x=clubSubjects()[i], n=S.tasks.filter(t=>t.subject===x.name).length;
       confirmBox(`刪除「${esc(x.name)}」？${n?`<br><span class="small">已經有 ${n} 個任務用這科，任務會保留，只是科目選單裡不會再出現。</span>`:''}`,'subjDelOk',`data-v="${i}"`); break;
     }
-    case 'subjDelOk': { if(!isLeader()) return toast('只有團長可以修改科目'); const list=clubSubjects().filter((_,i)=>i!==+el.dataset.v); if(!list.length) return toast('至少要留一科'); await S.api.updateGroup(S.gid,{subjects:list}); closeModal(); toast('已刪除'); break; }
-    case 'subjUp': { if(!isLeader()) return toast('只有團長可以修改科目'); const i=+el.dataset.v; if(!i) break; const list=clubSubjects().map(x=>({...x})); [list[i-1],list[i]]=[list[i],list[i-1]]; await S.api.updateGroup(S.gid,{subjects:list}); break; }
+    case 'subjDelOk': { if(!isLeader()) return toast('只有團長可以修改科目'); const gone=clubSubjects()[+el.dataset.v], list=clubSubjects().filter((_,i)=>i!==+el.dataset.v); if(!list.length) return toast('至少要留一科'); if(gone?.name===SPORT.name) list.push({name:SPORT.name, off:true}); await S.api.updateGroup(S.gid,{subjects:subjWrite(list)}); closeModal(); toast('已刪除'); break; }
+    case 'subjUp': { if(!isLeader()) return toast('只有團長可以修改科目'); const i=+el.dataset.v; if(!i) break; const list=clubSubjects().map(x=>({...x})); [list[i-1],list[i]]=[list[i],list[i-1]]; await S.api.updateGroup(S.gid,{subjects:subjWrite(list)}); break; }
     case 'revealGift': revealGift(id, el.dataset.task||''); break;
     case 'giftInfo': { const g=giftDisp(GIFTS.find(x=>x.id===el.dataset.v)); const own=el.classList.contains('off')?0:1;
       if (own && giftable(g)) { openModal(`<div class="celebrate"><div style="font-size:4rem">${g.ic}</div><span class="rar r-${g.rar}">${g.cat?GIFT_CAT[g.cat]:g.rar}</span><div class="big">${esc(g.name)}</div><p style="font-weight:700">${esc(g.d)}</p>
@@ -2303,6 +2332,8 @@ document.addEventListener('click', async e=>{
         if (S.gid) await S.api.setMember(S.gid,S.me.uid,{photo:r.photo||''}).catch(()=>{});
         toast('綁定成功！之後換手機用這個 Google 帳號登入就好'); render();
       } catch(err){ console.error(err); toast(err.code==='auth/credential-already-in-use'?'這個 Google 帳號已經在番茄園用過了，不能再綁定':err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':'綁定失敗：'+(err.code||err.message)); } break;
+    case 'sportGo': { closeModal(); S.view='today'; history.replaceState(null,'','#today'); render(); window.scrollTo(0,0);
+      const sel=$('#tsubj'); if (sel && [...sel.options].some(o=>o.value===SPORT.name)) { sel.value=SPORT.name; const tk=$('#ttask'); if(tk) tk.value=''; } break; }
     case 'dailyGo': closeModal(); S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'go': S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'join': { const c=val('joincode'); if(c.length!==6) return toast('邀請碼是 6 個字'); await doJoin(c); break; }
