@@ -789,15 +789,20 @@ const MISSIONS = [
   {title:'護送 67 公斤的巨大滷蛋', story:'一顆 67 公斤的滷蛋迷路了，正在冒冷汗，快護送它回基地。', win:'巨大滷蛋安全抵達！它感動到流出滷汁。', art:d=>eggSVG(d)},
   {title:'搬回 67 公升的巨無霸珍奶', story:'有人在操場留下一杯 67 公升的珍奶，趁它還沒退冰搬回基地！', win:'珍奶搬回來了！可是最後一顆珍珠還是吸不到。', art:d=>bobaSVG(d)},
 ];
-// 週任務提早破關後接上的加碼任務（依序出現，每關目標和週任務一樣）
+// 週任務提早破關後接上的加碼任務（依序出現）
+//   goal：這一關要幾顆番茄（4 人以上的目標；人少時照週任務的比例縮小）。沒寫就和週任務一樣。
+//   art(done, p)：p 是這一關的進度 0~1，畫面可以跟著變。
 const BONUS_MISSIONS = [
-  {title:'拿到培碩老師的簽名照', story:'週任務提早破關！導師培碩老師答應：大家再一起讀一輪，就送全班一張親筆簽名照。', win:'簽名照到手！培碩老師還多畫了一顆愛心，快掛到基地牆上。', art:d=>photoSVG(d)},
+  {title:'拿到培碩老師的簽名照', goal:167, story:'週任務提早破關！導師培碩老師答應：大家再一起讀 167 顆番茄，就送全班一張親筆簽名照。', win:'簽名照到手！培碩老師還多畫了一顆愛心，快掛到基地牆上。', art:d=>photoSVG(d)},
+  {title:'把料理阿嬤煮成肉醬', goal:167, stay:true, story:'料理阿嬤不小心跳進自己的大鍋子，現在舉雙手投降中！每讀完一顆番茄，鍋底的火就旺一點。大家一起讀到火力全開，就能把阿嬤燉成一鍋香噴噴的「阿嬤肉醬」！', win:'叮！阿嬤肉醬燉好了！阿嬤從鍋子裡探出頭說：「乖孫，有讀書的才可以拌麵喔！」', art:(d,p)=>grannySVG(d,p)},
 ];
+function missionGoal(m, hp){ return m.goal ? (hp===67 ? m.goal : Math.max(hp, Math.round(hp*m.goal/67))) : hp; }
 function weekMission(weekTom, hp){
   const list=[missionOfWeek(), ...BONUS_MISSIONS];
-  const stage=Math.min(list.length-1, Math.floor(weekTom/hp));
-  const got=Math.min(hp, weekTom-stage*hp), p=got/hp;
-  return {mis:list[stage], stage, prev:stage?list[stage-1]:null, last:stage===list.length-1, got, need:Math.max(0,hp-got), p, done:p>=1};
+  let stage=0, start=0;
+  while (stage<list.length-1 && weekTom>=start+missionGoal(list[stage],hp)) { start+=missionGoal(list[stage],hp); stage++; }
+  const goal=missionGoal(list[stage],hp), got=Math.min(goal, weekTom-start), p=got/goal;
+  return {mis:list[stage], stage, prev:stage?list[stage-1]:null, last:stage===list.length-1, got, goal, need:Math.max(0,goal-got), p, done:p>=1};
 }
 function photoSVG(done=false){
   const k=INK;
@@ -817,6 +822,58 @@ function photoSVG(done=false){
     <path d="M8 20l3-6 3 6-6-3h6zM90 50l2.5-5 2.5 5-5-2.5h5z" fill="#ffd23f" stroke="${k}" stroke-width="1"/>`
        :`<path d="M22 92h56" stroke="#b9c3c9" stroke-width="2.5" stroke-dasharray="4 3"/><text x="50" y="87" text-anchor="middle" font-size="9" font-weight="900" fill="#9aa5ab">簽名處</text>`}
   </g></svg>`;
+}
+// 料理阿嬤：p 越高火越大、阿嬤越慌；done 時變成一鍋阿嬤肉醬（只剩髮髻和老花眼鏡漂在上面）
+function grannySVG(done=false, p=0){
+  const k=INK; p=Math.max(0,Math.min(1,p||0));
+  const fs=done?1.2:.45+p*1.15;               // 火的大小
+  const flame=(x,s)=>`<g transform="translate(${x} 104) scale(${s.toFixed(2)})"><path d="M0 0q-11-3-9-15q2-7 5-10q0 7 4 8q-1-10 6-17q0 11 7 16q4 6 0 13q-5 6-13 5z" fill="#ff7a1a" stroke="${k}" stroke-width="${(2.4/s).toFixed(2)}" stroke-linejoin="round"/><path d="M1-3q-5-2-3-8q2 2 4 1q0-5 3-7q1 6 3 8q1 5-7 6z" fill="#ffd23f"/></g>`;
+  const fire=`${p>.5||done?`<ellipse cx="50" cy="96" rx="${30+p*8}" ry="${8+p*6}" fill="#ffb02e" opacity="${(.15+p*.35).toFixed(2)}"/>`:''}
+    ${p>.65&&!done?flame(18,fs*.75)+flame(82,fs*.75):''}${flame(31,fs*.85)}${flame(50,fs)}${flame(69,fs*.85)}
+    <path d="M16 107h68" stroke="#5a3a22" stroke-width="5" stroke-linecap="round"/><path d="M26 104l8 3M44 104l-6 3M58 104l8 3M74 104l-6 3" stroke="#7a4a28" stroke-width="3" stroke-linecap="round"/>`;
+  const steam=(n)=>Array.from({length:n},(_,i)=>`<path d="M${24+i*17} ${done?30:28}q-5-6 0-11t0-11" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/>`).join('');
+  const pot=(fill)=>`<path d="M14 62h72l-5 30q-1 6-7 6H26q-6 0-7-6z" fill="${fill}" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M14 66q-9 0-9 6t9 5M86 66q9 0 9 6t-9 5" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M24 76v14" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>`;
+  if (done) {
+    return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true">${fire}<g transform="translate(7.5 1) scale(.85)">${steam(4)}
+    ${pot('#9aa7b0')}
+    <ellipse cx="50" cy="62" rx="36" ry="9" fill="#b8321f" stroke="${k}" stroke-width="4"/>
+    <path d="M24 60q6-4 10 0t10 0M54 63q6-4 10 0t9-1" stroke="#7a1a0e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="30" cy="63" r="2.4" fill="#e8743a"/><circle cx="68" cy="59" r="2.2" fill="#e8743a"/><circle cx="47" cy="65" r="1.8" fill="#6aa84f"/>
+    <circle cx="42" cy="54" r="7" fill="#d9dde1" stroke="${k}" stroke-width="3"/><path d="M37 50l11 7" stroke="#c9a227" stroke-width="2.5"/>
+    <g transform="rotate(-12 62 58)"><circle cx="57" cy="58" r="5" fill="#fff" fill-opacity=".5" stroke="${k}" stroke-width="2.5"/><circle cx="69" cy="58" r="5" fill="#fff" fill-opacity=".5" stroke="${k}" stroke-width="2.5"/><path d="M62 58h2" stroke="${k}" stroke-width="2.5"/></g>
+    <rect x="26" y="78" width="48" height="14" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="50" y="89" text-anchor="middle" font-size="9.5" font-weight="900" fill="#b8321f">阿嬤肉醬</text></g>
+    <path d="M6 22l3-6 3 6-6-3h6zM88 14l2.5-5 2.5 5-5-2.5h5z" fill="#ffd23f" stroke="${k}" stroke-width="1"/></svg>`;
+  }
+  const shake=p>.6?`<animateTransform attributeName="transform" type="translate" values="0 0;-1.2 0;1.2 0;0 0" dur="${(0.5-p*.3).toFixed(2)}s" repeatCount="indefinite"/>`:'';
+  const face=p<.35?'#ffd9b0':p<.7?'#ffbf9a':'#ff9c80';
+  const sweat=Math.min(3,Math.floor(p*4));
+  const mouth=p<.35?`<path d="M45 46q5-3 10 0" stroke="${k}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+             :p<.7?`<ellipse cx="50" cy="46" rx="3.6" ry="3" fill="#7a1010" stroke="${k}" stroke-width="2"/>`
+             :`<ellipse cx="50" cy="47" rx="5" ry="5.5" fill="#7a1010" stroke="${k}" stroke-width="2.2"/>`;
+  const eyes=p<.7?`<circle cx="44" cy="38" r="1.9" fill="${k}"/><circle cx="56" cy="38" r="1.9" fill="${k}"/>`
+             :`<path d="M41.5 36l5 2.5-5 2.5M58.5 36l-5 2.5 5 2.5" stroke="${k}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true">${fire}<g transform="translate(7.5 1) scale(.85)">
+  ${p>.45?steam(p>.75?4:2):''}
+  <g>${shake}
+    <path d="M38 32l-14-20M62 32l14-20" stroke="${k}" stroke-width="10" stroke-linecap="round"/><path d="M38 32l-14-20M62 32l14-20" stroke="#e85d8a" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="23" cy="10" r="5.5" fill="${face}" stroke="${k}" stroke-width="2.5"/><circle cx="77" cy="10" r="5.5" fill="${face}" stroke="${k}" stroke-width="2.5"/>
+    <path d="M35 64q0-18 15-18t15 18z" fill="#e85d8a" stroke="${k}" stroke-width="3"/><path d="M42 64v-10h16v10" fill="#fff" stroke="${k}" stroke-width="2.2"/>
+    <circle cx="50" cy="38" r="13" fill="${face}" stroke="${k}" stroke-width="3"/>
+    <path d="M37 36q1-12 13-12t13 12q-3-6-13-6t-13 6z" fill="#d9dde1" stroke="${k}" stroke-width="2.4"/>
+    <circle cx="50" cy="21" r="6" fill="#d9dde1" stroke="${k}" stroke-width="2.4"/><path d="M44 18l12 6" stroke="#c9a227" stroke-width="2.2"/>
+    ${eyes}
+    <circle cx="44" cy="38" r="4.6" fill="#fff" fill-opacity=".25" stroke="${k}" stroke-width="2"/><circle cx="56" cy="38" r="4.6" fill="#fff" fill-opacity=".25" stroke="${k}" stroke-width="2"/><path d="M48.6 38h2.8" stroke="${k}" stroke-width="2"/>
+    <circle cx="40" cy="44" r="2.6" fill="#ff6b6b" opacity=".55"/><circle cx="60" cy="44" r="2.6" fill="#ff6b6b" opacity=".55"/>
+    ${mouth}
+    ${[[66,30],[33,32],[68,42]].slice(0,sweat).map(([x,y])=>`<path d="M${x} ${y}q3 6 0 8q-3-2 0-8z" fill="#8fd3ff" stroke="${k}" stroke-width="1.6"/>`).join('')}
+  </g>
+  ${pot('#9aa7b0')}
+  <path d="M18 62h64" stroke="${k}" stroke-width="4"/>
+  ${p>.3?`<circle cx="30" cy="60" r="3" fill="#fff" stroke="${k}" stroke-width="1.5"/><circle cx="70" cy="59" r="${p>.7?4:2.5}" fill="#fff" stroke="${k}" stroke-width="1.5"/>`:''}</g>
+  ${p<.5?`<text x="3" y="52" font-size="9" font-weight="900" fill="${k}">投降～</text>`:`<text x="3" y="52" font-size="9" font-weight="900" fill="#d22">好燙！</text>`}
+  </svg>`;
 }
 function missionOfWeek(){ const w=Math.floor((parseYmd(weekStart())-new Date(2026,0,5))/604800000); return MISSIONS[((w%MISSIONS.length)+MISSIONS.length)%MISSIONS.length]; }
 
@@ -1811,8 +1868,9 @@ function viewFriends(){
   rows.forEach(({m})=>{ for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0; });
   const hp=rows.length>=4 ? 67 : Math.max(17, rows.length*17);
   const W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done;
-  const bossLeft = 18 + (1-p)*62;
-  const carriers = Math.min(7, Math.max(0,W.got));
+  // stay：任務角色站在原地（進度用畫面本身表現），番茄兵在旁邊加油
+  const bossLeft = mis.stay ? 38 : 18 + (1-p)*62;
+  const carriers = Math.min(mis.stay?4:7, Math.max(0,W.got));
   const daysLeft = 7-((new Date().getDay()+6)%7);
   return `
   <div class="card">
@@ -1823,13 +1881,13 @@ function viewFriends(){
     <div class="quest">
       <div class="trail"></div>
       <div class="base">${baseSVG()}</div>
-      <div class="boss" style="left:${bossLeft}%">${mis.art(done)}</div>
-      ${carriers?`<div class="carry" style="left:calc(${bossLeft}% + 4px)">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
+      <div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div>
+      ${carriers?`<div class="carry" style="left:calc(${bossLeft}% + ${mis.stay?100:4}px)">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
       ${weekTom===67?`<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%)"><span class="six7" style="font-size:1.6rem">6 7 !</span></div>`:''}
     </div>
-    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${hp}</b></div>
-    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${W.last?'本週任務全破，下週一再來！':''}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${hp===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
-    <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}・提早破關會出現加碼任務</p>
+    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${W.goal}</b></div>
+    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${W.last?'本週任務全破，下週一再來！':''}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${W.goal===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
+    <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}・提早破關會出現加碼任務（目標 167 ${TH().cnt}）</p>
   </div>
   ${giftFeedHTML()}
   <div class="card">
@@ -1915,7 +1973,7 @@ function viewGuest(){
   const isToday = d.updatedAt && ymd(new Date(d.updatedAt))===ymd();
   const todayMin=isToday?d.todayMin:0, todayTom=isToday?d.todayTom:0;
   const live=(d.lives||[]).filter(x=>x.endsAt>now);
-  const hp=d.n>=4?67:Math.max(17,d.n*17), W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done, bossLeft=18+(1-p)*62;
+  const hp=d.n>=4?67:Math.max(17,d.n*17), W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done, bossLeft=mis.stay?38:18+(1-p)*62;
   const ago=d.updatedAt?Math.round((now-d.updatedAt)/60000):null;
   return `
   <div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>${esc(d.name)}</div><span class="tag">👀 訪客參觀中</span></div>
@@ -1928,11 +1986,11 @@ function viewGuest(){
     ${d.examName?`<p class="small" style="margin:8px 0 0;font-weight:700">目標：${esc(d.examName)}${d.examDate?`（${esc(d.examDate)}）`:''}</p>`:''}
   </div>
   <div class="card">
-    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">${W.got}/${hp}</span></div>
+    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">${W.got}/${W.goal}</span></div>
     ${W.prev?`<p class="small" style="margin:2px 0 0;font-weight:700">✅ 已破關：${esc(W.prev.title)}</p>`:''}
     <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${W.stage?'🎁 加碼任務：':''}${esc(mis.title)}</div>
     <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
-    <div class="quest"><div class="trail"></div><div class="base">${baseSVG()}</div><div class="boss" style="left:${bossLeft}%">${mis.art(done)}</div></div>
+    <div class="quest"><div class="trail"></div><div class="base">${baseSVG()}</div><div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div></div>
     <div class="bar" style="margin-top:8px"><i style="width:${p*100}%;background:var(--tomato)"></i></div>
     <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}`:`全團再 ${W.need} ${U}${T_.unit}就成功！`}</p>
   </div>
