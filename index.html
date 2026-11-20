@@ -408,6 +408,8 @@ const THEMES = {
 };
 const CLUB_COLORS=['#ff4b3e','#3b8cff','#9b5de5','#18b3a3','#ff9a1f','#46c84f'];
 const ACC_KEYS = ['glasses','hat','phones','leaf','goggles','crown','flag','tie'];
+// 只給「設計我的角色」挑的新配件（不放進 ACC_KEYS，避免改到既有科目的隨機配件）
+const EXTRA_ACC = ['volleyball','frisbee','shades'];
 function typeOf(sub){
   const cs = ((typeof S!=='undefined' && S.group) ? clubSubjects().find(x=>x.name===sub) : null) || BOBA_SUBJECTS.find(x=>x.name===sub) || null;
   const base = TYPES[sub];
@@ -456,6 +458,9 @@ const ACC = {
   crown:k=>`<path d="M36 33l4-13 6 8 4-12 4 12 6-8 4 13z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M37 79q6-6 13 0q7-6 13 0q-6 6-13 1q-7 5-13-1z" fill="${k}"/>`,
   flag:k=>`<path d="M93 92V38" stroke="${k}" stroke-width="3.5"/><path d="M93 38l-20 7 20 8z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><text x="16" y="34" font-size="20" font-weight="900" fill="${k}">?</text>`,
   tie:k=>`<path d="M45 96l5-6 5 6-5 15z" fill="${k}"/><rect x="74" y="78" width="20" height="9" rx="3" fill="#8b5e3c" stroke="${k}" stroke-width="2.5" transform="rotate(-30 84 82)"/>`,
+  volleyball:k=>`<g transform="translate(84 99) rotate(-15)"><circle r="12" fill="#fff" stroke="${k}" stroke-width="3.4"/><path d="M-11.5-4q8 1 12-8q4 9 11 11" fill="#ffd23f" stroke="${k}" stroke-width="2.4" stroke-linejoin="round"/><path d="M-6 11q-2-9 7-14q2 8 10 9" fill="#3b8cff" stroke="${k}" stroke-width="2.4" stroke-linejoin="round"/></g>`,
+  frisbee:k=>`<g transform="rotate(-18 17 40)"><ellipse cx="17" cy="40" rx="15" ry="6" fill="#ff7aa2" stroke="${k}" stroke-width="3"/><ellipse cx="17" cy="38.5" rx="8.5" ry="2.8" fill="none" stroke="${k}" stroke-width="2"/><path d="M8 37q4-2 8-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></g><path d="M35 30q6-2 10 1M35 36q5 0 9 3" stroke="${k}" stroke-width="2" stroke-linecap="round" fill="none"/>`,
+  shades:k=>`<g transform="translate(0 5)"><path d="M24 56h52" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><path d="M25 56h21q1 15-10 15q-11 0-11-15zM54 56h21q0 15-11 15q-11 0-10-15z" fill="#2a2140" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M30 59l4 0-6 8M59 59l4 0-6 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".85"/><path d="M38 60l3 0M67 60l3 0" stroke="#7fd4ff" stroke-width="2.4" stroke-linecap="round"/><g transform="translate(80 50) scale(1)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g><g transform="translate(19 52) scale(0.7)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g></g>`,
 };
 function soldierSVG(so,{lock=false}={}){
   if (so.sp && !lock) return spSVG(so);
@@ -938,6 +943,9 @@ const CUTE_ACC = {
   star:k=>`<path d="M68 26l3.4 6.8 7.5 1-5.5 5 1.4 7.4-6.8-3.6-6.8 3.6 1.4-7.4-5.5-5 7.5-1z" fill="#ffd23f" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
   crown:k=>`<path d="M37 37l3-11 6 6 4-9 4 9 6-6 3 11z" fill="#ffd23f" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
   heart:k=>`<path d="M68 40c-6-4-10-8-10-12a5 5 0 0 1 10-2a5 5 0 0 1 10 2c0 4-4 8-10 12z" fill="#ff5f7a" stroke="${k}" stroke-width="2.5"/>`,
+  volleyball:k=>`<g transform="translate(85 98) rotate(-15)"><circle r="11" fill="#fff" stroke="${k}" stroke-width="2.9"/><path d="M-10.5-4q7 1 11-7q4 8 10 10" fill="#ffd23f" stroke="${k}" stroke-width="2.3" stroke-linejoin="round"/><path d="M-5.5 10q-2-8 6-13q2 7 9 8" fill="#7ad0ff" stroke="${k}" stroke-width="2.3" stroke-linejoin="round"/></g>`,
+  frisbee:k=>`<g transform="rotate(-15 50 30)"><ellipse cx="50" cy="30" rx="16" ry="5.5" fill="#7ad0ff" stroke="${k}" stroke-width="2.5"/><ellipse cx="50" cy="28.6" rx="9" ry="2.6" fill="none" stroke="${k}" stroke-width="2"/><path d="M40 27q4-2 8-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></g>`,
+  shades:k=>`<path d="M22 63h56" stroke="${k}" stroke-width="3" stroke-linecap="round"/><path d="M24 63h22q0 14-11 14q-11 0-11-14zM54 63h22q0 14-11 14q-11 0-11-14z" fill="#2a2140" stroke="${k}" stroke-width="2.6" stroke-linejoin="round"/><path d="M29 66l4 0-6 8M59 66l4 0-6 8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".85"/><g transform="translate(82 52) scale(1)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g><g transform="translate(18 56) scale(0.7)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g>`,
 };
 function isDark(hex){ if(!/^#[0-9a-f]{6}$/i.test(hex||'')) return false; const n=parseInt(hex.slice(1),16); return ((n>>16)*.299+((n>>8)&255)*.587+(n&255)*.114)<110; }
 function pearlSVG(so,{lock=false}={}){
@@ -1782,8 +1790,8 @@ function charCard(){
   </div>`;
 }
 function openCharDesigner(){
-  const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):ACC_KEYS;
-  const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶'};
+  const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):[...ACC_KEYS,...EXTRA_ACC];
+  const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶',volleyball:'排球',frisbee:'飛盤',shades:'閃亮墨鏡'};
   S.draft={name:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],acc:'',skill:'',quote:''};
   openModal(`<h2>設計我的角色</h2>
     <div id="cd_prev" style="width:130px;height:130px;margin:6px auto">${soldierSVG({subject:'其他',seed:7,custom:S.draft})}</div>
