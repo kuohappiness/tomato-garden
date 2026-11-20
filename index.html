@@ -1417,6 +1417,7 @@ function doRender(){
   tickTimer();
   scheduleGuestPublish();
   setTimeout(checkIncoming, 600);
+  setTimeout(checkReplies, 900);
   setTimeout(checkDaily, 1200);
   if (S.group && S.gid && S.me && S.group.owner===S.me.uid) ensureDir(S.gid,{...S.group}).catch(e=>console.warn('dir',e));
 }
@@ -1647,8 +1648,36 @@ function showIncoming(id){
     <div class="big">${esc(g.name)}</div><p style="font-weight:700;margin:6px 0">${esc(g.d||'')}</p>
     ${x.msg?`<div class="say" style="margin:8px 0">「${esc(x.msg)}」<br><span class="tiny">— ${esc(from)}</span></div>`:`<p class="small">— ${esc(from)} 送的</p>`}
     <p class="small" style="font-weight:700;margin:10px 0 6px">回應一下：</p>
+    <input type="text" id="giftReply" maxlength="${REPLY_MAX}" placeholder="回一句話給${esc(from)}（可不寫，${REPLY_MAX} 字內）" style="margin-bottom:8px">
     <div class="row" style="gap:8px">${REACTS.map(([v,ic,l])=>`<button class="btn ghost grow" data-a="giftReact" data-id="${esc(x.id)}" data-v="${v}">${ic} ${l}</button>`).join('')}</div></div>`);
 }
+// 已經打開、但還沒回覆的禮物，可以從禮物動態補回一句話
+function openReply(id){
+  const x=(S.sends||[]).find(s=>s.id===id); if(!x || x.to!==S.me.uid || x.reply) return;
+  const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}, from=(S.members[x.from]||{}).name||'隊友';
+  openModal(`<h2>回覆 ${esc(from)}</h2><p class="small" style="margin:4px 0 0">謝謝 ${esc(from)} 送的 ${g.ic} ${esc(g.name)}。只能回一次，${REPLY_MAX} 字以內。</p>
+    <input type="text" id="giftReply" maxlength="${REPLY_MAX}" placeholder="例如：謝啦！數學加油" style="margin-top:10px">
+    <button class="btn red block" style="margin-top:12px" data-a="giftReplyGo" data-id="${esc(x.id)}">送出回覆</button>
+    <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
+  setTimeout(()=>$('#giftReply')?.focus(),50);
+}
+// 送禮的人：對方回覆了，跳出來給他看一次
+const replyKey = () => `tg-replies:${S.me?.uid}:${S.gid}`;
+function checkReplies(){
+  if (!S.me || !S.gid || S.guest || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  const seen=[].concat(lsGet(replyKey(),[])||[]);
+  const x=(S.sends||[]).filter(x=>x.from===S.me.uid && x.reply && !seen.includes(x.id)).sort((a,b)=>a.ts-b.ts)[0];
+  if (!x) return;
+  lsSet(replyKey(), [...seen, x.id].slice(-50));
+  const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}, to=(S.members[x.to]||{}).name||'隊友', re=REACTS.find(r=>r[0]===x.re);
+  openModal(`<div class="celebrate"><div class="pop" style="font-size:4rem;line-height:1.1">💌</div>
+    <div class="big">${esc(to)} 回覆你了！</div><p class="small" style="font-weight:700;margin:4px 0">你送的 ${g.ic} ${esc(g.name)}${re?`，${esc(to)} 按了 ${re[1]}`:''}</p>
+    <div class="say" style="margin:8px 0">「${esc(x.reply)}」<br><span class="tiny">— ${esc(to)}</span></div>
+    <button class="btn red block" style="margin-top:10px" data-a="closeModal">好</button></div>`);
+}
+const REPLY_MAX = 10;
+// 回覆最多 10 個字（emoji 這類算 2 格的字，切的時候不要切壞）
+function cutReply(t){ let out=''; for (const ch of String(t||'').trim()) { if ((out+ch).length>REPLY_MAX) break; out+=ch; } return out; }
 // ---------- 每日活動提醒：每天第一次打開讀書社時跳出，挑 2～3 則 ----------
 // 想加新的提醒（例如「今日班級新鮮事」），在 DAILY_TIPS 加一筆就好：
 //   id    唯一名稱
@@ -1701,7 +1730,7 @@ function giftFeedHTML(){
   return `<div class="card"><div class="row between"><h2>禮物動態</h2><button class="btn ${done?'ghost':'yellow'} sm" data-a="sendOpen">${done?'今天送過了':'🎁 送禮物'}</button></div>
     <p class="small" style="margin:4px 0 6px">空投拿到的寶物可以送給隊友，一天限送一個。</p>
     ${list.length?list.map(x=>{ const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}; const re=REACTS.find(r=>r[0]===x.re);
-      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span></div>`; }).join('')
+      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}${x.reply?`<br>💬 ${esc(nm(x.to))} 回覆：「${esc(x.reply)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span>${x.to===S.me.uid && x.seen && !x.reply?`<button class="btn ghost sm" style="flex:none" data-a="giftReplyOpen" data-id="${esc(x.id)}">回覆</button>`:''}</div>`; }).join('')
       :'<p class="small">還沒有人送過禮物。當第一個吧！</p>'}
   </div>`;
 }
@@ -2267,7 +2296,13 @@ document.addEventListener('click', async e=>{
       try { await S.api.sendGift(S.gid,{from:S.me.uid,to:sel.to,item:sel.item,msg,date:ymd(),ts:Date.now()}); closeModal(); toast(`送給 ${to} 了！`); }
       catch(e){ console.error(e); toast(e.code==='permission-denied'?'今天已經送過了，明天再來':'送出失敗：'+(e.message||e.code)); } break; }
     case 'giftOpenIn': showIncoming(id); break;
-    case 'giftReact': { const v=el.dataset.v; closeModal(); await S.api.reactGift(S.gid,id,{seen:true,re:v}).catch(e=>console.warn(e)); toast(v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); break; }
+    case 'giftReact': { const v=el.dataset.v, reply=cutReply(val('giftReply')); closeModal();
+      try { await S.api.reactGift(S.gid,id,{seen:true,re:v,...(reply?{reply}:{})}); } catch(e){ console.warn(e); if(reply) toast('回覆沒送出去，可以在禮物動態再回一次'); break; }
+      toast(reply?'回覆送出了！':v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); break; }
+    case 'giftReplyOpen': openReply(id); break;
+    case 'giftReplyGo': { const reply=cutReply(val('giftReply')); if(!reply) return toast('先寫一句話');
+      try { await S.api.reactGift(S.gid,id,{reply}); closeModal(); toast('回覆送出了！'); }
+      catch(e){ console.error(e); toast(e.code==='permission-denied'?'這個禮物已經回覆過了':'送出失敗：'+(e.message||e.code)); } break; }
     case 'soldier': { const so=myArmy().find(x=>x.id===id); if(so) soldierCard(so); break; }
     case 'signin': try{ await S.api.signIn(); }catch(err){ console.error(err); toast(err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':err.code==='auth/unauthorized-domain'?'這個網址還沒加到 Firebase 授權網域（見 SETUP.md）':'登入失敗：'+(err.code||err.message)); } break;
     case 'signout':
