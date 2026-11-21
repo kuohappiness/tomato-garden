@@ -1628,6 +1628,7 @@ function viewToday(){
   }
   const row = x => taskRow(x,{play:!t});
   return `
+  ${!t?noCharCard():''}
   <div class="card timer ${t?.mode==='break'?'break':''}" id="timercard">
     ${timerHTML}
     <div class="small" style="margin-top:12px;font-weight:700">今日目標 ${Math.min(st.todayTom,goal)}／${goal} ${TH().cnt}・已讀 ${fmtMin(st.todayMin)}</div>
@@ -1781,8 +1782,11 @@ const hasSport = () => subjNames().includes(SPORT.name);
 const DAILY_TIPS = [
   {id:'weekend-run', pri:0, show:()=>isWeekend(),
     make:()=>({ic:'🏃', title:'適逢週末，去跑一跑吧！', text:hasSport()?'運動跟讀書一樣重要。選「運動」按開始，跑完回來一樣算一個番茄鐘，還會種出動滋兵。':'運動跟讀書一樣重要。讀累了就出去跑一跑，回來腦袋更清楚。', btn:hasSport()?['去運動','sportGo']:null})},
+  {id:'firstChar', pri:5,
+    show:()=>!hasOwnChar(S.me.uid),
+    make:()=>({ic:'🎨', title:'你還沒有自己的角色', text:`花一分鐘設計一個，大家讀書時就有機會${themeKey()==='boba'?'搖到':'種出'}它。`, btn:['去設計','charNew']})},
   {id:'char', pri:10,
-    show:()=>!(S.chars||[]).some(c=>c.id===`${S.me.uid}_${weekStart()}`),
+    show:()=>hasOwnChar(S.me.uid) && !(S.chars||[]).some(c=>c.id===`${S.me.uid}_${weekStart()}`),
     make:()=>({ic:'🎨', title:'這週還沒設計自己的角色', text:`每週可以設計 1 個角色，大家讀書時就有機會${themeKey()==='boba'?'搖到':'種出'}它。`, btn:['去設計','charNew']})},
   {id:'gift', pri:20,
     show:()=>!sentToday() && (S.group?.members||[]).some(u=>u!==S.me.uid && S.members[u]) && Object.keys(giftInv()).some(k=>giftable(GIFTS.find(g=>g.id===k))),
@@ -1891,6 +1895,20 @@ function viewGarden(){
   <div class="card"><h2>${T_.recent}</h2>
     ${army.length? army.slice(-10).reverse().map(so=>`<button class="row" data-a="soldier" data-id="${so.id}" style="width:100%;border:0;background:transparent;padding:6px 0;border-top:2px dashed #d8cfb8;text-align:left"><span style="width:38px;height:42px;flex:none">${soldierSVG(so)}</span><span class="grow"><b>No.${so.n} ${esc(so.name)}</b><br><span class="tiny">${so.sp?spInfo(so).tag.split(' ')[0]+' '+spInfo(so).name:so.custom?'社員設計角色':so.mut?'⚠️ '+mutInfo(so).name:so.rare?rareInfo(so).name:typeOf(so.subject).name}・${fmtDate(so.date)}</span></span></button>`).join('') : `<p class="small">還沒有${T_.unit}。</p>`}
   </div>`;
+}
+// ---------- 還沒有自己的角色：提醒成員本人去設計 ----------
+// 只要這個人在讀書社裡從來沒有設計過角色，就在「今天」最上面放一張提醒卡，設計好就自動消失。
+// 按「今天先不要」只會藏到明天。
+const hasOwnChar = uid => (S.chars||[]).some(c=>c.by===uid);
+const noCharKey = () => `tg-nochar:${S.me?.uid}:${S.gid}`;
+function noCharCard(){
+  if (!S.me || S.guest || !(S.loaded||{}).chars || hasOwnChar(S.me.uid) || lsGet(noCharKey())===ymd()) return '';
+  const bb=themeKey()==='boba', n=(S.group?.members||[]).filter(u=>u!==S.me.uid && hasOwnChar(u)).length;
+  return `<div class="card" style="background:#fff3c4"><div class="row" style="gap:12px;align-items:center">
+    <span style="font-size:2.4rem;line-height:1;flex:none">🎨</span>
+    <div class="grow"><h2 style="margin:0">你還沒有自己的角色</h2>
+      <p class="small" style="margin:4px 0 0">設計一個專屬角色，大家讀書時就有機會${bb?'搖到':'種出'}它，角色卡上還會寫著是你設計的。${n?`已經有 ${n} 位隊友設計好了！`:'來當第一個吧！'}</p></div></div>
+    <div class="row" style="gap:8px;margin-top:10px"><button class="btn yellow grow" data-a="charNew">去設計我的角色</button><button class="btn ghost sm" style="flex:none" data-a="noCharLater">今天先不要</button></div></div>`;
 }
 function charCard(){
   const mine=(S.chars||[]).find(c=>c.id===`${S.me.uid}_${weekStart()}`);
@@ -2088,7 +2106,7 @@ function memberAdmin(){
   if (!others.length) return `<p class="small" style="margin:10px 0 0">現在只有你一個人。把邀請碼傳給好朋友吧！</p>`;
   return `<label class="f" style="margin-top:14px">成員管理（只有團長看得到）</label>
     ${others.map(u=>`<div class="row" style="padding:7px 0;border-top:2px dashed #d8cfb8">
-      ${avatar(u)}<b class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(memberName(u))}</b>
+      ${avatar(u)}<span class="grow" style="min-width:0;overflow:hidden"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(memberName(u))}</b>${hasOwnChar(u)?'':'<span class="tiny" style="color:var(--tomato-d);font-weight:700">還沒設計角色</span>'}</span>
       <button class="btn ghost sm" data-a="giveLead" data-v="${esc(u)}">交棒</button>
       <button class="btn ghost sm" data-a="kick" data-v="${esc(u)}">移除</button></div>`).join('')}`;
 }
@@ -2345,6 +2363,7 @@ document.addEventListener('click', async e=>{
     case 'openGift': openGift(id, el.dataset.task||''); break;
     case 'subjEdit': if(!isLeader()) return toast('只有團長可以修改科目'); openSubjEdit(el.dataset.v); break;
     case 'charNew': openCharDesigner(); break;
+    case 'noCharLater': lsSet(noCharKey(), ymd()); render(); break;
     case 'cdColor': S.draft.color=el.dataset.v; refreshDraft(); break;
     case 'cdAcc': S.draft.acc=el.dataset.v; refreshDraft(); break;
     case 'charSave': {
