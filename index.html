@@ -587,6 +587,9 @@ const GIFTS = [
 function weightedGift(r, pool){ const tot=pool.reduce((a,b)=>a+b.w,0); let x=r()*tot; for(const g of pool){ x-=g.w; if(x<=0) return g; } return pool[0]; }
 function is67Time(ts){ const d=new Date(ts); return d.getMinutes()===7 && (d.getHours()===6 || d.getHours()===18); }
 const GIFTS_V1 = () => GIFTS.filter(g=>!g.v2 && !g.ev);
+// 珍奶星球加碼：這個時間以後撈到的珍珠，空投機率 25%→40%、節日彩蛋機率加倍（之前撈到的不變）
+const BOBA_BOOST_TS = Date.UTC(2026,10,22,4,0); // 11/22 12:00（台灣）
+const bobaBoost = so => themeKey()==='boba' && (so?.endedAt||0) >= BOBA_BOOST_TS;
 function giftOf(so){
   if (!so || !so.endedAt || so.moon) return null;
   const pool = so.endedAt<NEW_FX_TS ? GIFTS_V1() : GIFTS.filter(g=>!g.ev);
@@ -595,7 +598,7 @@ function giftOf(so){
   if (nw?.fx?.gift && so.dayIdx===1) { const g=GIFTS.find(x=>x.id===nw.fx.gift); if (g) return {...g, why:`班級新鮮事：${nw.title}`}; }
   const r=rng(hash(String(so.id)+'gift'));
   if (is67Time(so.endedAt)) return {...weightedGift(r, pool.filter(g=>g.rar==='稀有'||g.rar==='傳說')), why:'六七時刻出土，必掉稀有空投！'};
-  if (r()<0.25) return weightedGift(r, pool);
+  if (r()<(bobaBoost(so)?0.4:0.25)) return weightedGift(r, pool);
   return null;
 }
 // ---------- 意外狀況（基因突變）：每天第 2 隻以後，約 30% 機率 ----------
@@ -740,7 +743,7 @@ function applySpecial(so){
   for (const ev of EGGS){
     if (so.date<ev.from || so.date>ev.to) continue;
     const r=rng(hash(String(so.id)+ev.id));
-    if (r()<ev.rate) return setSp(weightedGift(r, ev.items).id, r);
+    if (r()<ev.rate*(bobaBoost(so)?2:1)) return setSp(weightedGift(r, ev.items).id, r);
   }
   return so;
 }
@@ -2400,7 +2403,7 @@ function viewGarden(){
     <div class="dex">${dex.map(d=>{ const n=cnt[d.key]||0; return `<div class="cell ${n?'':'lock'}">${n?`<span class="n">×${n}</span>`:''}<div class="pic">${soldierSVG(d.so,{lock:!n})}</div>${n?esc(d.name):'？？？'}<div class="tiny" style="font-weight:500">${esc(d.sub)}</div></div>`; }).join('')}</div>
   </div>
   <div class="card"><div class="row between"><h2>空投寶物箱</h2><span class="small" style="font-weight:700">${Object.keys(gifts).length}／${GIFTS.length}</span></div>
-    <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
+    <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投${bb?'（珍奶星球加碼中，掉得比較多）':''}。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
     <div class="row" style="margin:0 0 10px"><button class="btn ${sentToday()?'ghost':'yellow'} block" data-a="sendOpen">${sentToday()?'今天已經送過禮物了，明天再來':'🎁 送一個寶物給隊友（一天一個）'}</button></div>
     <div class="giftbox">${GIFTS.map(g=>{ const n=Math.max(0,gifts[g.id]||0); return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
   </div>
