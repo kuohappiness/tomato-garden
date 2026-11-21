@@ -1184,14 +1184,19 @@ async function makeFirebaseAPI(cfg){
   const gref = gid => doc(db,'groups',gid);
   return {
     mode:'firebase',
-    onAuth(cb){ return A.onAuthStateChanged(auth, u => cb(u ? {uid:u.uid, name:u.displayName||lsGet('tg-nick')||'同學', photo:u.photoURL||'', anon:u.isAnonymous} : null)); },
+    onAuth(cb){ return A.onAuthStateChanged(auth, u => cb(u ? {uid:u.uid, name:u.displayName||lsGet('tg-nick')||'同學', photo:u.photoURL||'', anon:u.isAnonymous, email:u.email||'', google:u.providerData.some(p=>p.providerId==='google.com')} : null)); },
     async signIn(){ const p=new A.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); await A.signInWithPopup(auth,p); },
     async signInAnon(nick){ lsSet('tg-nick',nick); const c=await A.signInAnonymously(auth); try{ await A.updateProfile(c.user,{displayName:nick}); }catch{} },
     async emailSignUp(email,pw,nick){ lsSet('tg-nick',nick); const c=await A.createUserWithEmailAndPassword(auth,email,pw); try{ await A.updateProfile(c.user,{displayName:nick}); }catch{} },
     async emailSignIn(email,pw){ await A.signInWithEmailAndPassword(auth,email,pw); },
     async emailReset(email){ await A.sendPasswordResetEmail(auth,email); },
     async linkEmail(email,pw){ const cred=A.EmailAuthProvider.credential(email,pw); await A.linkWithCredential(auth.currentUser,cred); },
-    async linkGoogle(){ const p=new A.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); const c=await A.linkWithPopup(auth.currentUser,p); return {name:c.user.displayName, photo:c.user.photoURL||''}; },
+    // 把目前的帳號（免帳號或 Email）升級成 Google 帳號：uid 不變，番茄紀錄全部保留
+    async linkGoogle(){ const p=new A.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'});
+      try { const c=await A.linkWithPopup(auth.currentUser,p); await c.user.getIdToken(true); return {name:c.user.displayName, photo:c.user.photoURL||'', email:c.user.email||''}; }
+      catch(err){ if(err.code==='auth/credential-already-in-use') this._usedCred=A.GoogleAuthProvider.credentialFromError(err); throw err; } },
+    // 這個 Google 帳號已經是另一個番茄園帳號：直接改登入那個帳號
+    async useLinkedGoogle(){ const c=this._usedCred; this._usedCred=null; if(c) await A.signInWithCredential(auth,c); else await this.signIn(); },
     signOut(){ return A.signOut(auth); },
     async getUser(uid){ const s=await getDoc(doc(db,'users',uid)); return s.exists()?s.data():null; },
     setUser(uid,data){ return setDoc(doc(db,'users',uid), data, {merge:true}); },
@@ -1207,12 +1212,18 @@ async function makeFirebaseAPI(cfg){
     async joinGroup(me,code){
       code=code.trim().toUpperCase();
       const s=await getDoc(gref(code)); if(!s.exists()) throw new Error('找不到這個邀請碼');
+      if ((s.data().banned||[]).includes(me.uid)) throw new Error('這個讀書社的團長已經封鎖你的帳號，不能加入');
       if (!(s.data().members||[]).includes(me.uid)) await updateDoc(gref(code), {members:arrayUnion(me.uid)});
       await setDoc(doc(db,'groups',code,'members',me.uid), {name:me.name, photo:me.photo, joinedAt:Date.now()}, {merge:true});
       return code;
     },
     async leaveGroup(me,gid){ await updateDoc(gref(gid), {members:arrayRemove(me.uid)}); },
     removeMember(gid,uid){ return updateDoc(gref(gid), {members:arrayRemove(uid)}); },
+    banMember(gid,uid){ return updateDoc(gref(gid), {members:arrayRemove(uid), banned:arrayUnion(uid)}); },
+    unbanMember(gid,uid){ return updateDoc(gref(gid), {banned:arrayRemove(uid)}); },
+    // 每個人登入的 Google 信箱：只有團長讀得到，用來認出誰是誰
+    setContact(gid,uid,data){ return setDoc(doc(db,'groups',gid,'contacts',uid), data); },
+    watchContacts(gid,cb){ return onSnapshot(collection(db,'groups',gid,'contacts'), qs=>{ const o={}; qs.forEach(d=>o[d.id]=d.data()); cb(o); }, ()=>{}); },
     // 交棒：先刪掉舊團長登記的名錄（新團長的 App 會自動重新登記），再換團長
     async transferOwner(gid,uid,did){ if(did) await deleteDoc(doc(db,'directory',did)).catch(()=>{}); await updateDoc(gref(gid), {owner:uid, dirId:''}); },
     delDir(did){ return deleteDoc(doc(db,'directory',did)); },
@@ -1261,7 +1272,7 @@ function makeLocalAPI(){
   let D = lsGet(KEY);
   const listeners=new Set();
   const save=()=>{ lsSet(KEY,D); listeners.forEach(f=>f()); };
-  const ME={uid:'me', name:'我', photo:''};
+  const ME={uid:'me', name:'我', photo:'', email:'me@example.com', google:true};
   function seed(){
     const gid='DEMO01', tasks={}, progress={};
     parseLines(TEMPLATE.lines, 2026).forEach((t,i)=>{ tasks['t'+i]={...t, order:i, createdBy:'me'}; });
@@ -1282,6 +1293,7 @@ function makeLocalAPI(){
           f3:{name:'阿凱', photo:'', tomatoes:sum(f3.dt), minutes:sum(f3.dm), dm:f3.dm, dt:f3.dt, sm:{'數學':125,'地理':75,'公民':50}},
         },
         tasks, progress, sessions:{},
+        contacts:{me:{email:'me@example.com',name:'我'}, f1:{email:'xiaoan.chen@gmail.com',name:'小安'}, f2:{email:'azhe0312@gmail.com',name:'阿哲'}},
         chars:{['f1_'+addDays(weekStart(),-7)]:{name:'爆汁隊長',color:'#ff4b3e',acc:'crown',skill:'一生氣就會噴汁',quote:'番茄兵，衝啊！',by:'f1',createdAt:Date.now()-8*86400000}}
       },
       DEMO02:(()=>{ const bt={}; [['國語','第 8 課生字＋造句'],['數學','分數的加減'],['自然','植物的構造'],['英語','Unit 4 單字'],['音樂','直笛〈小星星〉'],['社會','家鄉的地圖'],['補充','閱讀測驗一篇']].forEach(([sub,ti],i)=>{ bt['b'+i]={subject:sub,title:ti,date:addDays(today,i%3),order:i,createdBy:'k1'}; });
@@ -1306,10 +1318,11 @@ function makeLocalAPI(){
   const getPath=(obj,path)=>path.split('.').reduce((o,k)=>o?.[k],obj);
   return {
     mode:'demo',
-    onAuth(cb){ const u=lsGet('tg-demo-signed'); setTimeout(()=>cb(u?{...ME, anon:u==='anon', name:(u==='anon'||u==='email')?(lsGet('tg-nick')||'我'):ME.name}:null),0); this._cb=cb; return ()=>{}; },
+    onAuth(cb){ const u=lsGet('tg-demo-signed'); setTimeout(()=>cb(u?{...ME, anon:u==='anon', google:u===true, name:(u==='anon'||u==='email')?(lsGet('tg-nick')||'我'):ME.name}:null),0); this._cb=cb; return ()=>{}; },
     async signIn(){ lsSet('tg-demo-signed',true); this._cb?.(ME); },
     async signInAnon(nick){ lsSet('tg-nick',nick); lsSet('tg-demo-signed','anon'); this._cb?.({...ME, name:nick, anon:true}); },
-    async linkGoogle(){ lsSet('tg-demo-signed',true); return {name:ME.name, photo:''}; },
+    async linkGoogle(){ lsSet('tg-demo-signed',true); return {name:ME.name, photo:'', email:ME.email}; },
+    async useLinkedGoogle(){ return this.signIn(); },
     async emailSignUp(email,pw,nick){ const acc=lsGet('tg-demo-acc',{}); if(acc[email]) throw {code:'auth/email-already-in-use'}; if(pw.length<6) throw {code:'auth/weak-password'}; acc[email]={pw,nick}; lsSet('tg-demo-acc',acc); lsSet('tg-nick',nick); lsSet('tg-demo-signed','email'); this._cb?.({...ME,name:nick}); },
     async emailSignIn(email,pw){ const a=lsGet('tg-demo-acc',{})[email]; if(!a||a.pw!==pw) throw {code:'auth/invalid-credential'}; lsSet('tg-nick',a.nick); lsSet('tg-demo-signed','email'); this._cb?.({...ME,name:a.nick}); },
     async emailReset(email){ return; },
@@ -1320,9 +1333,13 @@ function makeLocalAPI(){
     async getGroup(gid){ return G(gid)?{id:gid,...structuredClone(G(gid).doc)}:null; },
     async getMember(gid,uid){ return G(gid)?.members?.[uid] ? structuredClone(G(gid).members[uid]) : null; },
     async createGroup(me,{name,examName,examDate,theme='tomato'}){ const code=randCode(); D.groups[code]={doc:{name,examName,examDate,theme,subjects:structuredClone(theme==='boba'?BOBA_SUBJECTS:SUBJECTS),owner:me.uid,members:[me.uid]},members:{[me.uid]:{name:me.name,photo:me.photo,joinedAt:Date.now()}},tasks:{},progress:{},sessions:{}}; save(); return code; },
-    async joinGroup(me,code){ code=code.trim().toUpperCase(); const g=G(code); if(!g) throw new Error('找不到這個邀請碼'); if(!g.doc.members.includes(me.uid)) g.doc.members.push(me.uid); g.members[me.uid]={...(g.members[me.uid]||{}),name:me.name,photo:me.photo}; save(); return code; },
+    async joinGroup(me,code){ code=code.trim().toUpperCase(); const g=G(code); if(!g) throw new Error('找不到這個邀請碼'); if((g.doc.banned||[]).includes(me.uid)) throw new Error('這個讀書社的團長已經封鎖你的帳號，不能加入'); if(!g.doc.members.includes(me.uid)) g.doc.members.push(me.uid); g.members[me.uid]={...(g.members[me.uid]||{}),name:me.name,photo:me.photo}; save(); return code; },
     async leaveGroup(me,gid){ const g=G(gid); g.doc.members=g.doc.members.filter(x=>x!==me.uid); save(); },
     async removeMember(gid,uid){ const g=G(gid); g.doc.members=g.doc.members.filter(x=>x!==uid); save(); },
+    async banMember(gid,uid){ const g=G(gid); g.doc.members=g.doc.members.filter(x=>x!==uid); g.doc.banned=[...new Set([...(g.doc.banned||[]),uid])]; save(); },
+    async unbanMember(gid,uid){ const g=G(gid); g.doc.banned=(g.doc.banned||[]).filter(x=>x!==uid); save(); },
+    async setContact(gid,uid,data){ const g=G(gid); g.contacts=g.contacts||{}; g.contacts[uid]=data; save(); },
+    watchContacts(gid,cb){ return watch(()=>cb(structuredClone(G(gid)?.contacts||{}))); },
     async transferOwner(gid,uid,did){ if(did&&D.directory) delete D.directory[did]; Object.assign(G(gid).doc,{owner:uid, dirId:''}); save(); },
     async delDir(did){ if(D.directory) delete D.directory[did]; save(); },
     watchGroup(gid,cb){ return watch(()=>cb(G(gid)?{id:gid,...G(gid).doc}:null)); },
@@ -1422,10 +1439,13 @@ async function boot(){
     console.error(e); S.error='無法載入 Firebase：'+(e.message||e)+'。請確認網路，或檢查 config.js。'; S.loading=false; render(); return;
   }
   if (guestFromHash) { startGuest(guestFromHash); return; }
-  S.api.onAuth(async u => {
+  S.api.onAuth(afterAuth);
+}
+// 登入後：一定要是 Google 帳號才能進去（免帳號、Email 的舊帳號要先綁定 Google，紀錄會保留）
+async function afterAuth(u){
     unsubs.forEach(f=>f()); unsubs=[];
     S.me=u; S.group=null; S.gid=null; S.members={}; S.tasks=[]; S.progress={};
-    if (!u) { S.loading=false; render(); return; }
+    if (!u || !u.google) { S.loading=false; render(); return; }
     S.loading=true; render();
     try {
       S.userDoc = await S.api.getUser(u.uid) || {groups:[]};
@@ -1433,7 +1453,6 @@ async function boot(){
       else if (S.timer?.gid && (S.userDoc.groups||[]).includes(S.timer.gid)) subscribe(S.timer.gid);
       else { S.loading=false; loadHome(); render(); }
     } catch(e){ console.error(e); S.error=e.message; S.loading=false; render(); }
-  });
 }
 function goHome(){
   unsubs.forEach(f=>f()); unsubs=[];
@@ -1469,10 +1488,13 @@ function subscribe(gid){
   S.gid=gid; S.loading=true; S.loaded={};
   const fail = e => { console.error(e); toast('讀取資料失敗：'+(e.code||e.message)); };
   const to=setTimeout(()=>{ if(S.loading){ S.loading=false; render(); } },10000);
+  S.contacts={}; let watchingContacts=false;
   unsubs.push(S.api.watchGroup(gid, g=>{
     clearTimeout(to);
     if (!g || !(g.members||[]).includes(S.me.uid)) { goHome(); return; }
-    S.group=g; S.loading=false; render();
+    S.group=g; S.loading=false;
+    if (g.owner===S.me.uid && !watchingContacts && S.gid===gid) { watchingContacts=true; unsubs.push(S.api.watchContacts(gid, c=>{ S.contacts=c; render(); })); }
+    render();
   }, fail));
   unsubs.push(S.api.watchMembers(gid, m=>{ S.members=m; S.loaded.members=1; render(); }, fail));
   unsubs.push(S.api.watchTasks(gid, t=>{ S.tasks=t; render(); }, fail));
@@ -1482,6 +1504,8 @@ function subscribe(gid){
   unsubs.push(S.api.watchSends(gid, a=>{ S.sends=a; S.loaded.sends=1; render(); }));
   // 確保自己的成員資料存在
   S.api.setMember(gid, S.me.uid, {photo:S.me.photo||''}).catch(()=>{});
+  // 登記自己的 Google 信箱（只有團長看得到），團長才認得出誰是誰
+  if (S.me.email) S.api.setContact(gid, S.me.uid, {email:S.me.email, name:myName(), at:Date.now()}).catch(e=>console.warn('contact',e));
 }
 
 // ======================================================================
@@ -1498,6 +1522,7 @@ function doRender(){
   else if (S.guest) app.innerHTML = viewGuest();
   else if (S.loading) app.innerHTML = `<div class="spin"></div>`;
   else if (!S.me) app.innerHTML = viewLogin();
+  else if (!S.me.google) app.innerHTML = viewNeedGoogle();
   else if (!S.group) app.innerHTML = S.creating ? viewOnboard() : viewHome();
   else app.innerHTML = viewHeader() + ({today:viewToday,tasks:viewTasks,garden:viewGarden,friends:viewFriends,settings:viewSettings}[S.view]||viewToday)();
   document.querySelectorAll('[data-keep]').forEach(el=>{ const k=el.dataset.keep; if(k in keep){ if(el.type==='checkbox') el.checked=keep[k]; else el.value=keep[k]; } if(k===focusKey) el.focus(); });
@@ -1527,11 +1552,24 @@ function viewLogin(){
     <p style="font-weight:700;margin:0">專心 25 分鐘，土裡就會冒出一隻番茄兵。<br>中途放棄？它會被榨成番茄醬。</p>
     ${inApp?`<div class="banner">你現在是在 LINE／FB 裡面開的網頁，Google 登入可能會失敗。請按右上角選「用瀏覽器開啟」（Safari 或 Chrome）。</div>`:''}
     <button class="btn red big block" data-a="signin">${demo?'進入示範模式（Google 登入）':'用 Google 帳號登入'}</button>
-    <button class="btn yellow big block" data-a="emailStart">用 Email＋密碼登入／註冊</button>
-    <button class="btn ghost big block" data-a="anonStart">免帳號登入（只輸入暱稱）</button>
-    <p class="tiny" style="margin:-4px 0 0">學校的 Google 帳號被擋住時，可以改用 Email 或免帳號登入。</p>
+    <p class="small" style="margin:-4px 0 0">番茄園現在只能用 Google 帳號登入。沒有自己的帳號，可以用家長的 Google 帳號。</p>
+    <button class="btn ghost sm" data-a="emailStart" data-v="in">以前用 Email＋密碼註冊的人，從這裡登入</button>
     ${demo?`<div class="banner">示範模式：還沒設定 Firebase，資料只存在這支手機，朋友看不到。照 SETUP.md 設定好就能多人一起用。</div>`:''}
     ${joinFromHash?`<p class="small" style="font-weight:700">登入後會自動加入邀請碼 <b>${esc(joinFromHash)}</b> 的群組</p>`:''}
+  </div>`;
+}
+function viewNeedGoogle(){
+  const inApp=/Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent);
+  return `<div class="login">
+    <h1>請綁定 Google 帳號</h1>
+    <div class="card" style="text-align:left">
+      <p style="font-weight:700;margin:0 0 6px">番茄園現在改成要用 Google 帳號登入了。</p>
+      <p class="small" style="margin:0">你現在是用${S.me.anon?'免帳號登入':' Email＋密碼登入'}（${esc(S.me.name)}）。按下面的按鈕綁定 Google 帳號，<b>你的番茄兵、讀書紀錄和讀書社都會完整保留</b>，以後換手機也用這個 Google 帳號登入。</p>
+      <p class="small" style="margin:8px 0 0">沒有自己的帳號，可以請家長用他們的 Google 帳號綁定。</p>
+    </div>
+    ${inApp?`<div class="banner">你現在是在 LINE／FB 裡面開的網頁，Google 登入可能會失敗。請按右上角選「用瀏覽器開啟」（Safari 或 Chrome）。</div>`:''}
+    <button class="btn red big block" data-a="linkGoogle">綁定 Google 帳號，保留我的紀錄</button>
+    <button class="btn ghost sm" data-a="signout">登出，改用別的帳號</button>
   </div>`;
 }
 function clubArt(theme, gid){
@@ -2100,23 +2138,28 @@ function guestCard(){
 // ----- 設定 -----
 const memberName = uid => (S.members[uid]||{}).name || '同學';
 const otherMembers = () => (S.group?.members||[]).filter(u=>u!==S.me?.uid);
-// 團長才看得到：交棒、移除成員
+// 團長才看得到：Google 信箱、交棒、移除、封鎖
+const contactLine = u => { const c=(S.contacts||{})[u]; return c?.email ? `<span class="tiny" style="display:block;overflow-wrap:anywhere">${esc(c.email)}</span>` : `<span class="tiny" style="display:block;color:var(--tomato-d);font-weight:700">還沒綁定 Google（舊帳號）</span>`; };
+const bannedName = u => (S.members[u]||{}).name || (S.contacts||{})[u]?.name || '已封鎖的帳號';
 function memberAdmin(){
-  const others=otherMembers();
-  if (!others.length) return `<p class="small" style="margin:10px 0 0">現在只有你一個人。把邀請碼傳給好朋友吧！</p>`;
-  return `<label class="f" style="margin-top:14px">成員管理（只有團長看得到）</label>
-    ${others.map(u=>`<div class="row" style="padding:7px 0;border-top:2px dashed #d8cfb8">
-      ${avatar(u)}<span class="grow" style="min-width:0;overflow:hidden"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(memberName(u))}</b>${hasOwnChar(u)?'':'<span class="tiny" style="color:var(--tomato-d);font-weight:700">還沒設計角色</span>'}</span>
+  const others=otherMembers(), banned=S.group?.banned||[];
+  return `${others.length?`<label class="f" style="margin-top:14px">成員管理（只有團長看得到）</label>
+    <p class="tiny muted" style="margin:0 0 4px">名字下面是對方登入的 Google 信箱，只有你看得到。不認識的帳號可以按「封鎖」，對方就不能再用同一個帳號加入。</p>
+    ${others.map(u=>`<div style="padding:7px 0;border-top:2px dashed #d8cfb8"><div class="row">
+      ${avatar(u)}<span class="grow" style="min-width:0;overflow:hidden"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(memberName(u))}</b>${contactLine(u)}${hasOwnChar(u)?'':'<span class="tiny" style="color:var(--tomato-d);font-weight:700">還沒設計角色</span>'}</span></div>
+      <div class="row" style="justify-content:flex-end;margin-top:6px">
       <button class="btn ghost sm" data-a="giveLead" data-v="${esc(u)}">交棒</button>
-      <button class="btn ghost sm" data-a="kick" data-v="${esc(u)}">移除</button></div>`).join('')}`;
+      <button class="btn ghost sm" data-a="kick" data-v="${esc(u)}">移除</button>
+      <button class="btn ghost sm" data-a="ban" data-v="${esc(u)}">封鎖</button></div></div>`).join('')}`
+    :`<p class="small" style="margin:10px 0 0">現在只有你一個人。把邀請碼傳給好朋友吧！</p>`}
+    ${banned.length?`<label class="f" style="margin-top:14px">已封鎖（${banned.length}）</label>
+    ${banned.map(u=>`<div class="row" style="padding:7px 0;border-top:2px dashed #d8cfb8">
+      <span class="grow" style="min-width:0;overflow:hidden"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(bannedName(u))}</b>${contactLine(u)}</span>
+      <button class="btn ghost sm" data-a="unban" data-v="${esc(u)}">解除封鎖</button></div>`).join('')}`:''}`;
 }
 function viewSettings(){
   const g=S.group, s=S.settings, isOwner=g.owner===S.me.uid;
   return `
-  ${S.me.anon?`<div class="card" style="background:#fff3c4"><h2>你現在是免帳號登入</h2>
-    <p class="small" style="margin:6px 0 10px">紀錄只綁在<b>這支手機的這個瀏覽器</b>。換手機、清除瀏覽器資料或登出，就找不回來了。<br>之後有可用的 Google 帳號（家長的或學校的），按下面綁定，紀錄會完整保留，換手機也能登入。</p>
-    <button class="btn block" data-a="linkGoogle">綁定 Google 帳號，保存我的紀錄</button>
-    <button class="btn yellow block" style="margin-top:8px" data-a="linkEmailStart">綁定 Email＋密碼，保存我的紀錄</button></div>`:''}
   <div class="card"><h2>我的資料</h2>
     <label class="f">暱稱（朋友看到的名字）</label><input type="text" id="sname" data-keep="sname" value="${esc(myName())}" maxlength="16">
     <button class="btn soft sm" style="margin-top:8px" data-a="saveName">儲存暱稱</button></div>
@@ -2148,7 +2191,7 @@ function viewSettings(){
       <button class="btn ghost sm" data-a="home">回讀書社大廳</button>
       <button class="btn ghost sm" data-a="leave">退出這個讀書社</button>
     </div></div>
-  <div class="card"><div class="row between"><div><b>${esc(S.me.name)}</b><div class="small muted">${S.api.mode==='demo'?'示範模式':S.me.anon?'免帳號登入':'已登入'}</div></div><button class="btn ghost sm" data-a="signout">登出</button></div>
+  <div class="card"><div class="row between"><div><b>${esc(S.me.name)}</b><div class="small muted">${S.api.mode==='demo'?'示範模式':S.me.email?esc(S.me.email):'已登入'}</div></div><button class="btn ghost sm" data-a="signout">登出</button></div>
     ${S.api.mode==='demo'?`<button class="btn ghost sm" style="margin-top:10px" data-a="resetDemo">重設示範資料</button>`:''}</div>`;
 }
 
@@ -2312,9 +2355,9 @@ function authMsg(err){
     'auth/operation-not-allowed':'Firebase 還沒開啟這種登入方式（見 SETUP.md）','auth/network-request-failed':'網路有問題，請再試一次'})[c] || ('登入失敗：'+(c||err?.message||''));
 }
 function openEmailModal(){
-  const up=S.emailMode==='up';
+  const up=false; // 不再開放 Email 註冊（擋灌帳號），只留給舊帳號登入
   openModal(`<h2>${up?'用 Email 註冊':'用 Email 登入'}</h2>
-    <div class="seg" style="margin-top:10px"><button class="${up?'':'on'}" data-a="emailStart" data-v="in">登入</button><button class="${up?'on':''}" data-a="emailStart" data-v="up">第一次用？註冊</button></div>
+    <p class="small" style="margin:6px 0 0">新帳號只能用 Google 登入。以前用 Email 註冊的人，登入後要再綁定一次 Google 帳號，紀錄會保留。</p>
     ${up?`<label class="f">暱稱（朋友看到的名字）</label><input type="text" id="em_nick" maxlength="12" placeholder="例如：小宇">`:''}
     <label class="f">Email（學校信箱或家長信箱都可以）</label><input type="text" id="em_email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="name@example.com">
     <label class="f">密碼${up?'（至少 6 個字）':''}</label><input type="password" id="em_pw" autocomplete="${up?'new-password':'current-password'}" style="width:100%;border:var(--b);border-radius:12px;padding:10px 12px;min-height:46px">
@@ -2448,10 +2491,17 @@ document.addEventListener('click', async e=>{
     case 'anonGo': { const n=val('anon_nick'); if(!n) return toast('請先輸入暱稱'); closeModal();
       try { await S.api.signInAnon(n); } catch(err){ console.error(err); toast(authMsg(err)); } break; }
     case 'linkGoogle': try {
-        const r=await S.api.linkGoogle(); S.me={...S.me, anon:false, photo:r.photo||S.me.photo};
-        if (S.gid) await S.api.setMember(S.gid,S.me.uid,{photo:r.photo||''}).catch(()=>{});
-        toast('綁定成功！之後換手機用這個 Google 帳號登入就好'); render();
-      } catch(err){ console.error(err); toast(err.code==='auth/credential-already-in-use'?'這個 Google 帳號已經在番茄園用過了，不能再綁定':err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':'綁定失敗：'+(err.code||err.message)); } break;
+        const r=await S.api.linkGoogle();
+        toast('綁定成功！紀錄都保留了，之後換手機用這個 Google 帳號登入就好');
+        await afterAuth({...S.me, anon:false, google:true, email:r.email||S.me.email, photo:r.photo||S.me.photo});
+      } catch(err){ console.error(err);
+        if (err.code==='auth/credential-already-in-use') { openModal(`<h2>這個 Google 帳號已經有番茄園帳號了</h2>
+          <p class="small" style="margin:6px 0">你以前就用這個 Google 帳號登入過番茄園，所以不能再綁到現在這個帳號上。</p>
+          <p class="small" style="margin:6px 0">可以直接改用那個 Google 帳號登入，但<b>現在這個${S.me.anon?'免帳號':''}帳號的紀錄不會帶過去</b>。想保留現在的紀錄，請換一個還沒用過的 Google 帳號綁定。</p>
+          <button class="btn red block" style="margin-top:12px" data-a="useLinkedGoogle">改用那個 Google 帳號登入</button>
+          <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">換一個 Google 帳號</button>`); break; }
+        toast(err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':err.code==='auth/popup-closed-by-user'||err.code==='auth/cancelled-popup-request'?'沒有完成綁定，再按一次試試':err.code==='auth/unauthorized-domain'?'這個網址還沒加到 Firebase 授權網域（見 SETUP.md）':'綁定失敗：'+(err.code||err.message)); } break;
+    case 'useLinkedGoogle': closeModal(); try { if(S.timer) await giveUp(); await S.api.useLinkedGoogle(); } catch(err){ console.error(err); toast(authMsg(err)); } break;
     case 'sportGo': { closeModal(); S.view='today'; history.replaceState(null,'','#today'); render(); window.scrollTo(0,0);
       const sel=$('#tsubj'); if (sel && [...sel.options].some(o=>o.value===SPORT.name)) { sel.value=SPORT.name; const tk=$('#ttask'); if(tk) tk.value=''; } break; }
     case 'dailyGo': closeModal(); S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
@@ -2500,6 +2550,10 @@ document.addEventListener('click', async e=>{
     case 'confirmLeave': { closeModal(); const g=S.gid, did=isLeader()?S.group.dirId:''; await S.api.leaveGroup(S.me,g); if(did) S.api.delDir(did).catch(()=>{}); const groups=(S.userDoc.groups||[]).filter(x=>x!==g); await S.api.setUser(S.me.uid,{groups,current:''}); S.userDoc={...S.userDoc,groups,current:''}; goHome(); break; }
     case 'kick': { if(!isLeader()) return toast('只有團長可以移除成員'); const u=el.dataset.v;
       confirmBox(`把「${esc(memberName(u))}」移出讀書社？<br><span class="small">對方的讀書紀錄會留著；之後如果拿到邀請碼，還是可以再加入。</span>`,'kickOk',`data-v="${esc(u)}"`); break; }
+    case 'ban': { if(!isLeader()) return toast('只有團長可以封鎖成員'); const u=el.dataset.v, c=(S.contacts||{})[u];
+      confirmBox(`封鎖「${esc(memberName(u))}」？${c?.email?`<br><span class="small">${esc(c.email)}</span>`:''}<br><span class="small">對方會被移出讀書社，而且不能再用同一個帳號加入。之後可以在「已封鎖」解除。</span>`,'banOk',`data-v="${esc(u)}"`); break; }
+    case 'banOk': { closeModal(); if(!isLeader()) return; const u=el.dataset.v, n=memberName(u); await S.api.banMember(S.gid,u); toast(`已經封鎖 ${n}`); break; }
+    case 'unban': { if(!isLeader()) return; const u=el.dataset.v; await S.api.unbanMember(S.gid,u); toast(`已經解除封鎖 ${bannedName(u)}`); break; }
     case 'kickOk': { closeModal(); if(!isLeader()) return; const u=el.dataset.v, n=memberName(u); await S.api.removeMember(S.gid,u); toast(`已經把 ${n} 移出讀書社`); break; }
     case 'giveLead': { if(!isLeader()) return toast('只有團長可以交棒'); const u=el.dataset.v;
       confirmBox(`把團長交給「${esc(memberName(u))}」？<br><span class="small">交出去之後，讀書社名稱、角色、科目、訪客參觀和成員都改由對方管理，你會變成一般成員。</span>`,'giveLeadOk',`data-v="${esc(u)}"`); break; }

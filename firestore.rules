@@ -4,7 +4,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() { return request.auth != null; }
+    // 一定要綁定 Google 帳號才算登入（免帳號、Email 的舊帳號要先在網站上綁定 Google）
+    function signedIn() { return request.auth != null && 'google.com' in request.auth.token.firebase.identities; }
     function me() { return request.auth.uid; }
     function groupData(gid) { return get(/databases/$(database)/documents/groups/$(gid)).data; }
     function isMember(gid) { return signedIn() && me() in groupData(gid).members; }
@@ -50,6 +51,7 @@ service cloud.firestore {
         // 用邀請碼加入：只能把「自己」加進成員名單
         ( onlyChanged(['members'])
           && !(me() in resource.data.members)
+          && !(me() in resource.data.get('banned', []))
           && request.resource.data.members.hasAll(resource.data.members)
           && request.resource.data.members.size() == resource.data.members.size() + 1
           && me() in request.resource.data.members )
@@ -70,10 +72,12 @@ service cloud.firestore {
           && (!('minFocus' in request.resource.data)
               || (request.resource.data.minFocus is int && request.resource.data.minFocus >= 5 && request.resource.data.minFocus <= 60)) )
         ||
-        // 團長可以移除成員（不能移除自己）
-        ( resource.data.owner == me() && onlyChanged(['members'])
+        // 團長可以移除、封鎖、解除封鎖成員（不能移除或封鎖自己）
+        ( resource.data.owner == me() && onlyChanged(['members', 'banned'])
           && resource.data.members.hasAll(request.resource.data.members)
-          && me() in request.resource.data.members )
+          && me() in request.resource.data.members
+          && request.resource.data.get('banned', []) is list
+          && !(me() in request.resource.data.get('banned', [])) )
         ||
         // 團長交棒：只能交給現有成員，名錄編號要清空（新團長會重新登記）
         ( resource.data.owner == me() && onlyChanged(['owner', 'dirId'])
@@ -88,6 +92,15 @@ service cloud.firestore {
       match /members/{uid} {
         allow read: if isMember(gid);
         allow write: if isMember(gid) && me() == uid;
+      }
+
+      // 每個人登入的 Google 信箱：只有團長看得到；只能寫自己的，而且一定要是真的登入信箱
+      match /contacts/{uid} {
+        allow read: if signedIn() && groupData(gid).owner == me();
+        allow write: if isMember(gid) && me() == uid
+          && request.resource.data.keys().hasOnly(['email','name','at'])
+          && request.resource.data.name is string && request.resource.data.name.size() <= 30
+          && request.resource.data.email == request.auth.token.email;
       }
 
       // 考試範圍／任務：群組共用
