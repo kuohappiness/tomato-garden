@@ -1231,6 +1231,7 @@ async function makeFirebaseAPI(cfg){
     updateGroup(gid,data){ return updateDoc(gref(gid), data); },
     watchMembers(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'members'), qs=>{ const o={}; qs.forEach(d=>o[d.id]=d.data()); cb(o); }, err); },
     setMember(gid,uid,data){ return setDoc(doc(db,'groups',gid,'members',uid), data, {merge:true}); },
+    startStudy(gid,uid,st){ return setDoc(doc(db,'groups',gid,'members',uid), {studying:{...st, startedAt:serverTimestamp()}}, {merge:true}); },
     watchTasks(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'tasks'), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); cb(a); }, err); },
     async addTasks(gid,uid,list){
       for (let i=0;i<list.length;i+=10){
@@ -1346,6 +1347,7 @@ function makeLocalAPI(){
     async updateGroup(gid,data){ Object.assign(G(gid).doc,data); save(); },
     watchMembers(gid,cb){ return watch(()=>cb(structuredClone(G(gid)?.members||{}))); },
     async setMember(gid,uid,data){ const g=G(gid); g.members[uid]={...(g.members[uid]||{}),...data}; save(); },
+    async startStudy(gid,uid,st){ return this.setMember(gid,uid,{studying:{...st, startedAt:Date.now()}}); },
     watchTasks(gid,cb){ return watch(()=>cb(Object.entries(G(gid)?.tasks||{}).map(([id,t])=>({id,...t})))); },
     async addTasks(gid,uid,list){ const g=G(gid); list.forEach((t,i)=>{ g.tasks['t'+Date.now().toString(36)+i]={subject:t.subject,title:t.title,date:t.date||'',order:Date.now()+i,createdBy:uid}; }); save(); },
     async updateTask(gid,id,data){ Object.assign(G(gid).tasks[id],data); save(); },
@@ -2216,14 +2218,22 @@ async function startFocus(subject, taskId){
   S.timer={mode:'focus', startAt:Date.now(), dur, subject, taskId:taskId||'', gid:S.gid};
   saveTimer(); keepAwake(true); render();
   const task=S.tasks.find(t=>t.id===taskId);
-  S.api.setMember(S.gid,S.me.uid,{studying:{subject, title:task?.title||'', endsAt:S.timer.startAt+dur}}).catch(()=>{});
+  // 開始時間由伺服器記下，收成時伺服器會檢查真的專心滿最短時間才給番茄
+  S.api.startStudy(S.gid,S.me.uid,{subject, title:task?.title||'', endsAt:S.timer.startAt+dur}).catch(()=>toast('沒連上網路，這次開始時間沒記到，可能不會算番茄'));
 }
 let finishing=false;
 async function finishFocus(){
   if (finishing) return; finishing=true;
   const t=S.timer; const minutes=Math.round(t.dur/60000);
-  try { await S.api.recordSession(t.gid||S.gid, S.me.uid, {subject:t.subject, taskId:t.taskId, minutes, tomato:true}); }
-  catch(e){ console.error(e); toast('記錄失敗，請檢查網路'); }
+  // 伺服器以自己的時間檢查專心時間；網路慢一點時可能差幾秒被擋，就等一下再試
+  for (let i=0;;i++){
+    try { await S.api.recordSession(t.gid||S.gid, S.me.uid, {subject:t.subject, taskId:t.taskId, minutes, tomato:true}); break; }
+    catch(e){
+      console.error(e);
+      if (e?.code==='permission-denied' && i<2){ await new Promise(r=>setTimeout(r,15000)); continue; }
+      toast(e?.code==='permission-denied'?'伺服器認定這次沒有專心滿最短時間，這顆不算':'記錄失敗，請檢查網路'); break;
+    }
+  }
   chime();
   S.timer={mode:'break', startAt:Date.now(), dur:S.settings.brk*60000, gid:t.gid};
   saveTimer(); finishing=false; render();

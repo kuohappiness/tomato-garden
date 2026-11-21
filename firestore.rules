@@ -11,6 +11,17 @@ service cloud.firestore {
     function isMember(gid) { return signedIn() && me() in groupData(gid).members; }
     function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
 
+    // 番茄要專心滿這個讀書社的最短時間（minFocus，沒設就是 5 分鐘）才算數。
+    // 開始專心時，studying.startedAt 一定要是伺服器時間（不能拿手機時間作假）；
+    // 收成時再用伺服器時間檢查過了多久（容許 10 秒網路延遲）。
+    function minFocus(gid) { return groupData(gid).get('minFocus', 5); }
+    function memberPath(gid) { return /databases/$(database)/documents/groups/$(gid)/members/$(me()); }
+    function startOk(st) { return st == null || st.startedAt == request.time; }
+    function focusedLongEnough(gid, st) {
+      return st != null && st.startedAt is timestamp
+        && request.time >= st.startedAt + duration.value(minFocus(gid) * 60 - 10, 's');
+    }
+
     // 每個人自己的設定（加入了哪些群組）
     match /users/{uid} {
       allow read, write: if signedIn() && me() == uid;
@@ -89,9 +100,22 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.owner == me();
 
       // 成員資料（暱稱、番茄數、讀書分鐘）：大家看得到，只能改自己的
+      // 番茄數（tomatoes、dt）不能隨便改：每次只能 +1，而且要從「開始專心」那一刻（伺服器時間）
+      // 算起，已經滿這個讀書社的最短專心時間（minFocus）才行
       match /members/{uid} {
         allow read: if isMember(gid);
-        allow write: if isMember(gid) && me() == uid;
+        allow create: if isMember(gid) && me() == uid
+          && request.resource.data.get('tomatoes', 0) == 0 && !('dt' in request.resource.data)
+          && startOk(request.resource.data.get('studying', null));
+        allow update: if isMember(gid) && me() == uid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['studying'])
+              || startOk(request.resource.data.get('studying', null)))
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tomatoes', 'dt'])
+              || ( request.resource.data.get('tomatoes', 0) == resource.data.get('tomatoes', 0) + 1
+                   && request.resource.data.get('studying', null) == null
+                   && focusedLongEnough(gid, resource.data.get('studying', null))
+                   && request.resource.data.get('dt', {}).diff(resource.data.get('dt', {})).affectedKeys().size() == 1 ));
+        allow delete: if isMember(gid) && me() == uid;
       }
 
       // 每個人登入的 Google 信箱：只有團長看得到；只能寫自己的，而且一定要是真的登入信箱
@@ -144,7 +168,13 @@ service cloud.firestore {
       // 每一次番茄鐘紀錄
       match /sessions/{sid} {
         allow read: if isMember(gid);
-        allow create: if isMember(gid) && request.resource.data.uid == me();
+        allow create: if isMember(gid) && request.resource.data.uid == me()
+          && (request.resource.data.get('tomato', false) != true
+              || ( request.resource.data.minutes is int
+                   && request.resource.data.minutes >= minFocus(gid)
+                   && focusedLongEnough(gid, get(memberPath(gid)).data.get('studying', null))
+                   // 同一次寫入要把自己的番茄數 +1（並清掉 studying），一次開始只能換一顆
+                   && getAfter(memberPath(gid)).data.get('tomatoes', 0) == get(memberPath(gid)).data.get('tomatoes', 0) + 1 ));
         allow delete: if isMember(gid) && resource.data.uid == me();
       }
     }
