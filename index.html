@@ -453,8 +453,10 @@ const SHOP = [
   {id:'durian',   p:100, ic:'🪖', name:'榴槤安全帽', acc:'durian', d:'全世界最硬也最臭的安全帽，段考魔王聞到會自己逃走。'},
 ];
 const SHOP_ACC = SHOP.filter(x=>x.acc).map(x=>x.acc);
-const shopOn = () => themeKey()!=='boba';
-function shopWallet(uid){ const m=(S.members||{})[uid]||{}, got=m.tomatoes||0, spent=m.spent||0, own=m.shop||{};
+// 珍奶星球的兌換所（珍珠兌換所）從 BOBA_SHOP_FROM 這天開（改成 '' 就先不開）
+const BOBA_SHOP_FROM = '2026-12-01';
+const shopOn = () => themeKey()!=='boba' || (!!BOBA_SHOP_FROM && ymd()>=BOBA_SHOP_FROM);
+function shopWallet(uid){ const m=(S.members||{})[uid]||{}, got=themeKey()==='boba' ? (uid===S.me?.uid ? myArmy().length : pearlTotal(m)) : (m.tomatoes||0), spent=m.spent||0, own=m.shop||{};
   return {got, spent, left:Math.max(0,got-spent), own}; }
 function typeOf(sub){
   const cs = ((typeof S!=='undefined' && S.group) ? clubSubjects().find(x=>x.name===sub) : null) || BOBA_SUBJECTS.find(x=>x.name===sub) || null;
@@ -587,15 +589,18 @@ const GIFTS = [
 function weightedGift(r, pool){ const tot=pool.reduce((a,b)=>a+b.w,0); let x=r()*tot; for(const g of pool){ x-=g.w; if(x<=0) return g; } return pool[0]; }
 function is67Time(ts){ const d=new Date(ts); return d.getMinutes()===7 && (d.getHours()===6 || d.getHours()===18); }
 const GIFTS_V1 = () => GIFTS.filter(g=>!g.v2 && !g.ev);
+// 珍奶星球加碼：這個時間以後撈到的珍珠，空投機率 25%→40%、節日彩蛋機率加倍（之前撈到的不變）
+const BOBA_BOOST_TS = Date.UTC(2026,10,22,4,0); // 11/22 12:00（台灣）
+const bobaBoost = so => themeKey()==='boba' && (so?.endedAt||0) >= BOBA_BOOST_TS;
 function giftOf(so){
-  if (!so || !so.endedAt) return null;
+  if (!so || !so.endedAt || so.moon) return null;
   const pool = so.endedAt<NEW_FX_TS ? GIFTS_V1() : GIFTS.filter(g=>!g.ev);
   if (so.n===67) return {...GIFTS.find(g=>g.id==='crown67'), why:'第 67 個角色出現，六七大帝親自送禮！'};
   const nw=so.date ? newsOf(so.date) : null;
   if (nw?.fx?.gift && so.dayIdx===1) { const g=GIFTS.find(x=>x.id===nw.fx.gift); if (g) return {...g, why:`班級新鮮事：${nw.title}`}; }
   const r=rng(hash(String(so.id)+'gift'));
   if (is67Time(so.endedAt)) return {...weightedGift(r, pool.filter(g=>g.rar==='稀有'||g.rar==='傳說')), why:'六七時刻出土，必掉稀有空投！'};
-  if (r()<0.25) return weightedGift(r, pool);
+  if (r()<(bobaBoost(so)?0.4:0.25)) return weightedGift(r, pool);
   return null;
 }
 // ---------- 意外狀況（基因突變）：每天第 2 隻以後，約 30% 機率 ----------
@@ -727,10 +732,11 @@ function newsOrder(cyc){
 }
 function newsOf(d=ymd()){
   if (!d || d<FX2_FROM) return null;
+  if (themeKey()==='boba' && d>='2026-11-22') return null; // 珍奶星球不放班級新鮮事（之前的收成不變）
   const days=daysBetween(FX2_FROM,d), L=NEWS.length;
   return NEWS[newsOrder(Math.floor(days/L))[days%L]];
 }
-function spInfo(so){ return so&&so.sp ? SPECIALS[so.sp]||null : null; }
+function spInfo(so){ return so&&so.sp ? SPECIALS[so.sp]||(so.sp==='moon'?MOON_SP:null) : null; }
 function applySpecial(so){
   if (!so || !so.date || so.date<FX2_FROM || (so.endedAt||0)<FX2_TS || so.n===67) return so;
   const setSp=(id,r)=>{ const s=SPECIALS[id]; so.sp=id; so.rare=''; delete so.custom; so.name=pick(r,s.names); so.quote=pick(r,s.quotes); return so; };
@@ -740,7 +746,7 @@ function applySpecial(so){
   for (const ev of EGGS){
     if (so.date<ev.from || so.date>ev.to) continue;
     const r=rng(hash(String(so.id)+ev.id));
-    if (r()<ev.rate) return setSp(weightedGift(r, ev.items).id, r);
+    if (r()<ev.rate*(bobaBoost(so)?2:1)) return setSp(weightedGift(r, ev.items).id, r);
   }
   return so;
 }
@@ -770,6 +776,14 @@ function spSVG(so){
       g+=`<circle cx="42" cy="54" r="2.8" fill="${k}"/><circle cx="58" cy="54" r="2.8" fill="${k}"/><circle cx="36" cy="61" r="3.5" fill="#ff9aa2" opacity=".7"/><circle cx="64" cy="61" r="3.5" fill="#ff9aa2" opacity=".7"/>`;
       g+=`<path d="M30 44Q46 12 80 30L70 44z" fill="#e8322b" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/><circle cx="82" cy="30" r="6" fill="#fff" stroke="${k}" stroke-width="3"/>`;
       g+=`<rect x="27" y="40" width="46" height="10" rx="5" fill="#fff" stroke="${k}" stroke-width="3"/>`;
+      break; }
+    case 'moon': {
+      g+=`<ellipse cx="37" cy="107" rx="8" ry="4.5" fill="${k}"/><ellipse cx="63" cy="107" rx="8" ry="4.5" fill="${k}"/><path d="M16 76q-9 3-10 12M84 76q9 3 10 12" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/>`;
+      g+=`<circle cx="50" cy="70" r="36" fill="#5a4a9e" stroke="${k}" stroke-width="4"/><ellipse cx="32" cy="60" rx="7" ry="4.5" fill="#fff" opacity=".3" transform="rotate(-32 32 60)"/>`;
+      g+=`<path d="M22 52Q38 12 82 28L76 52z" fill="#7ad0ff" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/><circle cx="84" cy="28" r="6" fill="#fff" stroke="${k}" stroke-width="3"/><rect x="18" y="47" width="64" height="10" rx="5" fill="#fff" stroke="${k}" stroke-width="3"/>`;
+      g+=`<path d="M32 73q6 5 12 0M56 73q6 5 12 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M45 87q5 3 10 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`;
+      g+=`<ellipse cx="29" cy="82" rx="5" ry="3" fill="#ff9aa8" opacity=".85"/><ellipse cx="71" cy="82" rx="5" ry="3" fill="#ff9aa8" opacity=".85"/>`;
+      g+=`<path d="M12 18a11 11 0 1 0 13 13a9 9 0 1 1-13-13z" fill="#ffd23f" stroke="${k}" stroke-width="2.2"/><text x="90" y="66" font-size="13" font-weight="900" fill="${k}">z</text><text x="96" y="56" font-size="10" font-weight="900" fill="${k}">z</text>`;
       break; }
     case 'orange': default: {
       g+=legs()+`<path d="M19 72q-11-14-12-24M81 72q11 6 12 15" fill="none" stroke="${k}" stroke-width="4.5" stroke-linecap="round"/>`;
@@ -811,7 +825,7 @@ function newsCard(){
   }
   let rich='';
   if (nw.fx?.harvest==='orange') {
-    const top=Object.entries(S.members||{}).map(([u,m])=>[u,(m.dt||{})[today]||0]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const top=Object.entries(S.members||{}).filter(([,m])=>!m.bot).map(([u,m])=>[u,(m.dt||{})[today]||0]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,3);
     rich = top.length ? `<p class="small" style="margin:8px 0 0;font-weight:700">今日橘子富翁：${top.map(([u,n],i)=>`${['🥇','🥈','🥉'][i]} ${esc(memberName(u))} ${n} 顆`).join('　')}</p>`
                       : `<p class="small" style="margin:8px 0 0;font-weight:700">還沒有人拿到橘子，第一個橘子富翁就是你！</p>`;
   }
@@ -819,6 +833,346 @@ function newsCard(){
     <div class="row" style="gap:10px;align-items:flex-start;margin-top:6px"><span style="font-size:2.4rem;line-height:1">${nw.ic}</span>
     <div class="grow"><b>${esc(nw.title)}</b><p class="small" style="margin:2px 0 0">${esc(nw.story)}</p>${fx?`<p class="small" style="margin:6px 0 0;font-weight:900;color:var(--tomato-d)">${fx}</p>`:''}</div></div>
     ${poll}${rich}</div>`;
+}
+
+// ====================== 珍珠夥伴（只在珍奶星球讀書社出現的虛擬夥伴） ======================
+// 讀書社裡還沒有真的夥伴，先請 9 位虛擬夥伴在 11/22～12/1 陸續加入，陪大家讀書、送禮、一起早睡。
+// 夥伴的動態全部在每個人的手機上算出來（同一時間大家看到的一樣），不會寫進資料庫；
+// 你給夥伴的回應存在自己的成員資料 botg 欄位。
+//   BOT_UNTIL 之前：平日晚上 7～9 點、假日早上 8 點起有讀書／運動動態，也會送禮、每週設計新角色
+//   每天晚上 8:30 起陸續去洗澡、睡覺（這個沒有期限）
+const BOT_UNTIL = '2027-01-16';
+const BOT_GENERIC = {
+  study:['正在讀{s}'], sport:['去運動了'], fun:['出去玩一下'], bath:['去洗澡了'], sleep:['睡覺了，晚安'],
+  gift:['送你，讀書加油！'], back:['收到你的回覆了，好開心！'],
+};
+const BOT_IC = {study:'📖', sport:'🏃', fun:'🧋', bath:'🛁', sleep:'😴'};
+const BOTS = [
+  {id:'duck', name:'糖老鴨', ic:'🦆', color:'#ffd23f', join:'2026-11-22', jt:'10:30',
+   intro:'呱！我是糖老鴨，珍奶只喝全糖。聽說這裡讀書會長出珍珠，我就從池塘游過來了！',
+   say:{study:['正在讀{s}，邊讀邊呱呱叫','把{s}課本拿反了，讀了十分鐘才發現','讀{s}讀到羽毛都豎起來了'],
+        sport:['去池塘游泳，游了 67 圈','在公園追鴿子（他說這是運動）'], fun:['去買全糖珍奶，排隊排到睡著'],
+        bath:['去洗澡了，在浴缸裡游自由式','洗澡中，把小黃鴨當成弟弟'], sleep:['抱著吸管睡著了，呱……zzz','睡覺了，夢到全糖珍奶'],
+        gift:['呱！這是我在池塘撿到的，送你','送你！不要問我為什麼濕濕的','全糖的祝福送給你，讀書加油呱'],
+        back:['呱！收到你的回覆，開心到游三圈','呱呱呱（翻譯：謝謝你）','我把你的回覆貼在池塘邊了']},
+   chars:[{name:'全糖鴨鴨',color:'#ffd23f',acc:'bow',skill:'喝一口全糖珍奶就會呱呱飛起來',quote:'糖度？當然全糖！'},
+          {name:'游泳圈珍珠',color:'#7ad0ff',acc:'band',skill:'在奶茶裡游自由式',quote:'杯子就是我的游泳池'},
+          {name:'呱呱學霸',color:'#ffb02e',acc:'glasses',skill:'背書背到一半會呱一聲',quote:'呱！這題會考！'}]},
+  {id:'granny', name:'水湳阿嬤', ic:'👵', color:'#d9b8ff', join:'2026-11-23', jt:'19:05',
+   intro:'乖孫～阿嬤也來讀書了！阿嬤年輕時是水湳市場的算數冠軍，讀累了阿嬤煮珍珠給你吃。',
+   say:{study:['戴著老花眼鏡讀{s}','讀{s}讀到一半說：「這個阿嬤以前有學過」','一邊背{s}一邊剝菜'],
+        sport:['去水湳公園跳土風舞','在市場來回走了一萬步（買菜）'], fun:['在廚房煮一大鍋珍珠，說要給讀書的乖孫吃'],
+        bath:['去洗澡了，叫大家也快去洗','洗澡中，順便唱了一首老歌'], sleep:['九點多就睡了，阿嬤說早睡才會長高','睡覺了，睡前叮嚀：「棉被要蓋好」'],
+        gift:['乖孫，阿嬤包的，趁熱吃','讀書辛苦了，這個給你補一下','阿嬤去市場順便買的，不用謝'],
+        back:['乖孫真有禮貌，阿嬤再煮一鍋','阿嬤看到了！眼鏡戴起來看了三次','好好好，讀完書早點睡喔']},
+   chars:[{name:'阿嬤的珍珠',color:'#3b2416',acc:'heart',skill:'煮的時候會自己跳進鍋子',quote:'乖孫，吃飽才有力氣讀書'},
+          {name:'老花眼鏡丸',color:'#b58cd9',acc:'glasses',skill:'看得到很小的字，但找不到眼鏡',quote:'我的眼鏡呢？在頭上？'},
+          {name:'菜籃珍珠',color:'#7cc95a',acc:'leaf',skill:'會跟市場老闆殺價',quote:'算便宜一點啦'}]},
+  {id:'elsa', name:'冰塊艾莎', ic:'❄️', color:'#bfe9ff', join:'2026-11-24', jt:'19:20',
+   intro:'大家好，我是冰塊艾莎。我一緊張，手上的珍奶就會結冰，所以我都點「去冰」……結果還是冰的。',
+   say:{study:['讀{s}讀到桌子結了一層霜','一邊讀{s}一邊把熱可可變成冰沙','讀{s}讀得好專心，頭髮都結冰了'],
+        sport:['去溜冰場溜了一個早上','在公園堆了一個會背九九乘法的雪人'], fun:['點了一杯熱奶茶，拿到手就變冰奶茶了'],
+        bath:['去洗澡了，洗熱水（不然會結冰）','洗澡中，浴室起了好大的霧'], sleep:['睡覺了，被子是雪做的（她說很溫暖）','睡著了，房間下起小雪'],
+        gift:['送你，放冷凍庫可以保存很久','冰冰涼涼的禮物，考試冷靜不緊張','這是我凍起來的，請慢慢退冰'],
+        back:['收到了！我開心到窗戶結了一朵雪花','謝謝你，我的心融化了一點點','好溫暖的回覆，我差點融化']},
+   chars:[{name:'雪花珍珠',color:'#e8f6ff',acc:'star',skill:'掉進奶茶裡會變成冰沙',quote:'我不冷，我只是很冰'},
+          {name:'去冰公主',color:'#9ee4ff',acc:'crown',skill:'點什麼飲料都會變全冰',quote:'我說去冰了！'},
+          {name:'冰淇淋丸',color:'#ffd9ef',acc:'note',skill:'一唱歌就會飄雪',quote:'隨它吧，考完就好'}]},
+  {id:'boss', name:'半糖叔叔', ic:'🧋', color:'#e3b583', join:'2026-11-24', jt:'20:00',
+   intro:'我是珍奶店老闆半糖叔叔。聽說這裡每天生產很多珍珠，我是來進貨的……啊不是，是來讀書的。',
+   say:{study:['讀{s}，順便算今天賣了幾杯','邊搖珍奶邊背{s}','讀{s}讀到一半跑去招呼客人'],
+        sport:['騎腳踏車送外送，騎了 20 公里','搖珍奶搖了一百杯，手臂超壯'], fun:['在研發新口味：番茄珍奶（失敗）'],
+        bath:['關店了，去洗澡','洗澡中，身上都是奶茶香'], sleep:['睡覺了，夢到珍珠大豐收','睡著了，手還在做搖飲料的動作'],
+        gift:['老闆招待！不要跟別人說','這杯算我的，讀書加油','買一送一，送你那個一'],
+        back:['謝謝光臨！下次再來','收到！幫你集點一點','老闆很感動，明天半價（騙你的）']},
+   chars:[{name:'半糖少冰丸',color:'#c98a52',acc:'hat',skill:'知道每個人喜歡的甜度',quote:'半糖少冰，人生剛剛好'},
+          {name:'外送珍珠',color:'#ff9a1f',acc:'flag',skill:'騎車送珍奶從不打翻',quote:'您的珍珠到了！'},
+          {name:'封口機珍珠',color:'#f2b84b',acc:'band',skill:'啪一聲就能把杯子封好',quote:'啪！封好了'}]},
+  {id:'teacher', name:'沅珍老師', ic:'🧑‍🏫', color:'#ffb3c8', join:'2026-11-26', jt:'19:00',
+   intro:'同學好！我是沅珍老師。老師也來跟大家一起讀書，不用緊張，老師不會抽考……大概。',
+   say:{study:['在備{s}的課，順便出題目','讀{s}，在重點畫了好多星星','改完考卷，現在讀{s}'],
+        sport:['去操場快走，順便撿到三支鉛筆','去打羽毛球，殺球很兇'], fun:['在幫大家想下次的獎勵'],
+        bath:['去洗澡了，提醒大家也早點準備睡覺','洗澡中，順便想明天的課'], sleep:['睡覺了，老師說早睡的同學最棒','晚安！老師去睡了，大家也快去睡'],
+        gift:['讀書辛苦了，老師請你','今天表現很好，這是獎勵','老師的小禮物，不能在上課時打開'],
+        back:['老師收到了，你好有禮貌','回覆得很好，加一顆星星⭐','謝謝你！明天見']},
+   chars:[{name:'紅筆珍珠',color:'#ff4b3e',acc:'glasses',skill:'看一眼就知道哪裡寫錯',quote:'這題再想一下'},
+          {name:'星星貼紙',color:'#ffd23f',acc:'star',skill:'貼在作業上會閃閃發光',quote:'今天也很棒！'},
+          {name:'粉筆丸',color:'#f4efe3',acc:'hat',skill:'在黑板上寫字超工整',quote:'這邊抄下來喔'}]},
+  {id:'hippo', name:'大胃河馬', ic:'🦛', color:'#c9b3ef', join:'2026-11-26', jt:'20:10',
+   intro:'我是大胃河馬，一次可以喝 67 杯珍奶。我加入是因為聽說這裡珍珠吃到飽（好像不是？）。',
+   say:{study:['讀{s}讀到肚子咕嚕咕嚕叫','把{s}重點寫在餅乾上，邊讀邊吃','讀{s}，嘴巴張好大（打哈欠）'],
+        sport:['去游泳池泡了一個早上（他說這是運動）','在公園慢跑，地板一直震動'], fun:['去吃早午餐，點了菜單上全部的東西'],
+        bath:['去洗澡了，浴缸的水全部滿出來','洗澡中，在泡泡裡打瞌睡'], sleep:['睡著了，打呼聲像打雷','睡覺了，夢到珍珠吃到飽'],
+        gift:['這是我吃剩的……啊不是，特地留給你的','送你，我忍了好久沒吃掉它','分你一半，另一半我先吃了'],
+        back:['收到！開心到再喝一杯','嗝～（謝謝的意思）','你的回覆比珍奶還甜']},
+   chars:[{name:'吃到飽珍珠',color:'#a678d8',acc:'heart',skill:'一口可以吞下十顆珍珠',quote:'還有嗎？'},
+          {name:'泡泡河馬丸',color:'#7ad0ff',acc:'bow',skill:'在水裡可以讀書三小時',quote:'泡著讀比較專心'},
+          {name:'打嗝珍珠',color:'#ffb02e',acc:'note',skill:'打一個嗝就是一首歌',quote:'嗝～抱歉'}]},
+  {id:'six7', name:'六七哥', ic:'🙌', color:'#ffcf7a', join:'2026-11-28', jt:'08:30',
+   intro:'六……七……！我是六七哥，聽到 6 和 7 手就會自己上下晃。很高興認識你，六七！',
+   say:{study:['讀{s}，讀到第 67 頁手開始晃','算{s}算出 67，開心地跳起來','讀{s}讀了 6 分 7 秒，然後……繼續讀（很棒）'],
+        sport:['去跑操場，跑了 6 圈又 7 圈','跳繩跳了 67 下，手還在晃'], fun:['在數路上有幾台車的車牌有 67'],
+        bath:['去洗澡了，洗 6 分 7 秒','洗澡中，在浴室喊六七有回音'], sleep:['睡覺了，夢裡也在六七','睡著了，手還在上下晃'],
+        gift:['六七！送你六七！','這是第 67 號禮物（其實是第 1 號）','手在晃，所以禮物也在晃，接好'],
+        back:['六七！收到！','你的回覆讓我晃了 67 下','六……七……謝謝！']},
+   chars:[{name:'六七丸',color:'#ffb02e',acc:'star',skill:'聽到 6 和 7 就會跳起來',quote:'六……七……！'},
+          {name:'晃晃珍珠',color:'#ff7aa2',acc:'note',skill:'停不下來的上下晃',quote:'我也不想晃啊'},
+          {name:'67 號選手',color:'#3b8cff',acc:'band',skill:'跑步一定跑第 67 名',quote:'名次不重要，數字重要'}]},
+  {id:'taro', name:'芋圓公主', ic:'👸', color:'#e2ccff', join:'2026-11-29', jt:'10:00',
+   intro:'本公主是芋圓星球來的芋圓公主。聽說珍奶星球的珍珠很 Q，本公主特地來比比看誰比較 Q。',
+   say:{study:['優雅地讀{s}，翻頁都用小指','讀{s}，覺得題目沒有本公主 Q','在城堡裡讀{s}（其實是房間）'],
+        sport:['去騎馬（旋轉木馬）','在花園練習優雅的走路，走了一萬步'], fun:['舉辦下午茶會，只邀請芋頭'],
+        bath:['去洗泡泡浴了，泡泡是紫色的','洗澡中，說要女僕放熱水（是自己放的）'], sleep:['公主就寢了，請勿打擾','睡著了，皇冠還戴著'],
+        gift:['本公主賞你的，收下吧','這是皇家禮物，請好好保管','芋圓星球的特產，Q 到不行'],
+        back:['本公主准了','你的回覆很 Q，本公主喜歡','嗯哼，本公主收到了']},
+   chars:[{name:'皇家芋圓',color:'#b58cd9',acc:'crown',skill:'Q 度是一般珍珠的兩倍',quote:'本公主最 Q'},
+          {name:'紫色泡泡',color:'#d9b8ff',acc:'bow',skill:'飄在空中不會破',quote:'優雅，永遠優雅'},
+          {name:'芋頭騎士',color:'#7a74a8',acc:'flag',skill:'保護公主不被吸管吸走',quote:'公主請退後！'}]},
+  {id:'alien', name:'火星交換生', ic:'👽', color:'#b7e89c', join:'2026-12-01', jt:'19:30',
+   intro:'嗶嗶，我是從火星來的交換學生。火星沒有珍奶，所以我要在這裡讀書兼研究珍珠。嗶。',
+   say:{study:['用三隻手同時讀{s}','讀{s}，把重點傳回火星','在研究{s}，觸角一直發光'],
+        sport:['在操場用飛碟練習丟飛盤','去爬山，說地球的重力好重'], fun:['在超商研究「珍珠是不是一種外星蛋」'],
+        bath:['去洗澡了（火星人也要洗澡）','洗澡中，皮膚變得更綠了'], sleep:['睡覺了，觸角關機中','睡著了，夢話是嗶嗶嗶'],
+        gift:['嗶嗶，火星特產，地球沒有','這是火星的石頭（看起來很普通）','送給地球好朋友，嗶'],
+        back:['嗶嗶！訊號收到！','已經把你的回覆傳回火星了','火星的大家都說謝謝你，嗶']},
+   chars:[{name:'飛碟丸',color:'#7cc95a',acc:'shades',skill:'會在杯子裡轉圈飛',quote:'嗶嗶，降落了'},
+          {name:'觸角珍珠',color:'#9bd12f',acc:'leaf',skill:'觸角可以收到訊號（收不到答案）',quote:'訊號不好，再讀一次'},
+          {name:'地球研究員',color:'#18b3a3',acc:'glasses',skill:'把地球的一切都記在筆記本',quote:'珍珠，有趣'}]},
+];
+const isBoba = () => !!S.group && themeKey()==='boba' && !S.guest;
+const hmin = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
+const atMin = (d, min) => parseYmd(d).getTime() + min*60000;   // 某一天的某分鐘（手機時間，台灣）
+const minOf = ts => { const x=new Date(ts); return x.getHours()*60+x.getMinutes(); };
+const hhmm = ts => { const x=new Date(ts); return `${x.getHours()}:${pad(x.getMinutes())}`; };
+const mondayOf = d => { const x=parseYmd(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); return ymd(x); };
+const botUid = b => 'bot_'+b.id;
+const botOf = uid => BOTS.find(b=>botUid(b)===uid);
+const botJoinTs = b => atMin(b.join, hmin(b.jt));
+const botJoined = (b, now=Date.now()) => botJoinTs(b)<=now;
+const joinedBots = (now=Date.now()) => BOTS.filter(b=>botJoined(b,now));
+const botSay = (b, type) => (b.say||{})[type] || BOT_GENERIC[type];
+function botSubjects(){ const l=subjNames().filter(n=>n!=='其他' && n!==SPORT.name); return l.length?l:['國語']; }
+// 夥伴某一天的行程（同一天、同一位夥伴，每支手機算出來都一樣）
+const _botDay = new Map();
+function botDay(b, d){
+  const key=b.id+d; if (_botDay.has(key)) return _botDay.get(key);
+  const r=rng(hash('botday'+b.id+d)), acts=[], dow=parseYmd(d).getDay(), wkend=dow===0||dow===6, join=botJoinTs(b);
+  const add=(type,s,e,extra={})=>{ const st=atMin(d,s); if (st>=join) acts.push({type, start:st, end:atMin(d,e), ...extra}); };
+  if (d < BOT_UNTIL) {
+    if (wkend) {
+      // 假日：早上 8 點起陸續讀書、運動、出去玩，下午 5 點前結束
+      if (r() < 0.85) {
+        let t = 8*60 + Math.floor(r()*90);
+        const n = 2 + Math.floor(r()*3);
+        for (let i=0; i<n && t<17*60; i++) {
+          const k=r();
+          if (k<0.55) { const reps=r()<0.4?2:1; for (let j=0;j<reps;j++){ add('study',t,t+25,{si:r(),li:r()}); t+=30; } }
+          else if (k<0.8) { const len=30+Math.floor(r()*4)*10; add('sport',t,t+len,{li:r()}); t+=len; }
+          else { const len=20+Math.floor(r()*3)*10; add('fun',t,t+len,{li:r()}); t+=len; }
+          t += 20 + Math.floor(r()*100);
+        }
+      }
+    } else if (r() < 0.75) {
+      // 平日：晚上 7～9 點讀 1～3 顆（有時候沒來）
+      let t = 19*60 + Math.floor(r()*25);
+      const n = 1 + Math.floor(r()*3);
+      for (let i=0; i<n && t+25<=21*60; i++) { add('study',t,t+25,{si:r(),li:r()}); t+=30; }
+    }
+  }
+  // 每天晚上 8:30 起陸續去洗澡、睡覺（睡到隔天 6:30）
+  const lastEnd = acts.length ? minOf(acts.at(-1).end) : 0;
+  const bath = Math.max(20*60+30+Math.floor(r()*35), lastEnd+3), bathLen = 15+Math.floor(r()*11);
+  add('bath', bath, bath+bathLen, {li:r()});
+  add('sleep', bath+bathLen, 30*60+30, {li:r()});
+  _botDay.set(key, acts); return acts;
+}
+function botAct(b, a){ if (!a) return null; const subs=botSubjects(), subject=a.type==='study'?subs[Math.floor(a.si*subs.length)]:'';
+  const L=botSay(b,a.type); return {...a, subject, text:L[Math.floor(a.li*L.length)].replace('{s}',subject), ic:BOT_IC[a.type]}; }
+// 夥伴現在在做什麼（沒事就是 null）
+function botNow(b, now=Date.now()){
+  if (!botJoined(b,now)) return null;
+  const today=ymd(new Date(now));
+  for (const d of [today, addDays(today,-1)]) { if (d<b.join) continue; const a=botDay(b,d).find(x=>x.start<=now && now<x.end); if (a) return botAct(b,a); }
+  return null;
+}
+function botMember(b, now){
+  const dm={}, dt={}, sm={}, today=ymd(new Date(now)); let minutes=0, tomatoes=0;
+  for (let d=b.join; d<=today; d=addDays(d,1)) botDay(b,d).forEach(a=>{
+    if (a.type!=='study' || a.end>now) return; const s=botAct(b,a).subject;
+    dm[d]=(dm[d]||0)+25; dt[d]=(dt[d]||0)+1; sm[s]=(sm[s]||0)+25; minutes+=25; tomatoes++; });
+  const cur=botNow(b,now);
+  return {name:b.name, photo:'', bot:b.id, joinedAt:botJoinTs(b), dm, dt, sm, minutes, tomatoes,
+    studying: cur&&cur.type==='study' ? {subject:cur.subject, endsAt:cur.end} : null, botStatus: cur};
+}
+// 夥伴送的禮物：加入後隔 1～2 天開始，每 4～6 天送一次（只送到 BOT_UNTIL 前）
+function botSends(now){
+  const out=[], me=S.me?.uid; if (!me) return out;
+  const mine=(S.rawMembers?.[me]||{}).botg||{}, today=ymd(new Date(now));
+  const pool=GIFTS.filter(g=>giftable(g) && g.w>0 && !g.ev);
+  joinedBots(now).forEach(b=>{
+    const r=rng(hash('botgift'+b.id)); let d=addDays(b.join, 1+Math.floor(r()*2));
+    while (d < BOT_UNTIL && d <= today) {
+      const rr=rng(hash('botgift'+b.id+d)), dow=parseYmd(d).getDay(), wk=dow===0||dow===6;
+      const ts=atMin(d, wk ? 9*60+Math.floor(rr()*8*60) : 19*60+Math.floor(rr()*100));
+      const item=weightedGift(rr,pool), msg=pick(rr,botSay(b,'gift'));
+      if (ts<=now) { const id=`bot_${b.id}_${d}`, st=mine[id]||{};
+        out.push({id, bot:b.id, from:botUid(b), to:me, item:item.id, msg, date:d, ts,
+          // 兩天以前的禮物就不跳出來了（直接放進寶物箱和禮物動態）
+          seen: !!st.seen || ts<now-2*86400000, ...(st.re?{re:st.re}:{}), ...(st.reply?{reply:st.reply, back:botBack(id)}:{})}); }
+      d = addDays(d, 4+Math.floor(r()*3));
+    }
+  });
+  return out;
+}
+const botBack = id => { const b=BOTS.find(x=>id.startsWith(`bot_${x.id}_`)); return b ? pick(rng(hash(id+'back')), botSay(b,'back')) : ''; };
+// 夥伴每週一早上 8 點設計一個新角色（加入那週是加入後 5 分鐘）
+function botChars(now){
+  const out=[];
+  joinedBots(now).forEach(b=>{
+    for (let wk=mondayOf(b.join), i=0; wk<BOT_UNTIL; wk=addDays(wk,7), i++) {
+      const ts=Math.max(botJoinTs(b)+5*60000, atMin(wk,8*60)); if (ts>now) break;
+      const C=b.chars, base=C[i%C.length], gen=Math.floor(i/C.length), r=rng(hash('botchar'+b.id+wk));
+      out.push({id:`${botUid(b)}_${wk}`, bot:b.id, by:botUid(b), name:base.name+(gen?['','二號','三號','四號'][gen]||'Jr.':''),
+        color: gen ? pick(r,PALETTE) : base.color, acc: gen ? pick(r,Object.keys(CUTE_ACC)) : base.acc, skill:base.skill, quote:base.quote, createdAt:ts});
+    }
+  });
+  return out;
+}
+// 每次畫畫面前：把夥伴併進成員、禮物、角色（不是珍奶星球就只用真的資料）
+function botSync(){
+  const raw=S.rawMembers||{}, on=isBoba(), now=Date.now();
+  S.members = on ? {...raw, ...Object.fromEntries(joinedBots(now).map(b=>[botUid(b), botMember(b,now)]))} : raw;
+  S.sends = on ? [...(S.rawSends||[]), ...botSends(now)] : (S.rawSends||[]);
+  S.chars = on ? [...(S.rawChars||[]), ...botChars(now)] : (S.rawChars||[]);
+}
+function botAvatar(b, cls=''){ return `<span class="avatar ${cls}" style="background:${b.color};font-size:${cls==='lg'?'1.5rem':'1.15rem'}">${b.ic}</span>`; }
+// 回應夥伴的禮物：存在自己的成員資料（botg），夥伴會馬上回一句話
+async function botReact(id, d){
+  const m=S.rawMembers?.[S.me.uid]||{}, old=m.botg||{}, cur=old[id]||{};
+  if (d.reply && cur.reply) throw Object.assign(new Error('已經回覆過了'),{code:'permission-denied'});
+  await S.api.setMember(S.gid, S.me.uid, {botg:{...old, [id]:{...cur, ...d}}});
+}
+const reactGift = (id, d) => String(id).startsWith('bot_') ? botReact(id,d) : S.api.reactGift(S.gid,id,d);
+function showBotBack(id){
+  const b=BOTS.find(x=>String(id).startsWith(`bot_${x.id}_`)); if (!b) return;
+  setTimeout(()=>{ if ($('#modal-root').innerHTML) return;
+    openModal(`<div class="celebrate"><div class="pop" style="font-size:3.6rem;line-height:1.2">${b.ic}</div>
+      <div class="big">${esc(b.name)} 回你了！</div><div class="say" style="margin:8px 0">「${esc(botBack(id))}」</div>
+      <button class="btn red block" style="margin-top:6px" data-a="closeModal">好</button></div>`); }, 700);
+}
+// 新夥伴加入：第一次看到時跳出來介紹
+const botJoinKey = () => `tg-botjoin:${S.me?.uid}:${S.gid}`;
+function checkBotJoin(){
+  if (!isBoba() || !S.me || !S.gid || S.loading || !dailyReady() || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  const seen=[].concat(lsGet(botJoinKey(),[])||[]), fresh=joinedBots().filter(b=>!seen.includes(b.id));
+  if (!fresh.length) return;
+  lsSet(botJoinKey(), [...seen, ...fresh.map(b=>b.id)]);
+  openModal(`<h2>🎉 ${fresh.length>1?`${fresh.length} 位新夥伴`:esc(fresh[0].name)}加入珍奶星球了！</h2>
+    ${fresh.map(b=>`<div class="row" style="border-top:2px dashed #d8cfb8;padding:10px 0;gap:10px;align-items:flex-start">${botAvatar(b,'lg')}<span class="grow"><b>${esc(b.name)}</b><br><span class="small">「${esc(b.intro)}」</span></span></div>`).join('')}
+    <p class="tiny" style="margin:6px 0 0">珍珠夥伴是陪你一起讀書的虛擬角色。平日晚上 7 點、假日早上 8 點以後會陸續出現，晚上 8:30 就會準備去睡覺。</p>
+    <button class="btn red block" style="margin-top:10px" data-a="closeModal">歡迎！一起讀書</button>`);
+}
+// 「今天」頁：珍珠夥伴動態
+function botCard(){
+  if (!isBoba()) return '';
+  const now=Date.now(), today=ymd(), list=joinedBots(now), next=BOTS.find(b=>!botJoined(b,now));
+  if (!list.length) return '';
+  const rows=list.map(b=>{ const a=botNow(b,now), m=S.members[botUid(b)]||{}, n=(m.dt||{})[today]||0; return {b,a,n}; });
+  const on=rows.filter(x=>x.a).sort((x,y)=>['study','sport','fun','bath','sleep'].indexOf(x.a.type)-['study','sport','fun','bath','sleep'].indexOf(y.a.type));
+  const off=rows.filter(x=>!x.a);
+  const mins=minOf(now), wk=isWeekend();
+  const quiet = mins<(wk?8*60:19*60) ? (wk?'假日早上 8 點以後，夥伴們會陸續出現。':'平日晚上 7 點以後，夥伴們會陸續上線讀書。') : '';
+  return `<div class="card"><div class="row between"><h2>🧋 珍珠夥伴動態</h2><span class="small" style="font-weight:700">${list.length} 位夥伴</span></div>
+    ${on.map(({b,a})=>`<div class="row" style="border-top:2px dashed #d8cfb8;padding:7px 0;gap:10px;align-items:center">${botAvatar(b)}<span class="grow small"><b>${esc(b.name)}</b> ${a.ic} ${esc(a.text)}${a.type==='study'?`<span class="tiny">・剩 ${Math.max(1,Math.ceil((a.end-now)/60000))} 分</span>`:''}</span></div>`).join('')}
+    ${off.length?`<p class="small" style="margin:8px 0 0">${off.map(({b,n})=>`<span style="white-space:nowrap;margin-right:8px">${b.ic} ${esc(b.name)}${n?` 今天 ${n} 顆`:''}</span>`).join('')}</p>`:''}
+    ${!on.length&&quiet?`<p class="tiny" style="margin:6px 0 0">${quiet}</p>`:''}
+    ${next?`<p class="tiny" style="margin:6px 0 0;font-weight:700">🔮 ${daysBetween(today,next.join)<=1?'明天':fmtDate(next.join)}還有新夥伴要加入，猜猜是誰？</p>`:''}
+  </div>`;
+}
+
+// ====================== 早睡習慣：我要去睡覺了 ======================
+// 晚上 8 點後可以按「我要去睡覺了」：9:30 前 +2 顆月亮珍珠、10:00 前 +1 顆；
+// 10:00 還沒按，瞌睡蟲會偷走 1 顆珍珠（先偷月亮珍珠；沒有珍珠就不扣，不會變負的）。
+// 按的時間用伺服器時間記在成員資料 sleep.{日期}（規則會檢查是伺服器時間）。
+const SLEEP_FROM = '2026-11-22';
+const SLEEP_OPEN = 20*60, SLEEP_GOOD = 21*60+30, SLEEP_LATE = 22*60;
+const tsMs = v => v==null ? null : typeof v==='number' ? v : typeof v.toMillis==='function' ? v.toMillis() : (v.seconds!=null ? v.seconds*1000 : null);
+const MOON_SP = {name:'月亮珍珠', tag:'🌙 早睡獎勵', title:'早睡的人拿到月亮珍珠！', story:'晚上準時說晚安，月亮偷偷塞了一顆珍珠到你的杯子裡。',
+  skill:'一靠近就會打哈欠，提醒大家早點睡', names:['月亮珍珠','晚安丸','睡帽啵啵','夢夢寶','打哈欠豆'], quotes:['呼……早睡早起，珍珠 Q 彈。','晚安，明天見。','睡飽飽，明天才有力氣讀書。','噓，我在睡覺……zzz']};
+// 每天的早睡結果：pts 是 +2、+1 或 -1
+function sleepEvents(m, now=Date.now()){
+  if (!m || m.bot) return [];
+  const sl=m.sleep||{}, today=ymd(new Date(now)), out=[];
+  let d=SLEEP_FROM; const jd=typeof m.joinedAt==='number' ? ymd(new Date(m.joinedAt)) : ''; if (jd>d) d=jd;
+  for (; d<=today; d=addDays(d,1)) {
+    const has=Object.prototype.hasOwnProperty.call(sl,d), t=has ? (tsMs(sl[d]) ?? now) : null;
+    const dl=atMin(d,SLEEP_LATE);
+    if (t!=null && ymd(new Date(t))===d && minOf(t)>=SLEEP_OPEN && t<dl) out.push({d, ts:t, pts: minOf(t)<SLEEP_GOOD ? 2 : 1});
+    else if (now>=dl) out.push({d, ts:dl, pts:-1});
+  }
+  return out;
+}
+function moonPearl(e,i){ const r=rng(hash('moon'+e.d+i));
+  return {id:`moon_${e.d}_${i}`, moon:true, sp:'moon', n:'🌙', subject:'其他', rare:'', seed:hash('moon'+e.d+i), name:pick(r,MOON_SP.names), quote:pick(r,MOON_SP.quotes), endedAt:e.ts+i, date:e.d}; }
+// 把早睡結果加進自己的珍珠：+ 是月亮珍珠，- 是被瞌睡蟲偷走（標記 stolen，寶物照樣保留）
+function sleepLedger(army, m){
+  const ev=sleepEvents(m); if (!ev.length) return {army, ev};
+  const all=[...army]; ev.forEach(e=>{ for (let i=0;i<e.pts;i++) all.push(moonPearl(e,i)); });
+  all.sort((a,b)=>a.endedAt-b.endedAt);
+  ev.filter(e=>e.pts<0).forEach(e=>{
+    const alive=all.filter(s=>!s.stolen && s.endedAt<=e.ts).reverse();
+    const v=alive.find(s=>s.moon) || alive.find(s=>!s.rare&&!s.custom&&!s.sp&&!s.mut) || alive[0];
+    if (v) { v.stolen=e.d; e.took=v; }
+  });
+  return {army:all, ev};
+}
+// 別人的珍珠數（沒有他的完整紀錄，用總數估）：番茄數＋月亮珍珠－被偷的，不會小於 0
+function pearlTotal(m, theme){
+  let n=m?.tomatoes||0; if (themeKey(theme)!=='boba' || !m || m.bot) return n;
+  sleepEvents(m).forEach(e=>{ if (e.pts>0) n+=e.pts; else if (n>0) n--; }); return n;
+}
+const sleptAt = (m, d=ymd()) => { const sl=m?.sleep||{}; return Object.prototype.hasOwnProperty.call(sl,d) ? (tsMs(sl[d]) ?? Date.now()) : null; };
+function sleepCard(){
+  if (!isBoba() || S.timer) return '';
+  const now=Date.now(), mins=minOf(now); if (mins<19*60) return '';
+  const t=sleptAt(S.members[S.me.uid]);
+  const zz=joinedBots(now).map(b=>[b,botNow(b,now)]).filter(([,a])=>a&&(a.type==='bath'||a.type==='sleep'));
+  let body;
+  if (t!=null) { const pts=minOf(t)<SLEEP_GOOD?2:1;
+    body=`<p style="font-weight:900;margin:6px 0 0">晚安！你 ${hhmm(t)} 說要去睡覺了，拿到 +${pts} 顆月亮珍珠 🌙</p><p class="small" style="margin:2px 0 0">把手機放下，刷牙、上床，明天見！</p>`; }
+  else if (mins>=SLEEP_LATE) body=`<p style="font-weight:900;margin:6px 0 0">已經超過 10 點了……瞌睡蟲偷走了一顆珍珠 😴</p><p class="small" style="margin:2px 0 0">現在快去睡吧！明天 9:30 前按，可以拿 2 顆月亮珍珠。</p>`;
+  else body=`<p class="small" style="margin:6px 0 0">晚上 9 點準備睡覺！<b>9:30 前</b>按 +2 顆月亮珍珠、<b>10:00 前</b>按 +1 顆；10 點還沒按，瞌睡蟲會偷走 1 顆珍珠。</p>
+    ${mins>=SLEEP_OPEN?`<button class="btn big block" style="margin-top:10px;background:#5a4a9e;color:#fff" data-a="sleepGo">🌙 我要去睡覺了</button>`:`<p class="tiny" style="margin:6px 0 0;font-weight:700">晚上 8 點以後才能按喔。</p>`}`;
+  return `<div class="card" style="background:#e9e4ff"><div class="row between"><h2>🌙 準備睡覺</h2><span class="small" style="font-weight:700">${hhmm(now)}</span></div>
+    ${body}
+    ${zz.length?`<p class="small" style="margin:8px 0 0">${zz.map(([b,a])=>`<span style="white-space:nowrap;margin-right:8px">${a.ic} ${esc(b.name)}</span>`).join('')}<br><span class="tiny">夥伴們也${zz.some(([,a])=>a.type==='sleep')?'陸續去睡了':'去洗澡準備睡覺了'}</span></p>`:''}
+  </div>`;
+}
+async function goSleep(){
+  const now=Date.now(), d=ymd(), mins=minOf(now);
+  if (mins<SLEEP_OPEN) return toast('晚上 8 點以後才可以按喔');
+  if (mins>=SLEEP_LATE) return toast('已經超過 10 點了，快去睡，明天早點按');
+  if (sleptAt(S.members[S.me.uid])!=null) return toast('今天已經說過晚安了');
+  await S.api.markSleep(S.gid, S.me.uid, d);
+  const pts=mins<SLEEP_GOOD?2:1, so=moonPearl({d, ts:now},0);
+  openModal(`<div class="celebrate"><div class="pop" style="width:130px;height:130px;margin:0 auto">${soldierSVG(so)}</div>
+    <div class="big">晚安！+${pts} 顆月亮珍珠</div>
+    <p style="font-weight:700;margin:6px 0">${pts===2?'9:30 前就準備睡覺，超棒！':'10 點前有說晚安，很好！明天 9:30 前按可以拿 2 顆。'}</p>
+    <p class="small" style="margin:0 0 10px">月亮珍珠已經放進你的珍奶星球。把手機放下，去刷牙吧！</p>
+    <button class="btn red block" data-a="closeModal">晚安 😴</button></div>`);
+}
+// 前一晚沒按：第二天打開時告訴他（只說一次）
+const sleepNoteKey = () => `tg-sleepnote:${S.me?.uid}:${S.gid}`;
+function checkSleepNote(){
+  if (!isBoba() || !S.me || !S.gid || S.loading || !dailyReady() || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  const last=lsGet(sleepNoteKey())||'', {ev}=armyLedger(), fresh=ev.filter(e=>e.d>last);
+  if (!fresh.length) return;
+  lsSet(sleepNoteKey(), fresh.at(-1).d);
+  const bad=fresh.filter(e=>e.pts<0).slice(-3); if (!bad.length) return;
+  openModal(`<div class="celebrate"><div style="font-size:4rem;line-height:1.1">😴🐛</div><div class="big">瞌睡蟲來過了……</div>
+    ${bad.map(e=>`<p class="small" style="font-weight:700;margin:6px 0">${fmtDate(e.d)} 晚上 10 點前沒有按「我要去睡覺了」，${e.took?`瞌睡蟲偷走了「${esc(e.took.name)}」。`:'可是你那時候沒有珍珠，瞌睡蟲空手而回。'}</p>`).join('')}
+    <p class="small" style="margin:8px 0 12px">今晚 9:30 前按「我要去睡覺了」，可以拿 2 顆月亮珍珠！</p>
+    <button class="btn red block" data-a="closeModal">知道了，今天早點睡</button></div>`);
 }
 
 function crateSVG(){
@@ -1165,7 +1519,7 @@ function pearlSVG(so,{lock=false}={}){
   else if (m===1) g+=`<path d="M44 ${my}q6 9 12 0z" fill="#ff7a8a" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`;
   else g+=`<path d="M43 ${my}q3.5 4 7 0q3.5 4 7 0" fill="none" stroke="${mc}" stroke-width="2.6" stroke-linecap="round"/>`;
   g+=`<ellipse cx="${50-gap-9}" cy="${ey+11}" rx="5.5" ry="3.2" fill="#ff9aa8" opacity=".9"/><ellipse cx="${50+gap+9}" cy="${ey+11}" rx="5.5" ry="3.2" fill="#ff9aa8" opacity=".9"/>`;
-  if (!is67) g+=(CUTE_ACC[T.acc]?.(k))||'';
+  if (!is67) g+=((CUTE_ACC[T.acc] || (SHOP_ACC.includes(T.acc)?ACC[T.acc]:null))?.(k))||'';
   if (so.rare) g+=`<path d="M86 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM12 40l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff" stroke="${k}" stroke-width="2"/>`;
   return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true"${is67?' class="s67"':''}>${GRAD}${g}</svg>`;
 }
@@ -1234,7 +1588,7 @@ function skyNow(){
 function fieldHTML(army, pluckTs, {title='', height=300}={}){
   title = title || TH().army;
   const sk=skyNow(), k=INK;
-  const plucked=army.filter(s=>s.endedAt<=pluckTs), sprouts=army.filter(s=>s.endedAt>pluckTs);
+  const plucked=army.filter(s=>s.moon||s.endedAt<=pluckTs), sprouts=army.filter(s=>!s.moon&&s.endedAt>pluckTs);
   let deco = sk.night
     ? Array.from({length:14},(_,i)=>{ const r=rng(i+9); return `<span style="position:absolute;left:${r()*96}%;top:${r()*40}%;width:4px;height:4px;border-radius:50%;background:#fff;opacity:${.4+r()*.6}"></span>`; }).join('')
       + `<span style="position:absolute;right:18%;top:14%;width:34px;height:34px;border-radius:50%;background:${sk.sun};border:2.5px solid ${k};box-shadow:inset -9px -4px 0 rgba(0,0,0,.18)"></span>`
@@ -1271,7 +1625,7 @@ function fieldHTML(army, pluckTs, {title='', height=300}={}){
 }
 // 朋友的小軍團（依各科讀書時間分配兵種）
 function miniArmy(uid, max=14){
-  const m=S.members[uid]||{}, n=m.tomatoes||0; if(!n) return `<span class="tiny muted">還沒有${TH().unit}</span>`;
+  const m=S.members[uid]||{}, n=uid===S.me?.uid ? myArmy().length : pearlTotal(m); if(!n) return `<span class="tiny muted">還沒有${TH().unit}</span>`;
   const sm=m.sm||{}, tot=Object.values(sm).reduce((a,b)=>a+b,0)||1;
   const show=Math.min(n,max), list=[];
   Object.entries(sm).sort((a,b)=>b[1]-a[1]).forEach(([s,v])=>{ for(let i=0;i<Math.round(v/tot*show);i++) list.push(s); });
@@ -1352,6 +1706,8 @@ async function makeFirebaseAPI(cfg){
     watchMembers(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'members'), qs=>{ const o={}; qs.forEach(d=>o[d.id]=d.data()); cb(o); }, err); },
     setMember(gid,uid,data){ return setDoc(doc(db,'groups',gid,'members',uid), data, {merge:true}); },
     startStudy(gid,uid,st){ return setDoc(doc(db,'groups',gid,'members',uid), {studying:{...st, startedAt:serverTimestamp()}}, {merge:true}); },
+    // 我要去睡覺了：用伺服器時間記下按的時間（規則會檢查）
+    markSleep(gid,uid,day){ return setDoc(doc(db,'groups',gid,'members',uid), {sleep:{[day]:serverTimestamp()}, sleepDay:day}, {merge:true}); },
     watchTasks(gid,cb,err){ return onSnapshot(collection(db,'groups',gid,'tasks'), qs=>{ const a=[]; qs.forEach(d=>a.push({id:d.id,...d.data()})); cb(a); }, err); },
     async addTasks(gid,uid,list){
       for (let i=0;i<list.length;i+=10){
@@ -1468,6 +1824,7 @@ function makeLocalAPI(){
     watchMembers(gid,cb){ return watch(()=>cb(structuredClone(G(gid)?.members||{}))); },
     async setMember(gid,uid,data){ const g=G(gid); g.members[uid]={...(g.members[uid]||{}),...data}; save(); },
     async startStudy(gid,uid,st){ return this.setMember(gid,uid,{studying:{...st, startedAt:Date.now()}}); },
+    async markSleep(gid,uid,day){ const m=G(gid).members[uid]||{}; return this.setMember(gid,uid,{sleep:{...(m.sleep||{}),[day]:Date.now()}, sleepDay:day}); },
     watchTasks(gid,cb){ return watch(()=>cb(Object.entries(G(gid)?.tasks||{}).map(([id,t])=>({id,...t})))); },
     async addTasks(gid,uid,list){ const g=G(gid); list.forEach((t,i)=>{ g.tasks['t'+Date.now().toString(36)+i]={subject:t.subject,title:t.title,date:t.date||'',order:Date.now()+i,createdBy:uid}; }); save(); },
     async updateTask(gid,id,data){ Object.assign(G(gid).tasks[id],data); save(); },
@@ -1547,6 +1904,7 @@ const levelOf = n => { const L=themeKey()==='boba'?BOBA_LEVELS:LEVELS; let i=0; 
 const myName = () => S.members[S.me?.uid]?.name || S.me?.name || '我';
 function avatar(uid, cls=''){
   const m=S.members[uid]||{}; const n=(m.name||'?').trim();
+  if (m.bot && botOf(uid)) return botAvatar(botOf(uid), cls);
   return m.photo ? `<img class="avatar ${cls}" src="${esc(m.photo)}" alt="" referrerpolicy="no-referrer">` : `<span class="avatar ${cls}">${esc(n.slice(0,1))}</span>`;
 }
 
@@ -1566,7 +1924,7 @@ async function boot(){
 // 登入後：一定要是 Google 帳號才能進去（免帳號、Email 的舊帳號要先綁定 Google，紀錄會保留）
 async function afterAuth(u){
     unsubs.forEach(f=>f()); unsubs=[];
-    S.me=u; S.group=null; S.gid=null; S.members={}; S.tasks=[]; S.progress={};
+    S.me=u; S.group=null; S.gid=null; S.members={}; S.rawMembers={}; S.tasks=[]; S.progress={};
     if (!u || !u.google) { S.loading=false; render(); return; }
     S.loading=true; render();
     try {
@@ -1578,7 +1936,7 @@ async function afterAuth(u){
 }
 function goHome(){
   unsubs.forEach(f=>f()); unsubs=[];
-  S.group=null; S.gid=null; S.loading=false; S.creating=false; S.view='today'; S.members={}; S.tasks=[]; S.progress={}; S.sessions=[]; S.chars=[]; S.sends=[];
+  S.group=null; S.gid=null; S.loading=false; S.creating=false; S.view='today'; S.members={}; S.rawMembers={}; S.tasks=[]; S.progress={}; S.sessions=[]; S.chars=[]; S.rawChars=[]; S.sends=[]; S.rawSends=[];
   try{ history.replaceState(null,'',location.pathname); }catch{}
   loadHome(); render(); window.scrollTo(0,0);
 }
@@ -1618,12 +1976,12 @@ function subscribe(gid){
     if (g.owner===S.me.uid && !watchingContacts && S.gid===gid) { watchingContacts=true; unsubs.push(S.api.watchContacts(gid, c=>{ S.contacts=c; render(); })); }
     render();
   }, fail));
-  unsubs.push(S.api.watchMembers(gid, m=>{ S.members=m; S.loaded.members=1; render(); }, fail));
+  unsubs.push(S.api.watchMembers(gid, m=>{ S.rawMembers=m; botSync(); S.loaded.members=1; render(); }, fail));
   unsubs.push(S.api.watchTasks(gid, t=>{ S.tasks=t; render(); }, fail));
   unsubs.push(S.api.watchProgress(gid, p=>{ S.progress=p; render(); }, fail));
   unsubs.push(S.api.watchMySessions(gid, S.me.uid, s=>{ S.sessions=s; S.loaded.sessions=1; render(); }));
-  unsubs.push(S.api.watchChars(gid, c=>{ S.chars=c; S.loaded.chars=1; render(); }));
-  unsubs.push(S.api.watchSends(gid, a=>{ S.sends=a; S.loaded.sends=1; render(); }));
+  unsubs.push(S.api.watchChars(gid, c=>{ S.rawChars=c; botSync(); S.loaded.chars=1; render(); }));
+  unsubs.push(S.api.watchSends(gid, a=>{ S.rawSends=a; botSync(); S.loaded.sends=1; render(); }));
   // 確保自己的成員資料存在
   S.api.setMember(gid, S.me.uid, {photo:S.me.photo||''}).catch(()=>{});
   // 登記自己的 Google 信箱（只有團長看得到），團長才認得出誰是誰
@@ -1639,6 +1997,7 @@ function doRender(){
   // 保留正在輸入的欄位
   const keep={}; document.querySelectorAll('[data-keep]').forEach(el=>{ keep[el.dataset.keep]=el.type==='checkbox'?el.checked:el.value; });
   const focusKey=document.activeElement?.dataset?.keep;
+  if (S.group && !S.guest) botSync();
   const app=$('#app');
   if (S.error) app.innerHTML = `<div class="card"><h2>出了點問題</h2><p>${esc(S.error)}</p><button class="btn" data-a="reload">重新整理</button></div>`;
   else if (S.guest) app.innerHTML = viewGuest();
@@ -1654,6 +2013,8 @@ function doRender(){
   setTimeout(checkIncoming, 600);
   setTimeout(checkReplies, 900);
   setTimeout(checkDaily, 1200);
+  setTimeout(checkBotJoin, 1500);
+  setTimeout(checkSleepNote, 1800);
   if (S.group && S.gid && S.me && S.group.owner===S.me.uid) ensureDir(S.gid,{...S.group}).catch(e=>console.warn('dir',e));
 }
 function renderTabbar(){
@@ -1709,7 +2070,7 @@ function viewHome(){
       <div class="grow">
         <div class="name">${esc(g.name)}</div>
         <div class="meta">${g.owner===S.me.uid?'<span class="tag">團長</span> ':''}${th.ready?esc(th.label):'<span class="tag">角色設定討論中</span>'}・${(g.members||[]).length} 人</div>
-        <div class="meta">今天 ${today} ${THEME_TXT[themeKey(g.theme)].cnt}・共 ${m.tomatoes||0} ${THEME_TXT[themeKey(g.theme)].cnt}${left!=null&&left>=0?`・段考倒數 ${left} 天`:''}</div>
+        <div class="meta">今天 ${today} ${THEME_TXT[themeKey(g.theme)].cnt}・共 ${pearlTotal(m,g.theme)} ${THEME_TXT[themeKey(g.theme)].cnt}${left!=null&&left>=0?`・段考倒數 ${left} 天`:''}</div>
       </div><span class="go">›</span></button>`;
   }).join('');
   return `<div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>讀書社大廳</div><button class="btn ghost sm" data-a="signout">登出</button></div>
@@ -1761,10 +2122,10 @@ function viewToday(){
   const t=S.timer;
   const subjOpts = subjOptions(t?.subject);
   const pickTasks = [...todays, ...overdue].filter(x=>!prog(S.me.uid,x.id).done);
-  const army=myArmy(), latest=army.at(-1);
+  const army=myArmy(), latest=army.at(-1), bb=themeKey()==='boba';
   let timerHTML;
   if (!t) {
-    timerHTML = `<div class="say">${st.todayTom>=goal?'今天 KPI 達成了！還要再種嗎？':st.todayTom?`今天已經有 ${st.todayTom} ${TH().cnt}了，繼續！`:TH().ready}</div>
+    timerHTML = `<div class="say">${bb&&st.todayTom?`今天已經撈到 ${st.todayTom} 顆了，想撈幾顆就撈幾顆！`:st.todayTom>=goal?'今天 KPI 達成了！還要再種嗎？':st.todayTom?`今天已經有 ${st.todayTom} ${TH().cnt}了，繼續！`:TH().ready}</div>
       <div class="plantbox" id="plant">${growArt(0)}</div>
       <div class="clock" id="clock">${pad(focusMin())}:00</div>
       <div class="row" style="margin-top:12px">
@@ -1788,12 +2149,16 @@ function viewToday(){
   }
   const row = x => taskRow(x,{play:!t});
   return `
+  ${sleepCard()}
   ${!t?noCharCard():''}
   <div class="card timer ${t?.mode==='break'?'break':''}" id="timercard">
     ${timerHTML}
-    <div class="small" style="margin-top:12px;font-weight:700">今日目標 ${Math.min(st.todayTom,goal)}／${goal} ${TH().cnt}・已讀 ${fmtMin(st.todayMin)}</div>
-    <div class="goal">${Array.from({length:Math.max(goal,st.todayTom)},(_,i)=>`<span>${themeKey()==='boba'?pearlIcon(i<st.todayTom):tomatoIcon(i<st.todayTom)}</span>`).join('')}</div>
+    ${bb ? `<div class="small" style="margin-top:12px;font-weight:700">今天撈到 ${st.todayTom} 顆・已讀 ${fmtMin(st.todayMin)}・不限顆數</div>
+    <div class="goal">${Array.from({length:st.todayTom+1},(_,i)=>`<span>${pearlIcon(i<st.todayTom)}</span>`).join('')}</div>`
+    : `<div class="small" style="margin-top:12px;font-weight:700">今日目標 ${Math.min(st.todayTom,goal)}／${goal} ${TH().cnt}・已讀 ${fmtMin(st.todayMin)}</div>
+    <div class="goal">${Array.from({length:Math.max(goal,st.todayTom)},(_,i)=>`<span>${tomatoIcon(i<st.todayTom)}</span>`).join('')}</div>`}
   </div>
+  ${botCard()}
   ${weekendCard()}
   ${newsCard()}
   <div class="card">
@@ -1852,14 +2217,17 @@ function viewTasks(){
 }
 
 // ----- 番茄園 -----
-function myArmy(){ const per={}; return S.sessions.filter(s=>s.tomato).sort((a,b)=>a.endedAt-b.endedAt).map((s,i)=>{ const so=soldierOf(s,i+1), d=s.date||ymd(new Date(s.endedAt)); per[d]=(per[d]||0)+1; so.dayIdx=per[d]; so.date=so.date||d; return applyMut(applySpecial(so)); }); }
+function sessionArmy(){ const per={}; return S.sessions.filter(s=>s.tomato).sort((a,b)=>a.endedAt-b.endedAt).map((s,i)=>{ const so=soldierOf(s,i+1), d=s.date||ymd(new Date(s.endedAt)); per[d]=(per[d]||0)+1; so.dayIdx=per[d]; so.date=so.date||d; return applyMut(applySpecial(so)); }); }
+// 珍奶星球：加上早睡的月亮珍珠、拿掉被瞌睡蟲偷走的（raw=true 時保留被偷的，給寶物箱和點開角色用）
+function armyLedger(){ const a=sessionArmy(); return themeKey()==='boba' ? sleepLedger(a, S.members[S.me?.uid]) : {army:a, ev:[]}; }
+function myArmy(raw=false){ const a=armyLedger().army; return raw ? a : a.filter(s=>!s.stolen); }
 // ---------- 送寶物給隊友：一天一個，可附一句話 ----------
 const GIFT_CAT = {gross:'🤢 令人厭惡', love:'💝 令人喜歡', odd:'🤔 莫名其妙'};
 const REACTS = [['love','❤️','謝謝'],['lol','😆','哈哈'],['eww','🤮','噁心']];
 function giftable(g){ return g && g.id!=='antidote' && g.id!=='crown67'; }
 function giftInv(){
   const me=S.members[S.me.uid]||{}, inv={};
-  myArmy().filter(s=>s.endedAt<=(me.pluckTs||0)).forEach(so=>{ const g=giftOf(so); if(g) inv[g.id]=(inv[g.id]||0)+1; });
+  myArmy(true).filter(s=>s.endedAt<=(me.pluckTs||0)).forEach(so=>{ const g=giftOf(so); if(g) inv[g.id]=(inv[g.id]||0)+1; });
   (S.sends||[]).forEach(x=>{ if(x.to===S.me.uid) inv[x.item]=(inv[x.item]||0)+1; if(x.from===S.me.uid) inv[x.item]=(inv[x.item]||0)-1; });
   return inv;
 }
@@ -1958,6 +2326,8 @@ const DAILY_TIPS = [
   {id:'streak', pri:40,
     show:()=>{ const st=memberStats(S.me.uid); return st.streak>=2 && !st.todayTom; },
     make:()=>({ic:'🔥', title:`已經連續讀 ${memberStats(S.me.uid).streak} 天了`, text:'今天完成一個番茄鐘，就能把連續紀錄接下去。', btn:['開始讀書','dailyGo','today']})},
+  {id:'sleep', pri:15, show:()=>isBoba(),
+    make:()=>({ic:'🌙', title:'晚上 9 點準備睡覺', text:'晚上 9:30 前按「我要去睡覺了」可以拿 2 顆月亮珍珠，10 點前 1 顆；10 點還沒按，瞌睡蟲會偷走 1 顆。'})},
   {id:'six7', pri:90, show:()=>true,
     make:()=>{ const h=new Date().getHours(), next=(h<6||(h===6&&new Date().getMinutes()<7))?'6:07':(h<18||(h===18&&new Date().getMinutes()<7))?'18:07':'明天 6:07';
       return {ic:'🙌', title:`下一次六七時刻：${next}`, text:'那一分鐘完成的番茄鐘，必掉稀有空投。'}; }},
@@ -1987,7 +2357,7 @@ function giftFeedHTML(){
   return `<div class="card"><div class="row between"><h2>禮物動態</h2><button class="btn ${done?'ghost':'yellow'} sm" data-a="sendOpen">${done?'今天送過了':'🎁 送禮物'}</button></div>
     <p class="small" style="margin:4px 0 6px">空投拿到的寶物可以送給隊友，一天限送一個。</p>
     ${list.length?list.map(x=>{ const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}; const re=REACTS.find(r=>r[0]===x.re);
-      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}${x.reply?`<br>💬 ${esc(nm(x.to))} 回覆：「${esc(x.reply)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span>${x.to===S.me.uid && x.seen && !x.reply?`<button class="btn ghost sm" style="flex:none" data-a="giftReplyOpen" data-id="${esc(x.id)}">回覆</button>`:''}</div>`; }).join('')
+      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}${x.reply?`<br>💬 ${esc(nm(x.to))} 回覆：「${esc(x.reply)}」`:''}${x.back?`<br>💬 ${esc(nm(x.from))}：「${esc(x.back)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span>${x.to===S.me.uid && x.seen && !x.reply?`<button class="btn ghost sm" style="flex:none" data-a="giftReplyOpen" data-id="${esc(x.id)}">回覆</button>`:''}</div>`; }).join('')
       :'<p class="small">還沒有人送過禮物。當第一個吧！</p>'}
   </div>`;
 }
@@ -2036,7 +2406,7 @@ function viewGarden(){
     <div class="dex">${dex.map(d=>{ const n=cnt[d.key]||0; return `<div class="cell ${n?'':'lock'}">${n?`<span class="n">×${n}</span>`:''}<div class="pic">${soldierSVG(d.so,{lock:!n})}</div>${n?esc(d.name):'？？？'}<div class="tiny" style="font-weight:500">${esc(d.sub)}</div></div>`; }).join('')}</div>
   </div>
   <div class="card"><div class="row between"><h2>空投寶物箱</h2><span class="small" style="font-weight:700">${Object.keys(gifts).length}／${GIFTS.length}</span></div>
-    <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
+    <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投${bb?'（珍奶星球加碼中，掉得比較多）':''}。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
     <div class="row" style="margin:0 0 10px"><button class="btn ${sentToday()?'ghost':'yellow'} block" data-a="sendOpen">${sentToday()?'今天已經送過禮物了，明天再來':'🎁 送一個寶物給隊友（一天一個）'}</button></div>
     <div class="giftbox">${GIFTS.map(g=>{ const n=Math.max(0,gifts[g.id]||0); return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
   </div>
@@ -2064,10 +2434,10 @@ function shopPic(x, size=48){
 }
 function shopCard(){
   const w=shopWallet(S.me.uid), U=TH().cnt, n=Object.keys(w.own).filter(k=>SHOP.some(x=>x.id===k)).length;
-  return `<div class="card"><div class="row between"><h2>番茄兌換所</h2><span class="small" style="font-weight:700">${n}／${SHOP.length}</span></div>
+  return `<div class="card"><div class="row between"><h2>${themeKey()==='boba'?'珍珠兌換所':'番茄兌換所'}</h2><span class="small" style="font-weight:700">${n}／${SHOP.length}</span></div>
     <div class="row" style="gap:10px;align-items:center;margin:6px 0 4px"><div class="countdown" style="margin:0;transform:none;padding:6px 14px"><span class="small" style="font-weight:900">可以用</span><b style="font-size:1.6rem">${w.left}</b><span class="small" style="font-weight:900">${U}</span></div>
-      <p class="tiny grow" style="margin:0">共種出 ${w.got} ${U}・已經花掉 ${w.spent} ${U}</p></div>
-    <p class="small" style="margin:4px 0 10px">用自己的${TH().unit}換一些沒什麼用的東西。換掉只會扣「可以用」的數字，已經種出的${TH().unit}、班級任務和星球都不會變少。有「配件」標籤的，換到後設計角色時可以戴。</p>
+      <p class="tiny grow" style="margin:0">共${themeKey()==='boba'?'撈到':'種出'} ${w.got} ${U}・已經花掉 ${w.spent} ${U}</p></div>
+    <p class="small" style="margin:4px 0 10px">用自己的${TH().unit}換一些沒什麼用的東西。換掉只會扣「可以用」的數字，已經${themeKey()==='boba'?'撈到':'種出'}的${TH().unit}、班級任務和星球都不會變少。有「配件」標籤的，換到後設計角色時可以戴。</p>
     ${SHOP_TIERS.map(t=>`<div class="row between tiny" style="margin:10px 0 6px;font-weight:900"><span><span class="rar r-${t.rar}">${t.p} ${U}</span> ${t.name}</span></div>
       <div class="giftbox" style="grid-template-columns:repeat(3,1fr)">${SHOP.filter(x=>x.p===t.p).map(x=>{ const has=!!w.own[x.id], can=!has&&w.left>=x.p;
         return `<button class="g ${has?'on':''}" data-a="shopInfo" data-v="${x.id}" style="font:inherit;font-size:.7rem;font-weight:900;padding:8px 4px;${!has&&!can?'opacity:.6':''}">${has?'<span class="n">✓</span>':''}${shopPic(x)}${esc(x.name)}<span class="tiny" style="display:block;font-weight:700;margin-top:2px">${has?'已擁有':x.acc?'配件・'+x.p+' '+U:x.p+' '+U}</span></button>`; }).join('')}</div>`).join('')}
@@ -2081,7 +2451,7 @@ function openShopItem(id){
     ${has?`<p class="small">你已經有了${x.acc?'，設計角色時可以選它。':'。'}</p><button class="btn yellow block" data-a="closeModal">好</button>`
       : w.left>=x.p ? `<p class="small">換了之後，可以用的${TH().unit}會從 ${w.left} 變成 ${w.left-x.p}。換了不能退喔！</p>
         <button class="btn red block" data-a="shopBuy" data-v="${x.id}">用 ${x.p} ${U}換</button><button class="btn ghost block" style="margin-top:8px" data-a="closeModal">再想想</button>`
-      : `<p class="small">還差 ${x.p-w.left} ${U}。每次專心讀滿一個番茄鐘就會多一${U}。</p><button class="btn yellow block" data-a="closeModal">好，去讀書</button>`}</div>`);
+      : `<p class="small">還差 ${x.p-w.left} ${U}。每次專心讀滿一個番茄鐘就會多一${U}${themeKey()==='boba'?'，早睡還有月亮珍珠':''}。</p><button class="btn yellow block" data-a="closeModal">好，去讀書</button>`}</div>`);
 }
 async function buyShopItem(id){
   const x=SHOP.find(i=>i.id===id); if(!x) return;
@@ -2117,7 +2487,7 @@ function charCard(){
   const leader=isLeader();
   return `<div class="card"><div class="row between"><h2>社員自創角色</h2><span class="small" style="font-weight:700">${list.length} 個</span></div>
     <p class="small" style="margin:4px 0 10px">每個人每週可以設計 1 個角色。設計好之後，大家專心完成番茄鐘時，有機會${themeKey()==='boba'?'搖到':'種出'}它！</p>
-    ${list.length?`<div class="dex">${list.map(c=>`<div class="cell"><div class="pic">${soldierSVG({subject:'其他',seed:hash('c'+c.id),custom:c})}</div>${esc(c.name)}<div class="tiny" style="font-weight:500">${esc((S.members[c.by]||{}).name||'社員')} 設計</div>${(leader||c.by===S.me.uid)?`<button class="btn ghost sm" style="margin-top:4px;min-height:28px;padding:0 8px;font-size:.72rem" data-a="charDel" data-id="${c.id}">刪除</button>`:''}</div>`).join('')}</div>`:'<p class="small">還沒有人設計角色，來當第一個吧！</p>'}
+    ${list.length?`<div class="dex">${list.map(c=>`<div class="cell"><div class="pic">${soldierSVG({subject:'其他',seed:hash('c'+c.id),custom:c})}</div>${esc(c.name)}<div class="tiny" style="font-weight:500">${esc((S.members[c.by]||{}).name||'社員')} 設計</div>${(leader||c.by===S.me.uid)&&!c.bot?`<button class="btn ghost sm" style="margin-top:4px;min-height:28px;padding:0 8px;font-size:.72rem" data-a="charDel" data-id="${c.id}">刪除</button>`:''}</div>`).join('')}</div>`:'<p class="small">還沒有人設計角色，來當第一個吧！</p>'}
     ${mine?`<p class="small" style="margin:10px 0 0;font-weight:700">你這週已經設計了「${esc(mine.name)}」，下週一可以再設計一個。</p>`
           :`<button class="btn yellow block" style="margin-top:12px" data-a="charNew">＋ 設計我的角色（本週還能 1 個）</button>`}
   </div>`;
@@ -2125,7 +2495,7 @@ function charCard(){
 function openCharDesigner(){
   const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):[...ACC_KEYS,...EXTRA_ACC];
   const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶',volleyball:'排球',frisbee:'飛盤',shades:'閃亮墨鏡'};
-  const own=shopWallet(S.me.uid).own, shopAccs=(!bb&&shopOn())?SHOP.filter(x=>x.acc):[];
+  const own=shopWallet(S.me.uid).own, shopAccs=shopOn()?SHOP.filter(x=>x.acc):[];
   S.draft={name:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],acc:'',skill:'',quote:''};
   openModal(`<h2>設計我的角色</h2>
     <div id="cd_prev" style="width:130px;height:130px;margin:6px auto">${soldierSVG({subject:'其他',seed:7,custom:S.draft})}</div>
@@ -2142,7 +2512,9 @@ function refreshDraft(){ const el=$('#cd_prev'); if(el) el.innerHTML=soldierSVG(
 // ----- 朋友 -----
 function viewFriends(){
   const uids=(S.group.members||[]).filter(u=>S.members[u]);
-  const rows=uids.map(u=>({u, st:memberStats(u), m:S.members[u]}));
+  const realRows=uids.map(u=>({u, st:memberStats(u), m:S.members[u]}));
+  // 珍奶星球：珍珠夥伴也列在戰友裡（不算進遠征）
+  const rows=[...realRows, ...(isBoba()?joinedBots().map(b=>({u:botUid(b), st:memberStats(botUid(b)), m:S.members[botUid(b)]})).filter(x=>x.m):[])];
   const k=S.friendSort;
   rows.sort((a,b)=> k==='name' ? (a.m.name||'').localeCompare(b.m.name||'') : k==='done' ? b.st.donePct-a.st.donePct : b.st.week-a.st.week);
   const now=Date.now();
@@ -2150,8 +2522,8 @@ function viewFriends(){
   const studyingN=rows.filter(r=>r.m.studying&&r.m.studying.endsAt>now).length;
   // 本週遠征：大家一起把考卷怪搬回基地
   const ws=weekStart(); let weekTom=0;
-  rows.forEach(({m})=>{ for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0; });
-  const hp=rows.length>=4 ? 67 : Math.max(17, rows.length*17);
+  realRows.forEach(({m})=>{ for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0; });
+  const hp=realRows.length>=4 ? 67 : Math.max(17, realRows.length*17);
   const W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done;
   // stay：任務角色站在原地（進度用畫面本身表現），番茄兵在旁邊加油
   const bossLeft = mis.stay ? 38 : 18 + (1-p)*62;
@@ -2183,12 +2555,14 @@ function viewFriends(){
       const subj=subjectStats(u);
       return `<details style="border-top:2px dashed #d8cfb8;padding:12px 0 4px;margin-top:8px">
         <summary><div class="friend">${avatar(u,'lg')}<div class="grow">
-          <div class="row between"><b>${esc(m.name||'同學')}${u===S.me.uid&&m.name!=='我'?'（我）':''}</b>${u===S.group.owner?' <span class="tag">團長</span>':''}<span class="small" style="white-space:nowrap;font-weight:900">${st.streak>=2?`🔥${st.streak} 天`:''}${m.ketchup?`　${TH().failIc}${m.ketchup}`:''}</span></div>
+          <div class="row between"><b>${esc(m.name||'同學')}${u===S.me.uid&&m.name!=='我'?'（我）':''}</b>${u===S.group.owner?' <span class="tag">團長</span>':''}${m.bot?' <span class="tag">珍珠夥伴</span>':''}<span class="small" style="white-space:nowrap;font-weight:900">${st.streak>=2?`🔥${st.streak} 天`:''}${m.ketchup?`　${TH().failIc}${m.ketchup}`:''}</span></div>
           ${live?`<span class="live">正在讀 ${esc(m.studying.subject)}・剩 ${Math.max(1,Math.ceil((m.studying.endsAt-now)/60000))} 分</span>`:''}
+          ${m.botStatus&&m.botStatus.type!=='study'?`<span class="small" style="font-weight:700">${m.botStatus.ic} ${esc(m.botStatus.text)}</span>`:''}
+          ${!m.bot&&isBoba()&&sleptAt(m)!=null?`<span class="small" style="font-weight:700">😴 ${hhmm(sleptAt(m))} 說要去睡覺了</span>`:''}
           ${miniArmy(u)}${shopShelf(u)}
           <div class="stat" style="grid-template-columns:repeat(4,1fr)"><div><b>${st.todayMin}</b><span>今天(分)</span></div><div><b>${Math.round(st.week/6)/10}</b><span>本週(時)</span></div><div><b>${st.donePct}%</b><span>完成</span></div><div><b>${st.mastPct}%</b><span>熟練</span></div></div>
         </div></div></summary>
-        <div style="padding:6px 0 4px 60px">${subj.map(s=>`<div style="margin-top:8px"><div class="row between tiny"><span>${chip(s.name)} <b>${s.done}/${s.total}</b></span><span>熟練 ${Math.round(s.mast/(3*s.total)*100)}%</span></div><div class="bar" style="height:9px;margin-top:3px"><i style="width:${s.done/s.total*100}%;background:${subjColor(s.name)}"></i></div></div>`).join('')||'<span class="small">還沒有任務</span>'}</div>
+        <div style="padding:6px 0 4px 60px">${m.bot?`<span class="small">「${esc(botOf(u)?.intro||'')}」</span>`:subj.map(s=>`<div style="margin-top:8px"><div class="row between tiny"><span>${chip(s.name)} <b>${s.done}/${s.total}</b></span><span>熟練 ${Math.round(s.mast/(3*s.total)*100)}%</span></div><div class="bar" style="height:9px;margin-top:3px"><i style="width:${s.done/s.total*100}%;background:${subjColor(s.name)}"></i></div></div>`).join('')||'<span class="small">還沒有任務</span>'}</div>
       </details>`; }).join('')}
   </div>
   <div class="card">
@@ -2328,7 +2702,7 @@ function viewSettings(){
     <label class="f">暱稱（朋友看到的名字）</label><input type="text" id="sname" data-keep="sname" value="${esc(myName())}" maxlength="16">
     <button class="btn soft sm" style="margin-top:8px" data-a="saveName">儲存暱稱</button></div>
   <div class="card"><h2>番茄鐘</h2>
-    <div class="row" style="margin-top:6px"><div class="grow"><label class="f">專心（分）</label><input type="number" id="sfocus" min="5" max="60" value="${s.focus}"></div><div class="grow"><label class="f">休息（分）</label><input type="number" id="sbrk" min="1" max="30" value="${s.brk}"></div><div class="grow"><label class="f">每日目標（顆）</label><input type="number" id="sgoal" min="1" max="20" value="${s.goal}"></div></div>
+    <div class="row" style="margin-top:6px"><div class="grow"><label class="f">專心（分）</label><input type="number" id="sfocus" min="5" max="60" value="${s.focus}"></div><div class="grow"><label class="f">休息（分）</label><input type="number" id="sbrk" min="1" max="30" value="${s.brk}"></div>${themeKey()==='boba'?'':`<div class="grow"><label class="f">每日目標（顆）</label><input type="number" id="sgoal" min="1" max="20" value="${s.goal}"></div>`}</div>
     ${clubMinFocus()>5?`<p class="small" style="margin:8px 0 0"><b>團長規定這個讀書社每次至少專心 ${clubMinFocus()} 分鐘。</b>${s.focus<clubMinFocus()?`你設的 ${s.focus} 分鐘比較短，在這裡會自動用 ${clubMinFocus()} 分鐘。`:''}</p>`:''}
     <button class="btn soft sm" style="margin-top:10px" data-a="saveTimer">儲存</button>
     <p class="tiny muted" style="margin:8px 0 0">撐滿一個專心時段才會得到${TH().unit}；中途放棄會${TH().fail==='番茄醬'?'變成番茄醬':'被吸管吸走'}，但滿 5 分鐘的時間仍會記錄。</p></div>
@@ -2431,6 +2805,8 @@ function tickTimer(){
 setInterval(()=>{ if(S.timer) tickTimer(); else if(document.title!=='番茄園讀書社') document.title='番茄園讀書社'; },500);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ tickTimer(); if(S.timer) keepAwake(true); render(); } });
 setInterval(()=>{ if(S.view==='friends' && !S.timer) render(); },30000);
+// 珍奶星球：夥伴動態、睡覺提醒跟著時間變，每分鐘更新「今天」頁（正在打字或開著視窗時不動）
+setInterval(()=>{ if(S.view==='today' && !S.timer && isBoba() && !$('#modal-root').innerHTML && !['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) render(); },60000);
 setInterval(()=>{
   const d=new Date(); if (!(d.getMinutes()===7 && (d.getHours()===6||d.getHours()===18))) return;
   const key='tg-67-'+ymd()+'-'+d.getHours(); if (lsGet(key) || (S.timer&&S.timer.mode==='focus') || !S.me || $('#modal-root').innerHTML) return;
@@ -2448,26 +2824,26 @@ function showCelebrate(t){
   const U=TH().cnt;
   openModal(`<div class="celebrate"><div class="plantbox shake">${growArt(1)}</div>
     <div class="big">${TH().pending}</div>
-    <p style="font-weight:700;margin:4px 0 12px">今天第 ${st.todayTom} ${U}${st.todayTom>=S.settings.goal?'・今日目標達成 🎯':`・離目標還差 ${S.settings.goal-st.todayTom} ${U}`}</p>
+    <p style="font-weight:700;margin:4px 0 12px">今天第 ${st.todayTom} ${U}${themeKey()==='boba'?'・不限顆數，想撈幾顆就撈幾顆':st.todayTom>=S.settings.goal?'・今日目標達成 🎯':`・離目標還差 ${S.settings.goal-st.todayTom} ${U}`}</p>
     <button class="btn red big block" data-a="pluckNew" data-task="${esc(t.taskId||'')}">${TH().pluck}</button>
     <button class="btn ghost block" style="margin-top:10px" data-a="closeModal">等一下再拔，先休息</button></div>`);
 }
 async function pluckAndShow(which='newest', taskId='', tries=0){
   const me=S.members[S.me.uid]||{}, ts=me.pluckTs||0;
-  const army=myArmy(), waiting=army.filter(s=>s.endedAt>ts);
+  const army=myArmy(), waiting=army.filter(s=>!s.moon&&s.endedAt>ts);
   if (!waiting.length) { if (tries<8) return setTimeout(()=>pluckAndShow(which,taskId,tries+1),400); closeModal(); return toast(TH().none); }
   const so = which==='newest' ? waiting.at(-1) : waiting[0];
   await S.api.setMember(S.gid,S.me.uid,{pluckTs: which==='newest' ? so.endedAt : so.endedAt}).catch(()=>{});
   soldierCard(so,true,taskId);
 }
 function openGift(id, taskId=''){
-  const so=myArmy().find(x=>x.id===id); const g=giftOf(so); if(!g) return closeModal();
+  const so=myArmy(true).find(x=>x.id===id); const g=giftOf(so); if(!g) return closeModal();
   openModal(`<div class="celebrate"><div class="drop" style="width:150px;height:160px;margin:0 auto">${crateSVG()}</div>
     <div class="big">空投到了！</div>${g.why?`<p class="small" style="font-weight:700;margin:4px 0">${esc(g.why)}</p>`:''}
     <button class="btn red big block" style="margin-top:10px" data-a="revealGift" data-id="${so.id}" data-task="${esc(taskId)}">打開！</button></div>`);
 }
 function revealGift(id, taskId=''){
-  const so=myArmy().find(x=>x.id===id); const g=giftDisp(giftOf(so)); if(!g) return closeModal();
+  const so=myArmy(true).find(x=>x.id===id); const g=giftDisp(giftOf(so)); if(!g) return closeModal();
   const task = taskId && !prog(S.me.uid,taskId).done ? S.tasks.find(x=>x.id===taskId) : null;
   openModal(`<div class="celebrate"><div class="pop" style="font-size:5.5rem;line-height:1.1">${g.ic}</div>
     <span class="rar r-${g.rar}">${g.rar}</span>
@@ -2483,7 +2859,7 @@ function soldierCard(so,isNew=false,taskId=''){
   openModal(`<div class="celebrate">
     ${so.n===67?`<div class="six7">6 7 !!</div><div class="big">第 67 ${TH().cnt}！六七大帝降臨！</div>`:''}
     ${so.custom?`<div class="big" style="color:var(--purple)">是 ${esc((S.members[so.custom.by]||{}).name||'社員')} 設計的角色！</div>`:''}
-    ${spInfo(so)?`<div class="${isNew?'shake':''}" style="display:inline-block;background:${so.sp==='orange'?'#ff9a1f':'#2fa84f'};color:#fff;border:3px solid var(--ink);border-radius:12px;padding:2px 12px;font-weight:900">${esc(spInfo(so).tag)}</div><div class="big" style="color:${so.sp==='orange'?'#e07800':'#1f8a3c'}">${esc(spInfo(so).title)}</div><p class="small" style="font-weight:700;margin:2px 0 6px">${esc(spInfo(so).story)}</p>`:''}
+    ${spInfo(so)?`<div class="${isNew?'shake':''}" style="display:inline-block;background:${so.sp==='orange'?'#ff9a1f':so.sp==='moon'?'#5a4a9e':'#2fa84f'};color:#fff;border:3px solid var(--ink);border-radius:12px;padding:2px 12px;font-weight:900">${esc(spInfo(so).tag)}</div><div class="big" style="color:${so.sp==='orange'?'#e07800':so.sp==='moon'?'#5a4a9e':'#1f8a3c'}">${esc(spInfo(so).title)}</div><p class="small" style="font-weight:700;margin:2px 0 6px">${esc(spInfo(so).story)}</p>`:''}
     ${mutInfo(so)?`<div class="${isNew?'shake':''}" style="display:inline-block;background:var(--tomato);color:#fff;border:3px solid var(--ink);border-radius:12px;padding:2px 12px;font-weight:900">⚠️ 意外狀況</div><div class="big" style="color:var(--tomato-d)">${esc(mutInfo(so).title)}</div><p class="small" style="font-weight:700;margin:2px 0 6px">${esc(mutInfo(so).story)}</p>`:''}
     ${R?`<div class="big" style="color:#e09a00">${so.rare==='67'?'六……七……！':'！！稀有！！'}</div>`:''}
     <div class="say">${esc(so.quote)}</div>
@@ -2571,7 +2947,7 @@ document.addEventListener('click', async e=>{
     case 'guestOff': confirmBox('關閉訪客參觀？已經分享出去的連結會打不開。','guestOffOk'); break;
     case 'guestOffOk': { if(!isLeader()) return; const old=S.group.guestToken; closeModal();
       await S.api.updateGroup(S.gid,{guestToken:''}); if(old) await S.api.delGuest(old).catch(()=>{}); toast('訪客參觀已關閉'); break; }
-    case 'closeModal': closeModal(); break;
+    case 'closeModal': closeModal(); if (isBoba()) setTimeout(()=>{ checkBotJoin(); checkSleepNote(); },900); break;
     case 'pluckNew': await pluckAndShow('newest', el.dataset.task||''); break;
     case 'pluck': await pluckAndShow('oldest'); break;
     case 'crate': openCrate(+el.dataset.i); break;
@@ -2629,13 +3005,14 @@ document.addEventListener('click', async e=>{
       catch(e){ console.error(e); toast(e.code==='permission-denied'?'今天已經送過了，明天再來':'送出失敗：'+(e.message||e.code)); } break; }
     case 'giftOpenIn': showIncoming(id); break;
     case 'giftReact': { const v=el.dataset.v, reply=cutReply(val('giftReply')); closeModal();
-      try { await S.api.reactGift(S.gid,id,{seen:true,re:v,...(reply?{reply}:{})}); } catch(e){ console.warn(e); if(reply) toast('回覆沒送出去，可以在禮物動態再回一次'); break; }
-      toast(reply?'回覆送出了！':v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); break; }
+      try { await reactGift(id,{seen:true,re:v,...(reply?{reply}:{})}); } catch(e){ console.warn(e); if(reply) toast('回覆沒送出去，可以在禮物動態再回一次'); break; }
+      toast(reply?'回覆送出了！':v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); if(reply) showBotBack(id); break; }
     case 'giftReplyOpen': openReply(id); break;
+    case 'sleepGo': await goSleep(); break;
     case 'giftReplyGo': { const reply=cutReply(val('giftReply')); if(!reply) return toast('先寫一句話');
-      try { await S.api.reactGift(S.gid,id,{reply}); closeModal(); toast('回覆送出了！'); }
+      try { await reactGift(id,{reply}); closeModal(); toast('回覆送出了！'); showBotBack(id); }
       catch(e){ console.error(e); toast(e.code==='permission-denied'?'這個禮物已經回覆過了':'送出失敗：'+(e.message||e.code)); } break; }
-    case 'soldier': { const so=myArmy().find(x=>x.id===id); if(so) soldierCard(so); break; }
+    case 'soldier': { const so=myArmy(true).find(x=>x.id===id); if(so) soldierCard(so); break; }
     case 'signin': try{ await S.api.signIn(); }catch(err){ console.error(err); toast(err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':err.code==='auth/unauthorized-domain'?'這個網址還沒加到 Firebase 授權網域（見 SETUP.md）':'登入失敗：'+(err.code||err.message)); } break;
     case 'signout':
       if (S.me?.anon) { confirmBox('免帳號登入的人登出後，<b>就再也回不到這個帳號</b>，紀錄也找不回來。<br>建議先到「設定」綁定 Google 帳號。確定要登出嗎？','signoutOk'); break; }
@@ -2714,7 +3091,7 @@ document.addEventListener('click', async e=>{
     case 'fsort': S.friendSort=el.dataset.v; render(); break;
     case 'copy': { const v=el.dataset.v; try{ await navigator.clipboard.writeText(v); toast('已複製'); }catch{ openModal(`<p>請長按下面文字複製：</p><input type="text" value="${esc(v)}" onfocus="this.select()"><button class="btn block" style="margin-top:10px" data-a="closeModal">好</button>`); } break; }
     case 'saveName': { const n=val('sname'); if(!n) return; await S.api.setMember(S.gid,S.me.uid,{name:n}); toast('已儲存'); break; }
-    case 'saveTimer': { const c=(id,lo,hi,d)=>Math.min(hi,Math.max(lo,parseInt(val(id))||d)); S.settings={focus:c('sfocus',5,60,25),brk:c('sbrk',1,30,5),goal:c('sgoal',1,20,4)}; lsSet('tg-settings',S.settings); toast('已儲存'); render(); break; }
+    case 'saveTimer': { const c=(id,lo,hi,d)=>Math.min(hi,Math.max(lo,parseInt(val(id))||d)); S.settings={focus:c('sfocus',5,60,25),brk:c('sbrk',1,30,5),goal:$('#sgoal')?c('sgoal',1,20,4):S.settings.goal}; lsSet('tg-settings',S.settings); toast('已儲存'); render(); break; }
     case 'saveGroup': await S.api.updateGroup(S.gid, isLeader() ? {name:val('sgname')||S.group.name, theme:$('#stheme')?.value||'tomato', minFocus:Math.min(60,Math.max(5,parseInt(val('sminfocus'))||clubMinFocus())), examName:val('sexam'), examDate:val('sedate')} : {examName:val('sexam'), examDate:val('sedate')}); toast('已儲存'); break;
     case 'home': case 'switchGroup': closeModal(); goHome(); break;
     case 'enter': { const g=el.dataset.v; await S.api.setUser(S.me.uid,{current:g}).catch(()=>{}); S.userDoc.current=g; S.view='today'; subscribe(g); window.scrollTo(0,0); break; }
