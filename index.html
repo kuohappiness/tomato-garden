@@ -427,6 +427,35 @@ const CLUB_COLORS=['#ff4b3e','#3b8cff','#9b5de5','#18b3a3','#ff9a1f','#46c84f'];
 const ACC_KEYS = ['glasses','hat','phones','leaf','goggles','crown','flag','tie'];
 // 只給「設計我的角色」挑的新配件（不放進 ACC_KEYS，避免改到既有科目的隨機配件）
 const EXTRA_ACC = ['volleyball','frisbee','shades'];
+// ---------- 番茄兌換所：用自己的番茄換無厘頭寶物 ----------
+// 只記「花掉幾顆」(members.spent) 和「換了什麼」(members.shop)，不會減少 tomatoes / dt，
+// 所以已經種出的番茄、班級遠征任務、星球與排行都不受影響。可用 = tomatoes − spent。
+// acc：換到之後「設計我的角色」可以選這個配件。
+const SHOP_TIERS = [
+  {p:10,  name:'路邊撿的', rar:'普通'},
+  {p:25,  name:'夜市等級', rar:'少見'},
+  {p:50,  name:'有點貴喔', rar:'稀有'},
+  {p:67,  name:'六七限定', rar:'稀有'},
+  {p:100, name:'傳說級',   rar:'傳說'},
+];
+const SHOP = [
+  {id:'salt',     p:10,  ic:'🧂', name:'一粒鹽',             d:'用放大鏡才看得到，請小心保管，掉了就找不回來了。'},
+  {id:'chopstick',p:10,  ic:'🥢', name:'只剩一支的免洗筷',   d:'另一支去當指揮棒了。'},
+  {id:'mustache', p:10,  ic:'🥸', name:'八字鬍',  acc:'mustache', d:'貼上去之後，講話會自動變成訓導主任的語氣。'},
+  {id:'duck',     p:25,  ic:'🦆', name:'會說六七的橡皮鴨',   d:'捏一下：「六～」再捏一下：「七～」，捏第三下它會害羞。'},
+  {id:'air',      p:25,  ic:'📦', name:'一箱段考前一晚的空氣', d:'打開來會聞到緊張和泡麵的味道。'},
+  {id:'plunger',  p:25,  ic:'🪠', name:'頭上的馬桶吸把', acc:'plunger', d:'吸在頭上拔不下來，只好說這是新髮型。'},
+  {id:'chair',    p:50,  ic:'🪑', name:'段考魔王坐過的椅子', d:'還有餘溫，坐上去會突然很想寫考卷（大概）。'},
+  {id:'remote',   p:50,  ic:'📺', name:'只能轉到新聞台的遙控器', d:'按哪一顆都是新聞台，按久了會開始播氣象。'},
+  {id:'idcard',   p:67,  ic:'🪪', name:'番茄兵的身分證',     d:'照片拍得很醜，番茄兵堅持本人比較帥。身高欄寫著 67 公分。'},
+  {id:'halo67',   p:67,  ic:'😇', name:'六七光環', acc:'halo67', d:'頭上一直飄著 6 和 7，洗澡也拿不下來。'},
+  {id:'toilet',   p:100, ic:'🚽', name:'黃金馬桶',           d:'全社最貴的椅子。坐上去會想讀書（沒有人真的試過）。'},
+  {id:'durian',   p:100, ic:'🪖', name:'榴槤安全帽', acc:'durian', d:'全世界最硬也最臭的安全帽，段考魔王聞到會自己逃走。'},
+];
+const SHOP_ACC = SHOP.filter(x=>x.acc).map(x=>x.acc);
+const shopOn = () => themeKey()!=='boba';
+function shopWallet(uid){ const m=(S.members||{})[uid]||{}, got=m.tomatoes||0, spent=m.spent||0, own=m.shop||{};
+  return {got, spent, left:Math.max(0,got-spent), own}; }
 function typeOf(sub){
   const cs = ((typeof S!=='undefined' && S.group) ? clubSubjects().find(x=>x.name===sub) : null) || BOBA_SUBJECTS.find(x=>x.name===sub) || null;
   const base = TYPES[sub];
@@ -478,6 +507,11 @@ const ACC = {
   tie:k=>`<path d="M45 96l5-6 5 6-5 15z" fill="${k}"/><rect x="74" y="78" width="20" height="9" rx="3" fill="#8b5e3c" stroke="${k}" stroke-width="2.5" transform="rotate(-30 84 82)"/>`,
   volleyball:k=>`<g transform="translate(84 99) rotate(-15)"><circle r="12" fill="#fff" stroke="${k}" stroke-width="3.4"/><path d="M-11.5-4q8 1 12-8q4 9 11 11" fill="#ffd23f" stroke="${k}" stroke-width="2.4" stroke-linejoin="round"/><path d="M-6 11q-2-9 7-14q2 8 10 9" fill="#3b8cff" stroke="${k}" stroke-width="2.4" stroke-linejoin="round"/></g>`,
   frisbee:k=>`<g transform="rotate(-18 17 40)"><ellipse cx="17" cy="40" rx="15" ry="6" fill="#ff7aa2" stroke="${k}" stroke-width="3"/><ellipse cx="17" cy="38.5" rx="8.5" ry="2.8" fill="none" stroke="${k}" stroke-width="2"/><path d="M8 37q4-2 8-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></g><path d="M35 30q6-2 10 1M35 36q5 0 9 3" stroke="${k}" stroke-width="2" stroke-linecap="round" fill="none"/>`,
+  // ----- 番茄兌換所才換得到的配件 -----
+  mustache:k=>`<path d="M50 78q-6-6-14-3q-8 3-14-3q2 9 12 10q10 1 16-4q6 5 16 4q10-1 12-10q-6 6-14 3q-8-3-14 3z" fill="${k}" stroke="${k}" stroke-width="1.5" stroke-linejoin="round"/>`,
+  plunger:k=>`<g transform="rotate(-22 38 44)"><path d="M38 30V12" stroke="#c98a4a" stroke-width="5" stroke-linecap="round"/><path d="M38 30V12" stroke="${k}" stroke-width="1.4" opacity=".35"/><path d="M23 45q0-16 15-16t15 16z" fill="#4b4b57" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M21 45h34" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><path d="M29 38q3-4 8-5" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7" fill="none"/></g>`,
+  halo67:k=>`<ellipse cx="50" cy="29" rx="23" ry="6" fill="none" stroke="${k}" stroke-width="8.5"/><ellipse cx="50" cy="29" rx="23" ry="6" fill="none" stroke="#ffd23f" stroke-width="5"/><g font-size="14" font-weight="900" font-family="Bungee,sans-serif" text-anchor="middle" fill="#fff" stroke="${k}" stroke-width="1.3" paint-order="stroke"><text x="25" y="35">6</text><text x="75" y="35">7</text></g>`,
+  durian:k=>`<path d="M16 54q0-36 34-36t34 36q-34-8-68 0z" fill="#c9d93a" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/>${[[24,40],[34,30],[46,25],[58,25],[70,31],[78,42],[32,45],[46,40],[60,41],[70,48]].map(([x,y])=>`<path d="M${x-4} ${y+3}l4-9 4 9z" fill="#8fa21f" stroke="${k}" stroke-width="2" stroke-linejoin="round"/>`).join('')}<path d="M18 55q-4 5-1 9M82 55q4 5 1 9" stroke="${k}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M88 34q3-5 0-10M93 38q5-6 2-13" stroke="#9bbf3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
   shades:k=>`<g transform="translate(0 5)"><path d="M24 56h52" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><path d="M25 56h21q1 15-10 15q-11 0-11-15zM54 56h21q0 15-11 15q-11 0-10-15z" fill="#2a2140" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M30 59l4 0-6 8M59 59l4 0-6 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".85"/><path d="M38 60l3 0M67 60l3 0" stroke="#7fd4ff" stroke-width="2.4" stroke-linecap="round"/><g transform="translate(80 50) scale(1)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g><g transform="translate(19 52) scale(0.7)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g></g>`,
 };
 function soldierSVG(so,{lock=false}={}){
@@ -2006,6 +2040,7 @@ function viewGarden(){
     <div class="row" style="margin:0 0 10px"><button class="btn ${sentToday()?'ghost':'yellow'} block" data-a="sendOpen">${sentToday()?'今天已經送過禮物了，明天再來':'🎁 送一個寶物給隊友（一天一個）'}</button></div>
     <div class="giftbox">${GIFTS.map(g=>{ const n=Math.max(0,gifts[g.id]||0); return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
   </div>
+  ${shopOn()?shopCard():''}
   ${charCard()}
   <div class="card"><h2>成就</h2><div class="badges" style="margin-top:10px">${badges.map(([ic,n,d,on])=>`<div class="badge ${on?'':'off'}"><span class="ic">${ic}</span>${n}<span class="d">${d}</span></div>`).join('')}</div></div>
   <div class="card">
@@ -2021,6 +2056,46 @@ function viewGarden(){
   <div class="card"><h2>${T_.recent}</h2>
     ${army.length? army.slice(-10).reverse().map(so=>`<button class="row" data-a="soldier" data-id="${so.id}" style="width:100%;border:0;background:transparent;padding:6px 0;border-top:2px dashed #d8cfb8;text-align:left"><span style="width:38px;height:42px;flex:none">${soldierSVG(so)}</span><span class="grow"><b>No.${so.n} ${esc(so.name)}</b><br><span class="tiny">${so.sp?spInfo(so).tag.split(' ')[0]+' '+spInfo(so).name:so.custom?'社員設計角色':so.mut?'⚠️ '+mutInfo(so).name:so.rare?rareInfo(so).name:typeOf(so.subject).name}・${fmtDate(so.date)}</span></span></button>`).join('') : `<p class="small">還沒有${T_.unit}。</p>`}
   </div>`;
+}
+// ---------- 番茄兌換所 ----------
+function shopPic(x, size=48){
+  return x.acc ? `<span style="display:block;width:${size}px;height:${size}px;margin:0 auto">${soldierSVG({subject:'其他',seed:hash('shop'+x.id),custom:{color:'#ff4b3e',acc:x.acc}})}</span>`
+               : `<span class="ic">${x.ic}</span>`;
+}
+function shopCard(){
+  const w=shopWallet(S.me.uid), U=TH().cnt, n=Object.keys(w.own).filter(k=>SHOP.some(x=>x.id===k)).length;
+  return `<div class="card"><div class="row between"><h2>番茄兌換所</h2><span class="small" style="font-weight:700">${n}／${SHOP.length}</span></div>
+    <div class="row" style="gap:10px;align-items:center;margin:6px 0 4px"><div class="countdown" style="margin:0;transform:none;padding:6px 14px"><span class="small" style="font-weight:900">可以用</span><b style="font-size:1.6rem">${w.left}</b><span class="small" style="font-weight:900">${U}</span></div>
+      <p class="tiny grow" style="margin:0">共種出 ${w.got} ${U}・已經花掉 ${w.spent} ${U}</p></div>
+    <p class="small" style="margin:4px 0 10px">用自己的${TH().unit}換一些沒什麼用的東西。換掉只會扣「可以用」的數字，已經種出的${TH().unit}、班級任務和星球都不會變少。有「配件」標籤的，換到後設計角色時可以戴。</p>
+    ${SHOP_TIERS.map(t=>`<div class="row between tiny" style="margin:10px 0 6px;font-weight:900"><span><span class="rar r-${t.rar}">${t.p} ${U}</span> ${t.name}</span></div>
+      <div class="giftbox" style="grid-template-columns:repeat(3,1fr)">${SHOP.filter(x=>x.p===t.p).map(x=>{ const has=!!w.own[x.id], can=!has&&w.left>=x.p;
+        return `<button class="g ${has?'on':''}" data-a="shopInfo" data-v="${x.id}" style="font:inherit;font-size:.7rem;font-weight:900;padding:8px 4px;${!has&&!can?'opacity:.6':''}">${has?'<span class="n">✓</span>':''}${shopPic(x)}${esc(x.name)}<span class="tiny" style="display:block;font-weight:700;margin-top:2px">${has?'已擁有':x.acc?'配件・'+x.p+' '+U:x.p+' '+U}</span></button>`; }).join('')}</div>`).join('')}
+  </div>`;
+}
+function openShopItem(id){
+  const x=SHOP.find(i=>i.id===id); if(!x) return;
+  const w=shopWallet(S.me.uid), has=!!w.own[x.id], U=TH().cnt, t=SHOP_TIERS.find(t=>t.p===x.p);
+  const big = x.acc ? `<div style="width:120px;height:120px;margin:0 auto">${soldierSVG({subject:'其他',seed:hash('shop'+x.id),custom:{color:'#ff4b3e',acc:x.acc}})}</div>` : `<div style="font-size:4rem">${x.ic}</div>`;
+  openModal(`<div class="celebrate">${big}<span class="rar r-${t.rar}">${t.name}・${x.p} ${U}</span>${x.acc?' <span class="rar">配件</span>':''}<div class="big">${esc(x.name)}</div><p style="font-weight:700">${esc(x.d)}</p>
+    ${has?`<p class="small">你已經有了${x.acc?'，設計角色時可以選它。':'。'}</p><button class="btn yellow block" data-a="closeModal">好</button>`
+      : w.left>=x.p ? `<p class="small">換了之後，可以用的${TH().unit}會從 ${w.left} 變成 ${w.left-x.p}。換了不能退喔！</p>
+        <button class="btn red block" data-a="shopBuy" data-v="${x.id}">用 ${x.p} ${U}換</button><button class="btn ghost block" style="margin-top:8px" data-a="closeModal">再想想</button>`
+      : `<p class="small">還差 ${x.p-w.left} ${U}。每次專心讀滿一個番茄鐘就會多一${U}。</p><button class="btn yellow block" data-a="closeModal">好，去讀書</button>`}</div>`);
+}
+async function buyShopItem(id){
+  const x=SHOP.find(i=>i.id===id); if(!x) return;
+  const w=shopWallet(S.me.uid);
+  if (w.own[x.id]) return toast('你已經有了');
+  if (w.left<x.p) return toast(`還差 ${x.p-w.left} ${TH().cnt}`);
+  await S.api.setMember(S.gid,S.me.uid,{spent:w.spent+x.p, shop:{...w.own,[x.id]:Date.now()}});
+  closeModal(); toast(`換到「${x.name}」了！`);
+}
+// 朋友頁：名字下面秀一排換來的寶物
+function shopShelf(uid){
+  if (!shopOn()) return '';
+  const own=shopWallet(uid).own, list=SHOP.filter(x=>own[x.id]); if(!list.length) return '';
+  return `<div class="tiny" style="margin-top:2px;font-weight:700">收藏：<span style="font-size:1rem;letter-spacing:2px">${list.map(x=>`<span title="${esc(x.name)}">${x.ic}</span>`).join('')}</span></div>`;
 }
 // ---------- 還沒有自己的角色：提醒成員本人去設計 ----------
 // 只要這個人在讀書社裡從來沒有設計過角色，就在「今天」最上面放一張提醒卡，設計好就自動消失。
@@ -2050,12 +2125,13 @@ function charCard(){
 function openCharDesigner(){
   const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):[...ACC_KEYS,...EXTRA_ACC];
   const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶',volleyball:'排球',frisbee:'飛盤',shades:'閃亮墨鏡'};
+  const own=shopWallet(S.me.uid).own, shopAccs=(!bb&&shopOn())?SHOP.filter(x=>x.acc):[];
   S.draft={name:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],acc:'',skill:'',quote:''};
   openModal(`<h2>設計我的角色</h2>
     <div id="cd_prev" style="width:130px;height:130px;margin:6px auto">${soldierSVG({subject:'其他',seed:7,custom:S.draft})}</div>
     <label class="f">角色名字</label><input type="text" id="cd_name" maxlength="8" placeholder="${bb?'例如：棉花糖啵啵':'例如：爆汁隊長'}">
     <label class="f">顏色</label><div class="row wrap" style="gap:6px">${PALETTE.map(c=>`<button class="sw" data-a="cdColor" data-v="${c}" style="width:32px;height:32px;border-radius:10px;border:2.5px solid var(--ink);background:${c}"></button>`).join('')}</div>
-    <label class="f">配件</label><div class="row wrap" style="gap:6px"><button class="pill" data-a="cdAcc" data-v="">不要</button>${accs.map(a=>`<button class="pill" data-a="cdAcc" data-v="${a}">${ACC_LABEL[a]||a}</button>`).join('')}</div>
+    <label class="f">配件</label><div class="row wrap" style="gap:6px"><button class="pill" data-a="cdAcc" data-v="">不要</button>${accs.map(a=>`<button class="pill" data-a="cdAcc" data-v="${a}">${ACC_LABEL[a]||a}</button>`).join('')}${shopAccs.map(x=>own[x.id]?`<button class="pill" data-a="cdAcc" data-v="${x.acc}">${x.ic} ${esc(x.name)}</button>`:`<button class="pill" style="opacity:.55" data-a="cdAccLock" data-v="${x.id}">🔒 ${esc(x.name)}・${x.p}${TH().cnt}</button>`).join('')}</div>
     <label class="f">特殊能力</label><input type="text" id="cd_skill" maxlength="30" placeholder="${bb?'例如：會在你讀書時幫你加油':'例如：一生氣就會噴汁'}">
     <label class="f">口頭禪</label><input type="text" id="cd_quote" maxlength="30" placeholder="例如：今天也要讀書喔！">
     <p class="tiny" style="margin:8px 0 0">角色會給全社的人看到，請取友善的名字。團長可以刪除不適合的角色。</p>
@@ -2109,7 +2185,7 @@ function viewFriends(){
         <summary><div class="friend">${avatar(u,'lg')}<div class="grow">
           <div class="row between"><b>${esc(m.name||'同學')}${u===S.me.uid&&m.name!=='我'?'（我）':''}</b>${u===S.group.owner?' <span class="tag">團長</span>':''}<span class="small" style="white-space:nowrap;font-weight:900">${st.streak>=2?`🔥${st.streak} 天`:''}${m.ketchup?`　${TH().failIc}${m.ketchup}`:''}</span></div>
           ${live?`<span class="live">正在讀 ${esc(m.studying.subject)}・剩 ${Math.max(1,Math.ceil((m.studying.endsAt-now)/60000))} 分</span>`:''}
-          ${miniArmy(u)}
+          ${miniArmy(u)}${shopShelf(u)}
           <div class="stat" style="grid-template-columns:repeat(4,1fr)"><div><b>${st.todayMin}</b><span>今天(分)</span></div><div><b>${Math.round(st.week/6)/10}</b><span>本週(時)</span></div><div><b>${st.donePct}%</b><span>完成</span></div><div><b>${st.mastPct}%</b><span>熟練</span></div></div>
         </div></div></summary>
         <div style="padding:6px 0 4px 60px">${subj.map(s=>`<div style="margin-top:8px"><div class="row between tiny"><span>${chip(s.name)} <b>${s.done}/${s.total}</b></span><span>熟練 ${Math.round(s.mast/(3*s.total)*100)}%</span></div><div class="bar" style="height:9px;margin-top:3px"><i style="width:${s.done/s.total*100}%;background:${subjColor(s.name)}"></i></div></div>`).join('')||'<span class="small">還沒有任務</span>'}</div>
@@ -2539,6 +2615,9 @@ document.addEventListener('click', async e=>{
         <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">好</button></div>`); break; }
       openModal(`<div class="celebrate"><div style="font-size:4rem;${own?'':'filter:grayscale(1) brightness(.2);opacity:.3'}">${g.ic}</div><span class="rar r-${g.rar}">${g.rar}</span><div class="big">${own?esc(g.name):'？？？'}</div><p style="font-weight:700">${own?esc(g.d):'還沒拿到。繼續種番茄兵，說不定下一個空投就是它。'}</p><button class="btn yellow block" data-a="closeModal">好</button></div>`); break; }
     case 'sendOpen': closeModal(); openSend(el.dataset.v||''); break;
+    case 'shopInfo': openShopItem(el.dataset.v); break;
+    case 'shopBuy': await buyShopItem(el.dataset.v); break;
+    case 'cdAccLock': { const x=SHOP.find(i=>i.id===el.dataset.v); if(x) toast(`先到花園的「番茄兌換所」用 ${x.p} ${TH().cnt}換「${x.name}」`); break; }
     case 'vote': { const nw=newsOf(); if(!nw?.poll) break; await S.api.setMember(S.gid,S.me.uid,{poll:{d:ymd(),id:nw.id,v:+el.dataset.v}}); break; }
     case 'sendPick': S.sendSel.item=el.dataset.v; document.querySelectorAll('#sendItems .g').forEach(b=>b.classList.toggle('on',b.dataset.v===S.sendSel.item)); break;
     case 'sendTo': S.sendSel.to=el.dataset.v; document.querySelectorAll('#sendTo .pill').forEach(b=>b.classList.toggle('on',b.dataset.v===S.sendSel.to)); break;
