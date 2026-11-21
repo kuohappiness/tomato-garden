@@ -22,6 +22,16 @@ service cloud.firestore {
         && request.time >= st.startedAt + duration.value(minFocus(gid) * 60 - 10, 's');
     }
 
+    // 珍奶星球「我要去睡覺了」：每次只能新增今天這一天（sleepDay），而且記下的時間一定要是伺服器時間；
+    // 已經記下的日子不能改、不能刪（早睡珍珠用這個時間算）
+    function sleepOk(before, after) {
+      return after.sleepDay is string && after.sleep is map
+        && after.sleep.diff(before.get('sleep', {})).addedKeys() == [after.sleepDay].toSet()
+        && after.sleep.diff(before.get('sleep', {})).changedKeys().size() == 0
+        && after.sleep.diff(before.get('sleep', {})).removedKeys().size() == 0
+        && after.sleep[after.sleepDay] == request.time;
+    }
+
     // 每個人自己的設定（加入了哪些群組）
     match /users/{uid} {
       allow read, write: if signedIn() && me() == uid;
@@ -106,10 +116,13 @@ service cloud.firestore {
         allow read: if isMember(gid);
         allow create: if isMember(gid) && me() == uid
           && request.resource.data.get('tomatoes', 0) == 0 && !('dt' in request.resource.data)
+          && !('sleep' in request.resource.data)
           && startOk(request.resource.data.get('studying', null));
         allow update: if isMember(gid) && me() == uid
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['studying'])
               || startOk(request.resource.data.get('studying', null)))
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sleep', 'sleepDay'])
+              || sleepOk(resource.data, request.resource.data))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tomatoes', 'dt'])
               || ( request.resource.data.get('tomatoes', 0) == resource.data.get('tomatoes', 0) + 1
                    && request.resource.data.get('studying', null) == null
