@@ -222,11 +222,14 @@ const SUBJECTS = [
   {name:'國文', color:'#ff4b3e'}, {name:'英文', color:'#3b8cff'}, {name:'數學', color:'#ff9a1f'},
   {name:'生物', color:'#46c84f'}, {name:'理化', color:'#9bd12f'}, {name:'歷史', color:'#b5733f'},
   {name:'地理', color:'#18b3a3'}, {name:'公民', color:'#9b5de5'}, {name:'社會', color:'#7a74a8'},
-  {name:'其他', color:'#6b6558'}
+  {name:'運動', color:'#ffc300'}, {name:'其他', color:'#6b6558'}
 ];
+// 運動跟讀書一樣重要：運動完成一個專心時段，也算一顆番茄。
+// 舊的讀書社科目清單裡沒有「運動」，會自動補在「其他」前面；團長刪掉後會留一筆 off 記號，就不會再補回來。
+const SPORT = {name:'運動', color:'#ffc300', unit:'動滋兵', acc:'band', skill:'跑完步全身會「動滋動滋」作響，越跑越有精神'};
 const SUBJ_COLOR = Object.fromEntries(SUBJECTS.map(s=>[s.name,s.color]));
 const ALIAS = {'國':'國文','國文':'國文','英':'英文','英文':'英文','數':'數學','數學':'數學','生':'生物','生物':'生物','自然':'生物',
-  '理':'理化','理化':'理化','歷':'歷史','歷史':'歷史','地':'地理','地理':'地理','公':'公民','公民':'公民','社':'社會','社會':'社會','歷地公':'社會','其他':'其他'};
+  '理':'理化','理化':'理化','歷':'歷史','歷史':'歷史','地':'地理','地理':'地理','公':'公民','公民':'公民','社':'社會','社會':'社會','歷地公':'社會','運':'運動','運動':'運動','體':'運動','體育':'運動','其他':'其他'};
 const LEVELS = [
   {min:0,name:'番茄醬預備役'},{min:5,name:'番茄籽'},{min:15,name:'小番茄'},{min:30,name:'番茄炒蛋'},
   {min:50,name:'番茄大將軍'},{min:80,name:'番茄元帥'},{min:120,name:'番茄之神'},{min:200,name:'宇宙番茄霸主'}
@@ -333,7 +336,14 @@ const daysBetween = (a,b) => Math.round((parseYmd(b)-parseYmd(a))/86400000);
 const mmss = ms => { const s=Math.max(0,Math.ceil(ms/1000)); return `${pad(Math.floor(s/60))}:${pad(s%60)}`; };
 const fmtMin = m => m>=60 ? `${Math.floor(m/60)} 時 ${m%60} 分` : `${m} 分`;
 const PALETTE = ['#ff4b3e','#3b8cff','#ff9a1f','#46c84f','#9bd12f','#b5733f','#18b3a3','#9b5de5','#7a74a8','#ff5fa2','#ffcc1f','#6b6558'];
-function clubSubjects(){ const l=S.group?.subjects; return (Array.isArray(l)&&l.length) ? l : SUBJECTS; }
+function clubSubjects(){
+  const raw=S.group?.subjects; if (!(Array.isArray(raw)&&raw.length)) return SUBJECTS;
+  const l=raw.filter(x=>!x.off);
+  if (raw.some(x=>x.name===SPORT.name)) return l;
+  const out=[...l], oi=out.findIndex(x=>x.name==='其他'); out.splice(oi>=0?oi:out.length,0,{...SPORT}); return out;
+}
+// 寫回科目清單時，保留「團長不要運動」的記號
+function subjWrite(list){ const off=(S.group?.subjects||[]).filter(x=>x.off && !list.some(y=>y.name===x.name)); return [...list, ...off]; }
 function subjNames(){ return clubSubjects().map(x=>x.name); }
 function subjColor(s){ const c=clubSubjects().find(x=>x.name===s)?.color || SUBJ_COLOR[s]; return c || PALETTE[hash(s)%PALETTE.length]; }
 const subjOptions = (sel) => subjNames().map(n=>`<option ${n===sel?'selected':''}>${esc(n)}</option>`).join('');
@@ -394,6 +404,7 @@ const TYPES = {
   '地理':{color:'#18b3a3', name:'迷路兵', acc:'flag',    skill:'拿著地圖還是會迷路'},
   '公民':{color:'#9b5de5', name:'法官兵', acc:'tie',     skill:'動不動就說「這樣違法喔」'},
   '社會':{color:'#7a74a8', name:'雜學兵', acc:'tie',     skill:'什麼都懂一點點，真的只有一點點'},
+  '運動':{color:SPORT.color, name:SPORT.unit, acc:SPORT.acc, skill:SPORT.skill},
   '其他':{color:'#ff4b3e', name:'普通兵', acc:'',        skill:'沒有特別專長，但非常努力'},
 };
 const RARE = {
@@ -408,6 +419,8 @@ const THEMES = {
 };
 const CLUB_COLORS=['#ff4b3e','#3b8cff','#9b5de5','#18b3a3','#ff9a1f','#46c84f'];
 const ACC_KEYS = ['glasses','hat','phones','leaf','goggles','crown','flag','tie'];
+// 只給「設計我的角色」挑的新配件（不放進 ACC_KEYS，避免改到既有科目的隨機配件）
+const EXTRA_ACC = ['volleyball','frisbee','shades'];
 function typeOf(sub){
   const cs = ((typeof S!=='undefined' && S.group) ? clubSubjects().find(x=>x.name===sub) : null) || BOBA_SUBJECTS.find(x=>x.name===sub) || null;
   const base = TYPES[sub];
@@ -455,7 +468,11 @@ const ACC = {
   goggles:k=>`<rect x="22" y="52" width="56" height="21" rx="10" fill="rgba(160,235,255,.55)" stroke="${k}" stroke-width="3.5"/><path d="M15 60h7M78 60h7" stroke="${k}" stroke-width="5"/>`,
   crown:k=>`<path d="M36 33l4-13 6 8 4-12 4 12 6-8 4 13z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M37 79q6-6 13 0q7-6 13 0q-6 6-13 1q-7 5-13-1z" fill="${k}"/>`,
   flag:k=>`<path d="M93 92V38" stroke="${k}" stroke-width="3.5"/><path d="M93 38l-20 7 20 8z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><text x="16" y="34" font-size="20" font-weight="900" fill="${k}">?</text>`,
+  band:k=>`<path d="M18 56q32-16 64 0" fill="none" stroke="${k}" stroke-width="10" stroke-linecap="round"/><path d="M18 56q32-16 64 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M30 50l3 3M70 50l-3 3" stroke="#ff4b3e" stroke-width="2.5" stroke-linecap="round"/><path d="M50 44l-14-4 9 9-12 6 15-3 2 9 2-9 15 3-12-6 9-9z" fill="#2fbf5b" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M50 44q-2-12 7-17" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/><path d="M81 56q10-2 15-10M81 58q11 3 13 13" fill="none" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><path d="M13 68q-4 6 0 9q4-3 0-9z" fill="#9ee4ff" stroke="${k}" stroke-width="2"/><path d="M24 112q0-7 8-7h6v7zM62 105h6q8 0 8 7H62z" fill="#ff4b3e" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
   tie:k=>`<path d="M45 96l5-6 5 6-5 15z" fill="${k}"/><rect x="74" y="78" width="20" height="9" rx="3" fill="#8b5e3c" stroke="${k}" stroke-width="2.5" transform="rotate(-30 84 82)"/>`,
+  volleyball:k=>`<g transform="translate(84 99) rotate(-15)"><circle r="12" fill="#fff" stroke="${k}" stroke-width="3.4"/><path d="M-11.5-4q8 1 12-8q4 9 11 11" fill="#ffd23f" stroke="${k}" stroke-width="2.4" stroke-linejoin="round"/><path d="M-6 11q-2-9 7-14q2 8 10 9" fill="#3b8cff" stroke="${k}" stroke-width="2.4" stroke-linejoin="round"/></g>`,
+  frisbee:k=>`<g transform="rotate(-18 17 40)"><ellipse cx="17" cy="40" rx="15" ry="6" fill="#ff7aa2" stroke="${k}" stroke-width="3"/><ellipse cx="17" cy="38.5" rx="8.5" ry="2.8" fill="none" stroke="${k}" stroke-width="2"/><path d="M8 37q4-2 8-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></g><path d="M35 30q6-2 10 1M35 36q5 0 9 3" stroke="${k}" stroke-width="2" stroke-linecap="round" fill="none"/>`,
+  shades:k=>`<g transform="translate(0 5)"><path d="M24 56h52" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/><path d="M25 56h21q1 15-10 15q-11 0-11-15zM54 56h21q0 15-11 15q-11 0-10-15z" fill="#2a2140" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M30 59l4 0-6 8M59 59l4 0-6 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".85"/><path d="M38 60l3 0M67 60l3 0" stroke="#7fd4ff" stroke-width="2.4" stroke-linecap="round"/><g transform="translate(80 50) scale(1)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g><g transform="translate(19 52) scale(0.7)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g></g>`,
 };
 function soldierSVG(so,{lock=false}={}){
   if (so.sp && !lock) return spSVG(so);
@@ -727,6 +744,16 @@ function spSVG(so){
   }
   return `<svg viewBox="-4 14 108 104" width="100%" height="100%" aria-hidden="true">${g}</svg>`;
 }
+// 週末公告：週六、週日在「今天」頁提醒大家去跑一跑
+function weekendCard(){
+  if (!isWeekend()) return '';
+  const sp=hasSport(), done=(S.sessions||[]).some(x=>x.uid===S.me.uid && x.date===ymd() && x.subject===SPORT.name && x.tomato);
+  return `<div class="card"><div class="row between"><h2>📣 週末公告</h2><span class="small" style="font-weight:700">${fmtDate(ymd())}</span></div>
+    <div class="row" style="gap:10px;align-items:center;margin-top:6px"><span style="font-size:2.4rem;line-height:1">🏃</span>
+    <div class="grow"><b>適逢週末，可以去跑一跑！</b><p class="small" style="margin:2px 0 0">運動跟讀書一樣重要。${sp?'選「運動」完成一個專心時段，跟讀書一樣算一個番茄鐘，還會種出動滋兵。':''}</p>
+    ${done?`<p class="small" style="margin:6px 0 0;font-weight:900;color:var(--leaf-d)">今天已經動過了，讚！</p>`:''}</div>
+    ${sp&&!S.timer&&!done?`<button class="btn yellow sm" style="flex:none" data-a="sportGo">去運動</button>`:''}</div></div>`;
+}
 // 今天的班級新鮮事卡片（在「今天」頁）
 function newsCard(){
   const today=ymd(), nw=newsOf(today); if (!nw) return '';
@@ -789,15 +816,20 @@ const MISSIONS = [
   {title:'護送 67 公斤的巨大滷蛋', story:'一顆 67 公斤的滷蛋迷路了，正在冒冷汗，快護送它回基地。', win:'巨大滷蛋安全抵達！它感動到流出滷汁。', art:d=>eggSVG(d)},
   {title:'搬回 67 公升的巨無霸珍奶', story:'有人在操場留下一杯 67 公升的珍奶，趁它還沒退冰搬回基地！', win:'珍奶搬回來了！可是最後一顆珍珠還是吸不到。', art:d=>bobaSVG(d)},
 ];
-// 週任務提早破關後接上的加碼任務（依序出現，每關目標和週任務一樣）
+// 週任務提早破關後接上的加碼任務（依序出現）
+//   goal：這一關要幾顆番茄（4 人以上的目標；人少時照週任務的比例縮小）。沒寫就和週任務一樣。
+//   art(done, p)：p 是這一關的進度 0~1，畫面可以跟著變。
 const BONUS_MISSIONS = [
   {title:'拿到培碩老師的簽名照', story:'週任務提早破關！導師培碩老師答應：大家再一起讀一輪，就送全班一張親筆簽名照。', win:'簽名照到手！培碩老師還多畫了一顆愛心，快掛到基地牆上。', art:d=>photoSVG(d)},
+  {title:'把料理阿嬤煮成肉醬', goal:167, stay:true, story:'料理阿嬤不小心跳進自己的大鍋子，現在舉雙手投降中！每讀完一顆番茄，鍋底的火就旺一點。大家一起讀到火力全開，就能把阿嬤燉成一鍋香噴噴的「阿嬤肉醬」！', win:'叮！阿嬤肉醬燉好了！阿嬤從鍋子裡探出頭說：「乖孫，有讀書的才可以拌麵喔！」', art:(d,p)=>grannySVG(d,p)},
 ];
+function missionGoal(m, hp){ return m.goal ? (hp===67 ? m.goal : Math.max(hp, Math.round(hp*m.goal/67))) : hp; }
 function weekMission(weekTom, hp){
   const list=[missionOfWeek(), ...BONUS_MISSIONS];
-  const stage=Math.min(list.length-1, Math.floor(weekTom/hp));
-  const got=Math.min(hp, weekTom-stage*hp), p=got/hp;
-  return {mis:list[stage], stage, prev:stage?list[stage-1]:null, last:stage===list.length-1, got, need:Math.max(0,hp-got), p, done:p>=1};
+  let stage=0, start=0;
+  while (stage<list.length-1 && weekTom>=start+missionGoal(list[stage],hp)) { start+=missionGoal(list[stage],hp); stage++; }
+  const goal=missionGoal(list[stage],hp), got=Math.min(goal, weekTom-start), p=got/goal;
+  return {mis:list[stage], stage, prev:stage?list[stage-1]:null, last:stage===list.length-1, got, goal, need:Math.max(0,goal-got), p, done:p>=1};
 }
 function photoSVG(done=false){
   const k=INK;
@@ -817,6 +849,58 @@ function photoSVG(done=false){
     <path d="M8 20l3-6 3 6-6-3h6zM90 50l2.5-5 2.5 5-5-2.5h5z" fill="#ffd23f" stroke="${k}" stroke-width="1"/>`
        :`<path d="M22 92h56" stroke="#b9c3c9" stroke-width="2.5" stroke-dasharray="4 3"/><text x="50" y="87" text-anchor="middle" font-size="9" font-weight="900" fill="#9aa5ab">簽名處</text>`}
   </g></svg>`;
+}
+// 料理阿嬤：p 越高火越大、阿嬤越慌；done 時變成一鍋阿嬤肉醬（只剩髮髻和老花眼鏡漂在上面）
+function grannySVG(done=false, p=0){
+  const k=INK; p=Math.max(0,Math.min(1,p||0));
+  const fs=done?1.2:.45+p*1.15;               // 火的大小
+  const flame=(x,s)=>`<g transform="translate(${x} 104) scale(${s.toFixed(2)})"><path d="M0 0q-11-3-9-15q2-7 5-10q0 7 4 8q-1-10 6-17q0 11 7 16q4 6 0 13q-5 6-13 5z" fill="#ff7a1a" stroke="${k}" stroke-width="${(2.4/s).toFixed(2)}" stroke-linejoin="round"/><path d="M1-3q-5-2-3-8q2 2 4 1q0-5 3-7q1 6 3 8q1 5-7 6z" fill="#ffd23f"/></g>`;
+  const fire=`${p>.5||done?`<ellipse cx="50" cy="96" rx="${30+p*8}" ry="${8+p*6}" fill="#ffb02e" opacity="${(.15+p*.35).toFixed(2)}"/>`:''}
+    ${p>.65&&!done?flame(18,fs*.75)+flame(82,fs*.75):''}${flame(31,fs*.85)}${flame(50,fs)}${flame(69,fs*.85)}
+    <path d="M16 107h68" stroke="#5a3a22" stroke-width="5" stroke-linecap="round"/><path d="M26 104l8 3M44 104l-6 3M58 104l8 3M74 104l-6 3" stroke="#7a4a28" stroke-width="3" stroke-linecap="round"/>`;
+  const steam=(n)=>Array.from({length:n},(_,i)=>`<path d="M${24+i*17} ${done?30:28}q-5-6 0-11t0-11" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/>`).join('');
+  const pot=(fill)=>`<path d="M14 62h72l-5 30q-1 6-7 6H26q-6 0-7-6z" fill="${fill}" stroke="${k}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M14 66q-9 0-9 6t9 5M86 66q9 0 9 6t-9 5" fill="none" stroke="${k}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M24 76v14" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>`;
+  if (done) {
+    return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true">${fire}<g transform="translate(7.5 1) scale(.85)">${steam(4)}
+    ${pot('#9aa7b0')}
+    <ellipse cx="50" cy="62" rx="36" ry="9" fill="#b8321f" stroke="${k}" stroke-width="4"/>
+    <path d="M24 60q6-4 10 0t10 0M54 63q6-4 10 0t9-1" stroke="#7a1a0e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="30" cy="63" r="2.4" fill="#e8743a"/><circle cx="68" cy="59" r="2.2" fill="#e8743a"/><circle cx="47" cy="65" r="1.8" fill="#6aa84f"/>
+    <circle cx="42" cy="54" r="7" fill="#d9dde1" stroke="${k}" stroke-width="3"/><path d="M37 50l11 7" stroke="#c9a227" stroke-width="2.5"/>
+    <g transform="rotate(-12 62 58)"><circle cx="57" cy="58" r="5" fill="#fff" fill-opacity=".5" stroke="${k}" stroke-width="2.5"/><circle cx="69" cy="58" r="5" fill="#fff" fill-opacity=".5" stroke="${k}" stroke-width="2.5"/><path d="M62 58h2" stroke="${k}" stroke-width="2.5"/></g>
+    <rect x="26" y="78" width="48" height="14" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="50" y="89" text-anchor="middle" font-size="9.5" font-weight="900" fill="#b8321f">阿嬤肉醬</text></g>
+    <path d="M6 22l3-6 3 6-6-3h6zM88 14l2.5-5 2.5 5-5-2.5h5z" fill="#ffd23f" stroke="${k}" stroke-width="1"/></svg>`;
+  }
+  const shake=p>.6?`<animateTransform attributeName="transform" type="translate" values="0 0;-1.2 0;1.2 0;0 0" dur="${(0.5-p*.3).toFixed(2)}s" repeatCount="indefinite"/>`:'';
+  const face=p<.35?'#ffd9b0':p<.7?'#ffbf9a':'#ff9c80';
+  const sweat=Math.min(3,Math.floor(p*4));
+  const mouth=p<.35?`<path d="M45 46q5-3 10 0" stroke="${k}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+             :p<.7?`<ellipse cx="50" cy="46" rx="3.6" ry="3" fill="#7a1010" stroke="${k}" stroke-width="2"/>`
+             :`<ellipse cx="50" cy="47" rx="5" ry="5.5" fill="#7a1010" stroke="${k}" stroke-width="2.2"/>`;
+  const eyes=p<.7?`<circle cx="44" cy="38" r="1.9" fill="${k}"/><circle cx="56" cy="38" r="1.9" fill="${k}"/>`
+             :`<path d="M41.5 36l5 2.5-5 2.5M58.5 36l-5 2.5 5 2.5" stroke="${k}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<svg viewBox="0 0 100 110" width="100%" height="100%" aria-hidden="true">${fire}<g transform="translate(7.5 1) scale(.85)">
+  ${p>.45?steam(p>.75?4:2):''}
+  <g>${shake}
+    <path d="M38 32l-14-20M62 32l14-20" stroke="${k}" stroke-width="10" stroke-linecap="round"/><path d="M38 32l-14-20M62 32l14-20" stroke="#e85d8a" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="23" cy="10" r="5.5" fill="${face}" stroke="${k}" stroke-width="2.5"/><circle cx="77" cy="10" r="5.5" fill="${face}" stroke="${k}" stroke-width="2.5"/>
+    <path d="M35 64q0-18 15-18t15 18z" fill="#e85d8a" stroke="${k}" stroke-width="3"/><path d="M42 64v-10h16v10" fill="#fff" stroke="${k}" stroke-width="2.2"/>
+    <circle cx="50" cy="38" r="13" fill="${face}" stroke="${k}" stroke-width="3"/>
+    <path d="M37 36q1-12 13-12t13 12q-3-6-13-6t-13 6z" fill="#d9dde1" stroke="${k}" stroke-width="2.4"/>
+    <circle cx="50" cy="21" r="6" fill="#d9dde1" stroke="${k}" stroke-width="2.4"/><path d="M44 18l12 6" stroke="#c9a227" stroke-width="2.2"/>
+    ${eyes}
+    <circle cx="44" cy="38" r="4.6" fill="#fff" fill-opacity=".25" stroke="${k}" stroke-width="2"/><circle cx="56" cy="38" r="4.6" fill="#fff" fill-opacity=".25" stroke="${k}" stroke-width="2"/><path d="M48.6 38h2.8" stroke="${k}" stroke-width="2"/>
+    <circle cx="40" cy="44" r="2.6" fill="#ff6b6b" opacity=".55"/><circle cx="60" cy="44" r="2.6" fill="#ff6b6b" opacity=".55"/>
+    ${mouth}
+    ${[[66,30],[33,32],[68,42]].slice(0,sweat).map(([x,y])=>`<path d="M${x} ${y}q3 6 0 8q-3-2 0-8z" fill="#8fd3ff" stroke="${k}" stroke-width="1.6"/>`).join('')}
+  </g>
+  ${pot('#9aa7b0')}
+  <path d="M18 62h64" stroke="${k}" stroke-width="4"/>
+  ${p>.3?`<circle cx="30" cy="60" r="3" fill="#fff" stroke="${k}" stroke-width="1.5"/><circle cx="70" cy="59" r="${p>.7?4:2.5}" fill="#fff" stroke="${k}" stroke-width="1.5"/>`:''}</g>
+  ${p<.5?`<text x="3" y="52" font-size="9" font-weight="900" fill="${k}">投降～</text>`:`<text x="3" y="52" font-size="9" font-weight="900" fill="#d22">好燙！</text>`}
+  </svg>`;
 }
 function missionOfWeek(){ const w=Math.floor((parseYmd(weekStart())-new Date(2026,0,5))/604800000); return MISSIONS[((w%MISSIONS.length)+MISSIONS.length)%MISSIONS.length]; }
 
@@ -929,6 +1013,7 @@ function TH(){ return THEME_TXT[themeKey()]; }
 function rareInfo(so){ return so.rare ? (themeKey()==='boba' ? BOBA_RARE[so.rare] : RARE[so.rare]) : null; }
 
 const CUTE_ACC = {
+  band:k=>`<path d="M24 52q26-13 52 0" fill="none" stroke="${k}" stroke-width="9" stroke-linecap="round"/><path d="M24 52q26-13 52 0" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/><path d="M75 52q9-1 13-8M75 54q9 3 11 11" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`,
   hat:k=>`<path d="M30 37l20-10 20 10-20 10z" fill="${k}"/><path d="M66 39v11" stroke="#ffd23f" stroke-width="2.5"/><circle cx="66" cy="51" r="2.6" fill="#ffd23f"/>`,
   glasses:k=>`<g fill="rgba(255,255,255,.2)" stroke="${k}" stroke-width="3"><circle cx="37" cy="68" r="11"/><circle cx="63" cy="68" r="11"/></g><path d="M48 68h4" stroke="${k}" stroke-width="3"/>`,
   leaf:k=>`<path d="M50 35q-2-11 6-15" fill="none" stroke="${k}" stroke-width="3"/><path d="M55 21q12-11 21 0q-10 8-21 0z" fill="#8ff09a" stroke="${k}" stroke-width="2.5"/>`,
@@ -938,6 +1023,9 @@ const CUTE_ACC = {
   star:k=>`<path d="M68 26l3.4 6.8 7.5 1-5.5 5 1.4 7.4-6.8-3.6-6.8 3.6 1.4-7.4-5.5-5 7.5-1z" fill="#ffd23f" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
   crown:k=>`<path d="M37 37l3-11 6 6 4-9 4 9 6-6 3 11z" fill="#ffd23f" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>`,
   heart:k=>`<path d="M68 40c-6-4-10-8-10-12a5 5 0 0 1 10-2a5 5 0 0 1 10 2c0 4-4 8-10 12z" fill="#ff5f7a" stroke="${k}" stroke-width="2.5"/>`,
+  volleyball:k=>`<g transform="translate(85 98) rotate(-15)"><circle r="11" fill="#fff" stroke="${k}" stroke-width="2.9"/><path d="M-10.5-4q7 1 11-7q4 8 10 10" fill="#ffd23f" stroke="${k}" stroke-width="2.3" stroke-linejoin="round"/><path d="M-5.5 10q-2-8 6-13q2 7 9 8" fill="#7ad0ff" stroke="${k}" stroke-width="2.3" stroke-linejoin="round"/></g>`,
+  frisbee:k=>`<g transform="rotate(-15 50 30)"><ellipse cx="50" cy="30" rx="16" ry="5.5" fill="#7ad0ff" stroke="${k}" stroke-width="2.5"/><ellipse cx="50" cy="28.6" rx="9" ry="2.6" fill="none" stroke="${k}" stroke-width="2"/><path d="M40 27q4-2 8-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></g>`,
+  shades:k=>`<path d="M22 63h56" stroke="${k}" stroke-width="3" stroke-linecap="round"/><path d="M24 63h22q0 14-11 14q-11 0-11-14zM54 63h22q0 14-11 14q-11 0-11-14z" fill="#2a2140" stroke="${k}" stroke-width="2.6" stroke-linejoin="round"/><path d="M29 66l4 0-6 8M59 66l4 0-6 8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".85"/><g transform="translate(82 52) scale(1)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g><g transform="translate(18 56) scale(0.7)"><path d="M0-5l1.4 3.6 3.6 1.4-3.6 1.4-1.4 3.6-1.4-3.6-3.6-1.4 3.6-1.4z" fill="#fff" stroke="${k}" stroke-width="1.6" stroke-linejoin="round"/></g>`,
 };
 function isDark(hex){ if(!/^#[0-9a-f]{6}$/i.test(hex||'')) return false; const n=parseInt(hex.slice(1),16); return ((n>>16)*.299+((n>>8)&255)*.587+(n&255)*.114)<110; }
 function pearlSVG(so,{lock=false}={}){
@@ -1417,6 +1505,7 @@ function doRender(){
   tickTimer();
   scheduleGuestPublish();
   setTimeout(checkIncoming, 600);
+  setTimeout(checkReplies, 900);
   setTimeout(checkDaily, 1200);
   if (S.group && S.gid && S.me && S.group.owner===S.me.uid) ensureDir(S.gid,{...S.group}).catch(e=>console.warn('dir',e));
 }
@@ -1545,6 +1634,7 @@ function viewToday(){
     <div class="small" style="margin-top:12px;font-weight:700">今日目標 ${Math.min(st.todayTom,goal)}／${goal} ${TH().cnt}・已讀 ${fmtMin(st.todayMin)}</div>
     <div class="goal">${Array.from({length:Math.max(goal,st.todayTom)},(_,i)=>`<span>${themeKey()==='boba'?pearlIcon(i<st.todayTom):tomatoIcon(i<st.todayTom)}</span>`).join('')}</div>
   </div>
+  ${weekendCard()}
   ${newsCard()}
   <div class="card">
     <div class="row between"><h2>今天的任務</h2><span class="small" style="font-weight:700">${fmtDate(today)}</span></div>
@@ -1648,8 +1738,36 @@ function showIncoming(id){
     <div class="big">${esc(g.name)}</div><p style="font-weight:700;margin:6px 0">${esc(g.d||'')}</p>
     ${x.msg?`<div class="say" style="margin:8px 0">「${esc(x.msg)}」<br><span class="tiny">— ${esc(from)}</span></div>`:`<p class="small">— ${esc(from)} 送的</p>`}
     <p class="small" style="font-weight:700;margin:10px 0 6px">回應一下：</p>
+    <input type="text" id="giftReply" maxlength="${REPLY_MAX}" placeholder="回一句話給${esc(from)}（可不寫，${REPLY_MAX} 字內）" style="margin-bottom:8px">
     <div class="row" style="gap:8px">${REACTS.map(([v,ic,l])=>`<button class="btn ghost grow" data-a="giftReact" data-id="${esc(x.id)}" data-v="${v}">${ic} ${l}</button>`).join('')}</div></div>`);
 }
+// 已經打開、但還沒回覆的禮物，可以從禮物動態補回一句話
+function openReply(id){
+  const x=(S.sends||[]).find(s=>s.id===id); if(!x || x.to!==S.me.uid || x.reply) return;
+  const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}, from=(S.members[x.from]||{}).name||'隊友';
+  openModal(`<h2>回覆 ${esc(from)}</h2><p class="small" style="margin:4px 0 0">謝謝 ${esc(from)} 送的 ${g.ic} ${esc(g.name)}。只能回一次，${REPLY_MAX} 字以內。</p>
+    <input type="text" id="giftReply" maxlength="${REPLY_MAX}" placeholder="例如：謝啦！數學加油" style="margin-top:10px">
+    <button class="btn red block" style="margin-top:12px" data-a="giftReplyGo" data-id="${esc(x.id)}">送出回覆</button>
+    <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
+  setTimeout(()=>$('#giftReply')?.focus(),50);
+}
+// 送禮的人：對方回覆了，跳出來給他看一次
+const replyKey = () => `tg-replies:${S.me?.uid}:${S.gid}`;
+function checkReplies(){
+  if (!S.me || !S.gid || S.guest || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  const seen=[].concat(lsGet(replyKey(),[])||[]);
+  const x=(S.sends||[]).filter(x=>x.from===S.me.uid && x.reply && !seen.includes(x.id)).sort((a,b)=>a.ts-b.ts)[0];
+  if (!x) return;
+  lsSet(replyKey(), [...seen, x.id].slice(-50));
+  const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}, to=(S.members[x.to]||{}).name||'隊友', re=REACTS.find(r=>r[0]===x.re);
+  openModal(`<div class="celebrate"><div class="pop" style="font-size:4rem;line-height:1.1">💌</div>
+    <div class="big">${esc(to)} 回覆你了！</div><p class="small" style="font-weight:700;margin:4px 0">你送的 ${g.ic} ${esc(g.name)}${re?`，${esc(to)} 按了 ${re[1]}`:''}</p>
+    <div class="say" style="margin:8px 0">「${esc(x.reply)}」<br><span class="tiny">— ${esc(to)}</span></div>
+    <button class="btn red block" style="margin-top:10px" data-a="closeModal">好</button></div>`);
+}
+const REPLY_MAX = 10;
+// 回覆最多 10 個字（emoji 這類算 2 格的字，切的時候不要切壞）
+function cutReply(t){ let out=''; for (const ch of String(t||'').trim()) { if ((out+ch).length>REPLY_MAX) break; out+=ch; } return out; }
 // ---------- 每日活動提醒：每天第一次打開讀書社時跳出，挑 2～3 則 ----------
 // 想加新的提醒（例如「今日班級新鮮事」），在 DAILY_TIPS 加一筆就好：
 //   id    唯一名稱
@@ -1659,7 +1777,11 @@ function showIncoming(id){
 // 動作可以用 dailyGo（切到某個分頁，參數是 today/tasks/garden/friends/settings），或任何現有的 data-a。
 function groupWeekTom(){ const ws=weekStart(); let n=0; (S.group?.members||[]).forEach(u=>{ const dt=(S.members[u]||{}).dt||{}; for(let i=0;i<7;i++) n+=dt[addDays(ws,i)]||0; }); return n; }
 function missionHp(){ const n=(S.group?.members||[]).filter(u=>S.members[u]).length; return n>=4 ? 67 : Math.max(17, n*17); }
+const isWeekend = (d=new Date()) => d.getDay()===0 || d.getDay()===6;
+const hasSport = () => subjNames().includes(SPORT.name);
 const DAILY_TIPS = [
+  {id:'weekend-run', pri:0, show:()=>isWeekend(),
+    make:()=>({ic:'🏃', title:'適逢週末，去跑一跑吧！', text:hasSport()?'運動跟讀書一樣重要。選「運動」按開始，跑完回來一樣算一個番茄鐘，還會種出動滋兵。':'運動跟讀書一樣重要。讀累了就出去跑一跑，回來腦袋更清楚。', btn:hasSport()?['去運動','sportGo']:null})},
   {id:'firstChar', pri:5,
     show:()=>!hasOwnChar(S.me.uid),
     make:()=>({ic:'🎨', title:'你還沒有自己的角色', text:`花一分鐘設計一個，大家讀書時就有機會${themeKey()==='boba'?'搖到':'種出'}它。`, btn:['去設計','charNew']})},
@@ -1705,7 +1827,7 @@ function giftFeedHTML(){
   return `<div class="card"><div class="row between"><h2>禮物動態</h2><button class="btn ${done?'ghost':'yellow'} sm" data-a="sendOpen">${done?'今天送過了':'🎁 送禮物'}</button></div>
     <p class="small" style="margin:4px 0 6px">空投拿到的寶物可以送給隊友，一天限送一個。</p>
     ${list.length?list.map(x=>{ const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}; const re=REACTS.find(r=>r[0]===x.re);
-      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span></div>`; }).join('')
+      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}${x.reply?`<br>💬 ${esc(nm(x.to))} 回覆：「${esc(x.reply)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span>${x.to===S.me.uid && x.seen && !x.reply?`<button class="btn ghost sm" style="flex:none" data-a="giftReplyOpen" data-id="${esc(x.id)}">回覆</button>`:''}</div>`; }).join('')
       :'<p class="small">還沒有人送過禮物。當第一個吧！</p>'}
   </div>`;
 }
@@ -1800,8 +1922,8 @@ function charCard(){
   </div>`;
 }
 function openCharDesigner(){
-  const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):ACC_KEYS;
-  const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶'};
+  const bb=themeKey()==='boba', accs=bb?Object.keys(CUTE_ACC):[...ACC_KEYS,...EXTRA_ACC];
+  const ACC_LABEL={hat:'帽子',glasses:'眼鏡',leaf:'葉子',flag:'旗子',bow:'蝴蝶結',note:'音符',star:'星星',crown:'皇冠',heart:'愛心',phones:'耳機',goggles:'護目鏡',tie:'領帶',volleyball:'排球',frisbee:'飛盤',shades:'閃亮墨鏡'};
   S.draft={name:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],acc:'',skill:'',quote:''};
   openModal(`<h2>設計我的角色</h2>
     <div id="cd_prev" style="width:130px;height:130px;margin:6px auto">${soldierSVG({subject:'其他',seed:7,custom:S.draft})}</div>
@@ -1829,8 +1951,9 @@ function viewFriends(){
   rows.forEach(({m})=>{ for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0; });
   const hp=rows.length>=4 ? 67 : Math.max(17, rows.length*17);
   const W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done;
-  const bossLeft = 18 + (1-p)*62;
-  const carriers = Math.min(7, Math.max(0,W.got));
+  // stay：任務角色站在原地（進度用畫面本身表現），番茄兵在旁邊加油
+  const bossLeft = mis.stay ? 38 : 18 + (1-p)*62;
+  const carriers = Math.min(mis.stay?4:7, Math.max(0,W.got));
   const daysLeft = 7-((new Date().getDay()+6)%7);
   return `
   <div class="card">
@@ -1841,12 +1964,12 @@ function viewFriends(){
     <div class="quest">
       <div class="trail"></div>
       <div class="base">${baseSVG()}</div>
-      <div class="boss" style="left:${bossLeft}%">${mis.art(done)}</div>
-      ${carriers?`<div class="carry" style="left:calc(${bossLeft}% + 4px)">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
+      <div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div>
+      ${carriers?`<div class="carry" style="left:calc(${bossLeft}% + ${mis.stay?100:4}px)">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
       ${weekTom===67?`<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%)"><span class="six7" style="font-size:1.6rem">6 7 !</span></div>`:''}
     </div>
-    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${hp}</b></div>
-    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${W.last?'本週任務全破，下週一再來！':''}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${hp===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
+    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${W.goal}</b></div>
+    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${W.last?'本週任務全破，下週一再來！':''}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${W.goal===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
     <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}・提早破關會出現加碼任務</p>
   </div>
   ${giftFeedHTML()}
@@ -1933,7 +2056,7 @@ function viewGuest(){
   const isToday = d.updatedAt && ymd(new Date(d.updatedAt))===ymd();
   const todayMin=isToday?d.todayMin:0, todayTom=isToday?d.todayTom:0;
   const live=(d.lives||[]).filter(x=>x.endsAt>now);
-  const hp=d.n>=4?67:Math.max(17,d.n*17), W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done, bossLeft=18+(1-p)*62;
+  const hp=d.n>=4?67:Math.max(17,d.n*17), W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done, bossLeft=mis.stay?38:18+(1-p)*62;
   const ago=d.updatedAt?Math.round((now-d.updatedAt)/60000):null;
   return `
   <div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>${esc(d.name)}</div><span class="tag">👀 訪客參觀中</span></div>
@@ -1946,11 +2069,11 @@ function viewGuest(){
     ${d.examName?`<p class="small" style="margin:8px 0 0;font-weight:700">目標：${esc(d.examName)}${d.examDate?`（${esc(d.examDate)}）`:''}</p>`:''}
   </div>
   <div class="card">
-    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">${W.got}/${hp}</span></div>
+    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">${W.got}/${W.goal}</span></div>
     ${W.prev?`<p class="small" style="margin:2px 0 0;font-weight:700">✅ 已破關：${esc(W.prev.title)}</p>`:''}
     <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${W.stage?'🎁 加碼任務：':''}${esc(mis.title)}</div>
     <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
-    <div class="quest"><div class="trail"></div><div class="base">${baseSVG()}</div><div class="boss" style="left:${bossLeft}%">${mis.art(done)}</div></div>
+    <div class="quest"><div class="trail"></div><div class="base">${baseSVG()}</div><div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div></div>
     <div class="bar" style="margin-top:8px"><i style="width:${p*100}%;background:var(--tomato)"></i></div>
     <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}`:`全團再 ${W.need} ${U}${T_.unit}就成功！`}</p>
   </div>
@@ -2261,14 +2384,15 @@ document.addEventListener('click', async e=>{
         const old=list[+idx].name; list[+idx]=item;
         if (old!==name) { const ts=S.tasks.filter(t=>t.subject===old); for(const t of ts) await S.api.updateTask(S.gid,t.id,{subject:name}); }
       }
-      await S.api.updateGroup(S.gid,{subjects:list}); closeModal(); toast('科目已儲存'); break;
+      if (idx!=='new' && list[+idx]?.name!==SPORT.name && clubSubjects()[+idx]?.name===SPORT.name) list.push({name:SPORT.name, off:true});
+      await S.api.updateGroup(S.gid,{subjects:subjWrite(list)}); closeModal(); toast('科目已儲存'); break;
     }
     case 'subjDel': { if(!isLeader()) return toast('只有團長可以修改科目');
       const i=+el.dataset.v, x=clubSubjects()[i], n=S.tasks.filter(t=>t.subject===x.name).length;
       confirmBox(`刪除「${esc(x.name)}」？${n?`<br><span class="small">已經有 ${n} 個任務用這科，任務會保留，只是科目選單裡不會再出現。</span>`:''}`,'subjDelOk',`data-v="${i}"`); break;
     }
-    case 'subjDelOk': { if(!isLeader()) return toast('只有團長可以修改科目'); const list=clubSubjects().filter((_,i)=>i!==+el.dataset.v); if(!list.length) return toast('至少要留一科'); await S.api.updateGroup(S.gid,{subjects:list}); closeModal(); toast('已刪除'); break; }
-    case 'subjUp': { if(!isLeader()) return toast('只有團長可以修改科目'); const i=+el.dataset.v; if(!i) break; const list=clubSubjects().map(x=>({...x})); [list[i-1],list[i]]=[list[i],list[i-1]]; await S.api.updateGroup(S.gid,{subjects:list}); break; }
+    case 'subjDelOk': { if(!isLeader()) return toast('只有團長可以修改科目'); const gone=clubSubjects()[+el.dataset.v], list=clubSubjects().filter((_,i)=>i!==+el.dataset.v); if(!list.length) return toast('至少要留一科'); if(gone?.name===SPORT.name) list.push({name:SPORT.name, off:true}); await S.api.updateGroup(S.gid,{subjects:subjWrite(list)}); closeModal(); toast('已刪除'); break; }
+    case 'subjUp': { if(!isLeader()) return toast('只有團長可以修改科目'); const i=+el.dataset.v; if(!i) break; const list=clubSubjects().map(x=>({...x})); [list[i-1],list[i]]=[list[i],list[i-1]]; await S.api.updateGroup(S.gid,{subjects:subjWrite(list)}); break; }
     case 'revealGift': revealGift(id, el.dataset.task||''); break;
     case 'giftInfo': { const g=giftDisp(GIFTS.find(x=>x.id===el.dataset.v)); const own=el.classList.contains('off')?0:1;
       if (own && giftable(g)) { openModal(`<div class="celebrate"><div style="font-size:4rem">${g.ic}</div><span class="rar r-${g.rar}">${g.cat?GIFT_CAT[g.cat]:g.rar}</span><div class="big">${esc(g.name)}</div><p style="font-weight:700">${esc(g.d)}</p>
@@ -2286,7 +2410,13 @@ document.addEventListener('click', async e=>{
       try { await S.api.sendGift(S.gid,{from:S.me.uid,to:sel.to,item:sel.item,msg,date:ymd(),ts:Date.now()}); closeModal(); toast(`送給 ${to} 了！`); }
       catch(e){ console.error(e); toast(e.code==='permission-denied'?'今天已經送過了，明天再來':'送出失敗：'+(e.message||e.code)); } break; }
     case 'giftOpenIn': showIncoming(id); break;
-    case 'giftReact': { const v=el.dataset.v; closeModal(); await S.api.reactGift(S.gid,id,{seen:true,re:v}).catch(e=>console.warn(e)); toast(v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); break; }
+    case 'giftReact': { const v=el.dataset.v, reply=cutReply(val('giftReply')); closeModal();
+      try { await S.api.reactGift(S.gid,id,{seen:true,re:v,...(reply?{reply}:{})}); } catch(e){ console.warn(e); if(reply) toast('回覆沒送出去，可以在禮物動態再回一次'); break; }
+      toast(reply?'回覆送出了！':v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); break; }
+    case 'giftReplyOpen': openReply(id); break;
+    case 'giftReplyGo': { const reply=cutReply(val('giftReply')); if(!reply) return toast('先寫一句話');
+      try { await S.api.reactGift(S.gid,id,{reply}); closeModal(); toast('回覆送出了！'); }
+      catch(e){ console.error(e); toast(e.code==='permission-denied'?'這個禮物已經回覆過了':'送出失敗：'+(e.message||e.code)); } break; }
     case 'soldier': { const so=myArmy().find(x=>x.id===id); if(so) soldierCard(so); break; }
     case 'signin': try{ await S.api.signIn(); }catch(err){ console.error(err); toast(err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':err.code==='auth/unauthorized-domain'?'這個網址還沒加到 Firebase 授權網域（見 SETUP.md）':'登入失敗：'+(err.code||err.message)); } break;
     case 'signout':
@@ -2322,6 +2452,8 @@ document.addEventListener('click', async e=>{
         if (S.gid) await S.api.setMember(S.gid,S.me.uid,{photo:r.photo||''}).catch(()=>{});
         toast('綁定成功！之後換手機用這個 Google 帳號登入就好'); render();
       } catch(err){ console.error(err); toast(err.code==='auth/credential-already-in-use'?'這個 Google 帳號已經在番茄園用過了，不能再綁定':err.code==='auth/popup-blocked'?'彈出視窗被擋住了，請允許後再試':'綁定失敗：'+(err.code||err.message)); } break;
+    case 'sportGo': { closeModal(); S.view='today'; history.replaceState(null,'','#today'); render(); window.scrollTo(0,0);
+      const sel=$('#tsubj'); if (sel && [...sel.options].some(o=>o.value===SPORT.name)) { sel.value=SPORT.name; const tk=$('#ttask'); if(tk) tk.value=''; } break; }
     case 'dailyGo': closeModal(); S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'go': S.view=el.dataset.v; history.replaceState(null,'','#'+S.view); render(); window.scrollTo(0,0); break;
     case 'join': { const c=val('joincode'); if(c.length!==6) return toast('邀請碼是 6 個字'); await doJoin(c); break; }

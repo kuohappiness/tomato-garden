@@ -112,7 +112,8 @@ service cloud.firestore {
         allow delete: if isMember(gid) && (resource.data.by == me() || groupData(gid).owner == me());
       }
 
-      // 送寶物給隊友：文件編號是「自己的 uid_日期」，所以每人每天只能送一個；收禮的人只能標記已讀和回應
+      // 送寶物給隊友：文件編號是「自己的 uid_日期」，所以每人每天只能送一個；
+      // 收禮的人只能標記已讀、回應，和回覆一句話（reply，10 字以內，只能回一次）
       match /sends/{sid} {
         allow read: if isMember(gid);
         allow create: if isMember(gid) && request.resource.data.from == me()
@@ -120,7 +121,11 @@ service cloud.firestore {
           && request.resource.data.to in groupData(gid).members && request.resource.data.to != me()
           && request.resource.data.msg is string && request.resource.data.msg.size() <= 30
           && request.resource.data.keys().hasOnly(['from','to','item','msg','date','ts']);
-        allow update: if isMember(gid) && resource.data.to == me() && onlyChanged(['seen','re']);
+        allow update: if isMember(gid) && resource.data.to == me() && onlyChanged(['seen','re','reply'])
+          && (!('reply' in request.resource.data)
+              || ('reply' in resource.data && request.resource.data.reply == resource.data.reply)
+              || (!('reply' in resource.data) && request.resource.data.reply is string
+                  && request.resource.data.reply.size() >= 1 && request.resource.data.reply.size() <= 10));
       }
 
       // 每一次番茄鐘紀錄
