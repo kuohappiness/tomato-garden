@@ -2800,11 +2800,12 @@ const OATH_TEXTS = [
    threat:'⚠️ 欺騙神明，番茄醬會從天而降，<b>淹沒你的考卷</b>，黑白無常還會在旁邊拍照。', end:'六～七！（雙手上下晃）'},
 ];
 function oathText(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').getTime()/86400000); return OATH_TEXTS[((n%OATH_TEXTS.length)+OATH_TEXTS.length)%OATH_TEXTS.length]; }
+const OATH_FROM = '2026-11-23';   // 從這天（手機日期）開始要念誓言
 const OATH_SEC = 6.7;   // 念完才能按：6.7 秒
 function oathGod(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').getTime()/86400000); return OATH_GODS[((n%OATH_GODS.length)+OATH_GODS.length)%OATH_GODS.length]; }
 const oathKey = () => `tg-oath-${S.gid}-${S.me?.uid}-${ymd()}`;
 // 只有番茄兵主題要念；今天已經有番茄、已經念過、訪客都不用
-function needOath(){ return !!S.me && !!S.gid && !S.guest && themeKey()==='tomato' && !memberStats(S.me.uid).todayTom && !lsGet(oathKey()); }
+function needOath(){ return ymd()>=OATH_FROM && !!S.me && !!S.gid && !S.guest && themeKey()==='tomato' && !memberStats(S.me.uid).todayTom && !lsGet(oathKey()); }
 
 // 黑白無常（Q 版）：白無常高帽「認真有番茄」、黑無常高帽「偷玩番茄爛」
 function wuchangSVG(white){
