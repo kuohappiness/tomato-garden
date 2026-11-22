@@ -201,6 +201,8 @@ details summary::-webkit-details-marker{display:none}
 .oath .big{font-size:1.2rem;font-weight:900;margin:4px 0 8px}
 .oath-text{background:#fffbea;border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;font-weight:700;line-height:1.65;font-size:1.02rem}
 .oath-text p{margin:0}
+.oath-text .threat{margin-top:6px;background:#2a2140;color:#fff;border-radius:10px;padding:4px 8px;font-size:.92rem}
+.oath-text .threat b{color:#ffd23f}
 .oath-text .g-line{margin-top:6px;color:#b5341f}
 .oath-text .six7-line{font-family:"Bungee",sans-serif,system-ui;font-size:1.1rem;margin-top:4px}
 @keyframes sx{from{transform:translateY(-7px)}to{transform:translateY(7px)}}
@@ -2775,6 +2777,29 @@ const OATH_GODS = [
   {id:'kongzi',  name:'至聖先師孔子', call:'孔子老師', line:'學而時習之，不亦說乎；偷玩被抓，不亦慘乎。'},
   {id:'six7',    name:'六七大帝',   call:'六七大帝',   line:'六七大帝說：雙手上下晃可以，眼睛上下飄不行。'},
 ];
+// 誓言本文：6 種版本每天換一種，6 天一輪；跟 9 位神明錯開，所以「神明＋誓言」的組合大約 18 天才重複。
+// threat：偶爾來一句恐怖（但好笑）的警告，有些天沒有。
+const OATH_TEXTS = [
+  {head:'今天種番茄前鄭重發誓：',
+   lines:['番茄鐘開著的時候，我是<b>真的在讀書</b>，','不是偷偷跑去滑手機、看影片、打電動。','如果我騙人，願拿<b>下次段考分數</b>當賭注，','我種的番茄全部爛掉，變成番茄醬。'],
+   threat:'', end:'六～七！（雙手上下晃）'},
+  {head:'在此對天發誓：',
+   lines:['這顆番茄的時間裡，我的眼睛只看課本，','手只拿筆，不拿手機。','我拿<b>下次段考分數</b>押在這裡，','說到做到，不打折扣。'],
+   threat:'⚠️ 欺騙神明的人，番茄會爛成一灘番茄汁，<b>淹沒你的考卷</b>，連名字都看不清楚。', end:'六～七！（雙手上下晃）'},
+  {head:'今天要誠實面對自己：',
+   lines:['讀書就是讀書，休息就是休息，','番茄鐘不是用來掛機的。','我用<b>下次段考成績</b>保證，','今天的每一顆番茄都是真的。'],
+   threat:'', end:'番茄真的，我也是真的！六～七！'},
+  {head:'鄭重宣誓，請各位見證：',
+   lines:['我不會把番茄鐘開著，人跑去玩，','也不會一邊讀書一邊偷看影片。','要是我做不到，<b>下次段考分數</b>任憑處置，','番茄爛光光，我也認了。'],
+   threat:'⚠️ 偷玩的人，爛番茄會在半夜爬到你的書包裡，把考卷染成紅色，<b>老師改不出分數</b>。', end:'六～七！（雙手上下晃）'},
+  {head:'現在對自己的良心發誓：',
+   lines:['我知道段考快到了，','我知道該讀的還沒讀完，','所以接下來，<b>我是認真的</b>。','<b>段考分數</b>就是我的賭注。'],
+   threat:'', end:'良心在看，神明也在看！六～七！'},
+  {head:'今天開工前發誓：',
+   lines:['番茄鐘響之前，我不離開座位，','不偷開遊戲，不偷滑短影片。','如果我說謊，<b>下次段考分數</b>自動扣 6.7 分，','番茄全部爛掉變番茄醬。'],
+   threat:'⚠️ 欺騙神明，番茄醬會從天而降，<b>淹沒你的考卷</b>，黑白無常還會在旁邊拍照。', end:'六～七！（雙手上下晃）'},
+];
+function oathText(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').getTime()/86400000); return OATH_TEXTS[((n%OATH_TEXTS.length)+OATH_TEXTS.length)%OATH_TEXTS.length]; }
 const OATH_SEC = 6.7;   // 念完才能按：6.7 秒
 function oathGod(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').getTime()/86400000); return OATH_GODS[((n%OATH_GODS.length)+OATH_GODS.length)%OATH_GODS.length]; }
 const oathKey = () => `tg-oath-${S.gid}-${S.me?.uid}-${ymd()}`;
@@ -2833,7 +2858,7 @@ function godSVG(id){
   return `<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">${P[id]||P.tudi}</svg>`;
 }
 function showOath(subject, taskId){
-  const g=oathGod(), nm=esc(myName());
+  const g=oathGod(), v=oathText(), nm=esc(myName());
   S.oathPending={subject, taskId:taskId||''};
   openModal(`<div class="oath">
     <div class="oath-top">今日監督：<b>${esc(g.name)}</b></div>
@@ -2841,13 +2866,11 @@ function showOath(subject, taskId){
     <div class="big">種第一顆番茄前，大聲念出來</div>
     <div class="oath-text">
       <p>${esc(g.call)}在上，黑白無常作證，</p>
-      <p>我${nm==='我'?'':` <b>${nm}</b>`}，今天種番茄前鄭重發誓：</p>
-      <p>番茄鐘開著的時候，我是<b>真的在讀書</b>，</p>
-      <p>不是偷偷跑去滑手機、看影片、打電動。</p>
-      <p>如果我騙人，願拿<b>下次段考分數</b>當賭注，</p>
-      <p>我種的番茄全部爛掉，變成番茄醬。</p>
+      <p>我${nm==='我'?'':` <b>${nm}</b>`}，${v.head}</p>
+      ${v.lines.map(l=>`<p>${l}</p>`).join('')}
+      ${v.threat?`<p class="threat">${v.threat}</p>`:''}
       <p class="g-line">${esc(g.line)}</p>
-      <p class="six7-line">六～七！（雙手上下晃）</p>
+      <p class="six7-line">${v.end}</p>
     </div>
     <p class="small muted" style="margin:6px 0 10px">番茄只騙得了別人，騙不了自己。真誠面對自己，番茄才會長出來。</p>
     <button class="btn red big block" id="oathGo" data-a="oathGo" disabled>念完才能按（${OATH_SEC.toFixed(1)}）</button>
