@@ -842,6 +842,9 @@ function newsCard(){
 //   BOT_UNTIL 之前：平日晚上 7～9 點、假日早上 8 點起有讀書／運動動態，也會送禮、每週設計新角色
 //   每天晚上 8:30 起陸續去洗澡、睡覺（這個沒有期限）
 const BOT_UNTIL = '2027-01-16';
+// 送禮給夥伴、見面禮、只按表情夥伴也回：從這天起（台灣時間）開始
+const BOT_GIFT2_FROM = '2026-11-23';
+const botGift2 = (now=Date.now()) => ymd(new Date(now)) >= BOT_GIFT2_FROM;
 const BOT_GENERIC = {
   study:['正在讀{s}'], sport:['去運動了'], fun:['出去玩一下'], bath:['去洗澡了'], sleep:['睡覺了，晚安'],
   gift:['送你，讀書加油！'], back:['收到你的回覆了，好開心！'],
@@ -1021,7 +1024,7 @@ function botSends(now){
   const mine=(S.rawMembers?.[me]||{}).botg||{}, today=ymd(new Date(now));
   const pool=GIFTS.filter(g=>giftable(g) && g.w>0 && !g.ev);
   joinedBots(now).forEach(b=>{
-    const r=rng(hash('botgift'+b.id)); let d=b.join, first=true;
+    const r=rng(hash('botgift'+b.id)); const welcome=b.join>=BOT_GIFT2_FROM; let d=welcome?b.join:addDays(b.join, 1+Math.floor(r()*2)), first=welcome;
     while (d < BOT_UNTIL && d <= today) {
       const rr=rng(hash('botgift'+b.id+d)), dow=parseYmd(d).getDay(), wk=dow===0||dow===6;
       const ts=first ? botJoinTs(b)+(40+Math.floor(rr()*60))*60000 : atMin(d, wk ? 9*60+Math.floor(rr()*8*60) : 19*60+Math.floor(rr()*100));
@@ -1029,7 +1032,7 @@ function botSends(now){
       if (ts<=now) { const id=`bot_${b.id}_${d}`, st=mine[id]||{};
         out.push({id, bot:b.id, from:botUid(b), to:me, item:item.id, msg, date:d, ts,
           // 兩天以前的禮物就不跳出來了（直接放進寶物箱和禮物動態）
-          seen: !!st.seen || ts<now-2*86400000, ...(st.re?{re:st.re}:{}), ...(st.reply?{reply:st.reply}:{}), ...(st.re||st.reply?{back:botBack(id,st)}:{})}); }
+          seen: !!st.seen || ts<now-2*86400000, ...(st.re?{re:st.re}:{}), ...(st.reply?{reply:st.reply}:{}), ...(st.reply||(st.re&&botGift2(now))?{back:botBack(id,st)}:{})}); }
       d = addDays(d, (first?3:4)+Math.floor(r()*3)); first=false;
     }
   });
@@ -1098,7 +1101,7 @@ async function botReact(id, d){
 const reactGift = (id, d) => String(id).startsWith('bot_') ? botReact(id,d) : S.api.reactGift(S.gid,id,d);
 function showBotBack(id, re=''){
   const b=BOTS.find(x=>String(id).startsWith(`bot_${x.id}_`)); if (!b) return;
-  setTimeout(()=>{ if ($('#modal-root').innerHTML) return; const back=(S.sends||[]).find(s=>s.id===id)?.back || botBack(id,{re});
+  setTimeout(()=>{ if ($('#modal-root').innerHTML) return; if (re && !botGift2() && !(S.sends||[]).find(s=>s.id===id)?.reply) return; const back=(S.sends||[]).find(s=>s.id===id)?.back || botBack(id,{re});
     openModal(`<div class="celebrate"><div class="pop" style="font-size:3.6rem;line-height:1.2">${b.ic}</div>
       <div class="big">${esc(b.name)} 回你了！</div><div class="say" style="margin:8px 0">「${esc(back)}」</div>
       <button class="btn red block" style="margin-top:6px" data-a="closeModal">好</button></div>`); }, 700);
@@ -2278,7 +2281,7 @@ const sentToday = () => (S.sends||[]).some(x=>x.from===S.me.uid && x.date===ymd(
 function openSend(pre=''){
   if (sentToday()) return toast('今天已經送過了，明天再來');
   const inv=giftInv(), items=GIFTS.filter(g=>giftable(g) && (inv[g.id]||0)>0);
-  const mates=[...(S.group.members||[]).filter(u=>u!==S.me.uid && S.members[u]), ...(isBoba()?joinedBots().map(botUid):[])];
+  const mates=[...(S.group.members||[]).filter(u=>u!==S.me.uid && S.members[u]), ...(isBoba()&&botGift2()?joinedBots().map(botUid):[])];
   if (!items.length) return toast('寶物箱裡還沒有可以送的東西');
   if (!mates.length) return toast('讀書社裡還沒有其他隊友');
   S.sendSel={item:items.some(g=>g.id===pre)?pre:'', to:''};
@@ -2287,7 +2290,7 @@ function openSend(pre=''){
     <div class="giftbox" id="sendItems">${items.map(g=>`<button class="g ${g.id===S.sendSel.item?'on':''}" data-a="sendPick" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900"><span class="n">×${inv[g.id]}</span><span class="ic">${g.ic}</span>${esc(g.name)}</button>`).join('')}</div>
     <label class="f">送給誰</label>
     <div class="row wrap" id="sendTo" style="gap:6px">${mates.map(u=>`<button class="pill" data-a="sendTo" data-v="${esc(u)}">${botOf(u)?botOf(u).ic+' ':''}${esc(S.members[u].name||'同學')}</button>`).join('')}</div>
-    ${isBoba()&&joinedBots().length?'<p class="tiny" style="margin:6px 0 0">🧋 也可以送給珍珠夥伴，他們會回你一句話（睡著的話，明天早上才會回）。</p>':''}
+    ${isBoba()&&botGift2()&&joinedBots().length?'<p class="tiny" style="margin:6px 0 0">🧋 也可以送給珍珠夥伴，他們會回你一句話（睡著的話，明天早上才會回）。</p>':''}
     <label class="f">附上一句話（可不寫，30 字內）</label><input type="text" id="sendMsg" maxlength="30" placeholder="例如：送你一罐屁，數學加油">
     <button class="btn red block" style="margin-top:12px" data-a="sendGo">送出！</button>
     <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
