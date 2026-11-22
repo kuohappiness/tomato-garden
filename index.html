@@ -856,9 +856,14 @@ function newsCard(){
 //   BOT_UNTIL 之前：平日晚上 7～9 點、假日早上 8 點起有讀書／運動動態，也會送禮、每週設計新角色
 //   每天晚上 8:30 起陸續去洗澡、睡覺（這個沒有期限）
 const BOT_UNTIL = '2027-01-16';
+// 送禮給夥伴、見面禮、只按表情夥伴也回：從這天起（台灣時間）開始
+const BOT_GIFT2_FROM = '2026-11-23';
+const botGift2 = (now=Date.now()) => ymd(new Date(now)) >= BOT_GIFT2_FROM;
 const BOT_GENERIC = {
   study:['正在讀{s}'], sport:['去運動了'], fun:['出去玩一下'], bath:['去洗澡了'], sleep:['睡覺了，晚安'],
   gift:['送你，讀書加油！'], back:['收到你的回覆了，好開心！'],
+  eww:['什麼！噁心？那是我的寶貝欸','好啦，下次送你香一點的','噁心也是一種心意（硬拗）'],
+  got:{love:['謝謝你的{g}！'], gross:['{g}？……謝謝喔'], odd:['{g}？好特別，謝謝'] },
 };
 const BOT_IC = {study:'📖', sport:'🏃', fun:'🧋', bath:'🛁', sleep:'😴'};
 const BOTS = [
@@ -868,7 +873,8 @@ const BOTS = [
         sport:['去池塘游泳，游了 67 圈','在公園追鴿子（他說這是運動）'], fun:['去買全糖珍奶，排隊排到睡著'],
         bath:['去洗澡了，在浴缸裡游自由式','洗澡中，把小黃鴨當成弟弟'], sleep:['抱著吸管睡著了，呱……zzz','睡覺了，夢到全糖珍奶'],
         gift:['呱！這是我在池塘撿到的，送你','送你！不要問我為什麼濕濕的','全糖的祝福送給你，讀書加油呱'],
-        back:['呱！收到你的回覆，開心到游三圈','呱呱呱（翻譯：謝謝你）','我把你的回覆貼在池塘邊了']},
+        back:['呱！收到你的回覆，開心到游三圈','呱呱呱（翻譯：謝謝你）','我把你的回覆貼在池塘邊了'],
+        got:{love:["呱！{g}！我要把它藏在翅膀底下", "謝謝你！我開心到在池塘游了 67 圈"],gross:["呱？{g}？……我先拿去池塘洗一洗", "這個味道……好像我家池塘，好懷念呱"],odd:["{g}？我研究了十分鐘還是不知道怎麼用，呱", "我把{g}戴在頭上，整個池塘的鴨都在看我"]}},
    chars:[{name:'全糖鴨鴨',color:'#ffd23f',acc:'bow',skill:'喝一口全糖珍奶就會呱呱飛起來',quote:'糖度？當然全糖！'},
           {name:'游泳圈珍珠',color:'#7ad0ff',acc:'band',skill:'在奶茶裡游自由式',quote:'杯子就是我的游泳池'},
           {name:'呱呱學霸',color:'#ffb02e',acc:'glasses',skill:'背書背到一半會呱一聲',quote:'呱！這題會考！'}]},
@@ -878,7 +884,8 @@ const BOTS = [
         sport:['去水湳公園跳土風舞','在市場來回走了一萬步（買菜）'], fun:['在廚房煮一大鍋珍珠，說要給讀書的乖孫吃'],
         bath:['去洗澡了，叫大家也快去洗','洗澡中，順便唱了一首老歌'], sleep:['九點多就睡了，阿嬤說早睡才會長高','睡覺了，睡前叮嚀：「棉被要蓋好」'],
         gift:['乖孫，阿嬤包的，趁熱吃','讀書辛苦了，這個給你補一下','阿嬤去市場順便買的，不用謝'],
-        back:['乖孫真有禮貌，阿嬤再煮一鍋','阿嬤看到了！眼鏡戴起來看了三次','好好好，讀完書早點睡喔']},
+        back:['乖孫真有禮貌，阿嬤再煮一鍋','阿嬤看到了！眼鏡戴起來看了三次','好好好，讀完書早點睡喔'],
+        got:{love:["乖孫送阿嬤{g}！阿嬤要拿去給隔壁看", "阿嬤好感動，晚上煮一鍋珍珠給你吃"],gross:["{g}？阿嬤年輕時吃過更可怕的，沒在怕", "阿嬤收下了，不過先放到陽台通風一下"],odd:["這個{g}是年輕人的流行嗎？阿嬤跟不上", "阿嬤拿{g}來壓醃菜，剛剛好"]}},
    chars:[{name:'阿嬤的珍珠',color:'#3b2416',acc:'heart',skill:'煮的時候會自己跳進鍋子',quote:'乖孫，吃飽才有力氣讀書'},
           {name:'老花眼鏡丸',color:'#b58cd9',acc:'glasses',skill:'看得到很小的字，但找不到眼鏡',quote:'我的眼鏡呢？在頭上？'},
           {name:'菜籃珍珠',color:'#7cc95a',acc:'leaf',skill:'會跟市場老闆殺價',quote:'算便宜一點啦'}]},
@@ -888,7 +895,8 @@ const BOTS = [
         sport:['去溜冰場溜了一個早上','在公園堆了一個會背九九乘法的雪人'], fun:['點了一杯熱奶茶，拿到手就變冰奶茶了'],
         bath:['去洗澡了，洗熱水（不然會結冰）','洗澡中，浴室起了好大的霧'], sleep:['睡覺了，被子是雪做的（她說很溫暖）','睡著了，房間下起小雪'],
         gift:['送你，放冷凍庫可以保存很久','冰冰涼涼的禮物，考試冷靜不緊張','這是我凍起來的，請慢慢退冰'],
-        back:['收到了！我開心到窗戶結了一朵雪花','謝謝你，我的心融化了一點點','好溫暖的回覆，我差點融化']},
+        back:['收到了！我開心到窗戶結了一朵雪花','謝謝你，我的心融化了一點點','好溫暖的回覆，我差點融化'],
+        got:{love:["{g}！我開心到房間下了一場小雪", "謝謝你！我要把它冰起來永久保存"],gross:["我馬上把{g}冰起來……冰起來就聞不到了", "這個……我決定讓它隨風而去"],odd:["{g}結冰之後，變成一件藝術品了", "我不知道這是什麼，但它現在是冰雕了"]}},
    chars:[{name:'雪花珍珠',color:'#e8f6ff',acc:'star',skill:'掉進奶茶裡會變成冰沙',quote:'我不冷，我只是很冰'},
           {name:'去冰公主',color:'#9ee4ff',acc:'crown',skill:'點什麼飲料都會變全冰',quote:'我說去冰了！'},
           {name:'冰淇淋丸',color:'#ffd9ef',acc:'note',skill:'一唱歌就會飄雪',quote:'隨它吧，考完就好'}]},
@@ -898,7 +906,8 @@ const BOTS = [
         sport:['騎腳踏車送外送，騎了 20 公里','搖珍奶搖了一百杯，手臂超壯'], fun:['在研發新口味：番茄珍奶（失敗）'],
         bath:['關店了，去洗澡','洗澡中，身上都是奶茶香'], sleep:['睡覺了，夢到珍珠大豐收','睡著了，手還在做搖飲料的動作'],
         gift:['老闆招待！不要跟別人說','這杯算我的，讀書加油','買一送一，送你那個一'],
-        back:['謝謝光臨！下次再來','收到！幫你集點一點','老闆很感動，明天半價（騙你的）']},
+        back:['謝謝光臨！下次再來','收到！幫你集點一點','老闆很感動，明天半價（騙你的）'],
+        got:{love:["{g}！老闆送你一張集點卡（空白的）", "謝啦！我要把它擺在收銀台旁邊炫耀"],gross:["{g}……這個不能加進珍奶裡吧？", "老闆收下了，但衛生局應該不會同意"],odd:["{g}可以做新口味嗎？我研究看看", "我把{g}掛在店門口招財了"]}},
    chars:[{name:'半糖少冰丸',color:'#c98a52',acc:'hat',skill:'知道每個人喜歡的甜度',quote:'半糖少冰，人生剛剛好'},
           {name:'外送珍珠',color:'#ff9a1f',acc:'flag',skill:'騎車送珍奶從不打翻',quote:'您的珍珠到了！'},
           {name:'封口機珍珠',color:'#f2b84b',acc:'band',skill:'啪一聲就能把杯子封好',quote:'啪！封好了'}]},
@@ -908,7 +917,8 @@ const BOTS = [
         sport:['去操場快走，順便撿到三支鉛筆','去打羽毛球，殺球很兇'], fun:['在幫大家想下次的獎勵'],
         bath:['去洗澡了，提醒大家也早點準備睡覺','洗澡中，順便想明天的課'], sleep:['睡覺了，老師說早睡的同學最棒','晚安！老師去睡了，大家也快去睡'],
         gift:['讀書辛苦了，老師請你','今天表現很好，這是獎勵','老師的小禮物，不能在上課時打開'],
-        back:['老師收到了，你好有禮貌','回覆得很好，加一顆星星⭐','謝謝你！明天見']},
+        back:['老師收到了，你好有禮貌','回覆得很好，加一顆星星⭐','謝謝你！明天見'],
+        got:{love:["謝謝你的{g}！老師要放在講桌上", "老師好開心，今天作業少一題（騙你的）"],gross:["{g}……老師收下了，請你先去洗手", "送老師這個？好，你的勇氣加十分"],odd:["{g}？老師想了很久，決定拿來當教具", "老師把{g}放進「神秘物品研究」單元了"]}},
    chars:[{name:'紅筆珍珠',color:'#ff4b3e',acc:'glasses',skill:'看一眼就知道哪裡寫錯',quote:'這題再想一下'},
           {name:'星星貼紙',color:'#ffd23f',acc:'star',skill:'貼在作業上會閃閃發光',quote:'今天也很棒！'},
           {name:'粉筆丸',color:'#f4efe3',acc:'hat',skill:'在黑板上寫字超工整',quote:'這邊抄下來喔'}]},
@@ -918,7 +928,8 @@ const BOTS = [
         sport:['去游泳池泡了一個早上（他說這是運動）','在公園慢跑，地板一直震動'], fun:['去吃早午餐，點了菜單上全部的東西'],
         bath:['去洗澡了，浴缸的水全部滿出來','洗澡中，在泡泡裡打瞌睡'], sleep:['睡著了，打呼聲像打雷','睡覺了，夢到珍珠吃到飽'],
         gift:['這是我吃剩的……啊不是，特地留給你的','送你，我忍了好久沒吃掉它','分你一半，另一半我先吃了'],
-        back:['收到！開心到再喝一杯','嗝～（謝謝的意思）','你的回覆比珍奶還甜']},
+        back:['收到！開心到再喝一杯','嗝～（謝謝的意思）','你的回覆比珍奶還甜'],
+        got:{love:["{g}！可以吃嗎？可以吃嗎？", "謝謝你！我差點一口吞掉……忍住了"],gross:["{g}？……嗯，我還是吃掉了（嗝）", "別人覺得噁心，我覺得是點心"],odd:["我試著咬{g}，牙齒有點痛", "{g}……配珍奶應該不錯吧？"]}},
    chars:[{name:'吃到飽珍珠',color:'#a678d8',acc:'heart',skill:'一口可以吞下十顆珍珠',quote:'還有嗎？'},
           {name:'泡泡河馬丸',color:'#7ad0ff',acc:'bow',skill:'在水裡可以讀書三小時',quote:'泡著讀比較專心'},
           {name:'打嗝珍珠',color:'#ffb02e',acc:'note',skill:'打一個嗝就是一首歌',quote:'嗝～抱歉'}]},
@@ -928,7 +939,8 @@ const BOTS = [
         sport:['去跑操場，跑了 6 圈又 7 圈','跳繩跳了 67 下，手還在晃'], fun:['在數路上有幾台車的車牌有 67'],
         bath:['去洗澡了，洗 6 分 7 秒','洗澡中，在浴室喊六七有回音'], sleep:['睡覺了，夢裡也在六七','睡著了，手還在上下晃'],
         gift:['六七！送你六七！','這是第 67 號禮物（其實是第 1 號）','手在晃，所以禮物也在晃，接好'],
-        back:['六七！收到！','你的回覆讓我晃了 67 下','六……七……謝謝！']},
+        back:['六七！收到！','你的回覆讓我晃了 67 下','六……七……謝謝！'],
+        got:{love:["六七！{g}！我晃到停不下來", "謝謝！這是我收過第 67 好的禮物（其實是第一好）"],gross:["{g}？……六……七……（晃到一半停住）", "我把{g}丟出去 6 公尺又 7 公分"],odd:["{g}乘以 67 等於……我不會算", "我把{g}當成六七獎盃了"]}},
    chars:[{name:'六七丸',color:'#ffb02e',acc:'star',skill:'聽到 6 和 7 就會跳起來',quote:'六……七……！'},
           {name:'晃晃珍珠',color:'#ff7aa2',acc:'note',skill:'停不下來的上下晃',quote:'我也不想晃啊'},
           {name:'67 號選手',color:'#3b8cff',acc:'band',skill:'跑步一定跑第 67 名',quote:'名次不重要，數字重要'}]},
@@ -938,7 +950,8 @@ const BOTS = [
         sport:['去騎馬（旋轉木馬）','在花園練習優雅的走路，走了一萬步'], fun:['舉辦下午茶會，只邀請芋頭'],
         bath:['去洗泡泡浴了，泡泡是紫色的','洗澡中，說要女僕放熱水（是自己放的）'], sleep:['公主就寢了，請勿打擾','睡著了，皇冠還戴著'],
         gift:['本公主賞你的，收下吧','這是皇家禮物，請好好保管','芋圓星球的特產，Q 到不行'],
-        back:['本公主准了','你的回覆很 Q，本公主喜歡','嗯哼，本公主收到了']},
+        back:['本公主准了','你的回覆很 Q，本公主喜歡','嗯哼，本公主收到了'],
+        got:{love:["{g}，本公主很滿意，賞你一顆芋圓", "嗯哼，這份貢品本公主收下了"],gross:["大膽！竟敢送本公主{g}！……好啦還是收下了", "本公主命令騎士把{g}拿遠一點"],odd:["{g}？芋圓星球沒有這個，本公主要帶回去研究", "本公主把{g}放進皇家博物館了"]}},
    chars:[{name:'皇家芋圓',color:'#b58cd9',acc:'crown',skill:'Q 度是一般珍珠的兩倍',quote:'本公主最 Q'},
           {name:'紫色泡泡',color:'#d9b8ff',acc:'bow',skill:'飄在空中不會破',quote:'優雅，永遠優雅'},
           {name:'芋頭騎士',color:'#7a74a8',acc:'flag',skill:'保護公主不被吸管吸走',quote:'公主請退後！'}]},
@@ -948,7 +961,8 @@ const BOTS = [
         sport:['在操場用飛碟練習丟飛盤','去爬山，說地球的重力好重'], fun:['在超商研究「珍珠是不是一種外星蛋」'],
         bath:['去洗澡了（火星人也要洗澡）','洗澡中，皮膚變得更綠了'], sleep:['睡覺了，觸角關機中','睡著了，夢話是嗶嗶嗶'],
         gift:['嗶嗶，火星特產，地球沒有','這是火星的石頭（看起來很普通）','送給地球好朋友，嗶'],
-        back:['嗶嗶！訊號收到！','已經把你的回覆傳回火星了','火星的大家都說謝謝你，嗶']},
+        back:['嗶嗶！訊號收到！','已經把你的回覆傳回火星了','火星的大家都說謝謝你，嗶'],
+        got:{love:["嗶嗶！{g}！已經傳照片回火星了", "火星沒有{g}，我是全火星第一個擁有的"],gross:["嗶……分析結果：{g}有毒（可能）", "火星人覺得{g}很香，地球人為什麼不要？"],odd:["{g}是地球的高科技嗎？嗶", "我把{g}裝在飛碟上當天線了"]}},
    chars:[{name:'飛碟丸',color:'#7cc95a',acc:'shades',skill:'會在杯子裡轉圈飛',quote:'嗶嗶，降落了'},
           {name:'觸角珍珠',color:'#9bd12f',acc:'leaf',skill:'觸角可以收到訊號（收不到答案）',quote:'訊號不好，再讀一次'},
           {name:'地球研究員',color:'#18b3a3',acc:'glasses',skill:'把地球的一切都記在筆記本',quote:'珍珠，有趣'}]},
@@ -1018,27 +1032,59 @@ function botMember(b, now){
   return {name:b.name, photo:'', bot:b.id, joinedAt:botJoinTs(b), dm, dt, sm, minutes, tomatoes,
     studying: cur&&cur.type==='study' ? {subject:cur.subject, endsAt:cur.end} : null, botStatus: cur};
 }
-// 夥伴送的禮物：加入後隔 1～2 天開始，每 4～6 天送一次（只送到 BOT_UNTIL 前）
+// 夥伴送的禮物：加入當天送見面禮（加入後 40～100 分鐘），之後隔 3～5 天、再每 4～6 天送一次（只送到 BOT_UNTIL 前）
 function botSends(now){
   const out=[], me=S.me?.uid; if (!me) return out;
   const mine=(S.rawMembers?.[me]||{}).botg||{}, today=ymd(new Date(now));
   const pool=GIFTS.filter(g=>giftable(g) && g.w>0 && !g.ev);
   joinedBots(now).forEach(b=>{
-    const r=rng(hash('botgift'+b.id)); let d=addDays(b.join, 1+Math.floor(r()*2));
+    const r=rng(hash('botgift'+b.id)); const welcome=b.join>=BOT_GIFT2_FROM; let d=welcome?b.join:addDays(b.join, 1+Math.floor(r()*2)), first=welcome;
     while (d < BOT_UNTIL && d <= today) {
       const rr=rng(hash('botgift'+b.id+d)), dow=parseYmd(d).getDay(), wk=dow===0||dow===6;
-      const ts=atMin(d, wk ? 9*60+Math.floor(rr()*8*60) : 19*60+Math.floor(rr()*100));
-      const item=weightedGift(rr,pool), msg=pick(rr,botSay(b,'gift'));
+      const ts=first ? botJoinTs(b)+(40+Math.floor(rr()*60))*60000 : atMin(d, wk ? 9*60+Math.floor(rr()*8*60) : 19*60+Math.floor(rr()*100));
+      const item=weightedGift(rr,pool), msg=(first?'見面禮！':'')+pick(rr,botSay(b,'gift'));
       if (ts<=now) { const id=`bot_${b.id}_${d}`, st=mine[id]||{};
         out.push({id, bot:b.id, from:botUid(b), to:me, item:item.id, msg, date:d, ts,
           // 兩天以前的禮物就不跳出來了（直接放進寶物箱和禮物動態）
-          seen: !!st.seen || ts<now-2*86400000, ...(st.re?{re:st.re}:{}), ...(st.reply?{reply:st.reply, back:botBack(id)}:{})}); }
-      d = addDays(d, 4+Math.floor(r()*3));
+          seen: !!st.seen || ts<now-2*86400000, ...(st.re?{re:st.re}:{}), ...(st.reply?{reply:st.reply}:{}), ...(st.reply||(st.re&&botGift2(now))?{back:botBack(id,st)}:{})}); }
+      d = addDays(d, (first?3:4)+Math.floor(r()*3)); first=false;
     }
   });
   return out;
 }
-const botBack = id => { const b=BOTS.find(x=>id.startsWith(`bot_${x.id}_`)); return b ? pick(rng(hash(id+'back')), botSay(b,'back')) : ''; };
+// 你回應夥伴的禮物後，夥伴回你一句（只按「噁心」沒寫字，夥伴會抗議一下）
+const botBack = (id, st={}) => { const b=BOTS.find(x=>id.startsWith(`bot_${x.id}_`)); if (!b) return '';
+  return pick(rng(hash(id+'back')), botSay(b, st.re==='eww' && !st.reply ? 'eww' : 'back')); };
+// 送禮物給夥伴：存在自己的成員資料 botg['to_日期']（跟送隊友一樣一天一個）。
+// 夥伴醒著的話 30～90 秒後回應；在洗澡、睡覺的話，隔天早上 6:40～7:40 起床才回。
+// 夥伴依禮物種類回應：令人喜歡 → ❤️，令人厭惡 → 🤮 或 😆，莫名其妙 → 😆
+const BOT_RE = {love:['love'], gross:['eww','lol'], odd:['lol']};
+function botGotReply(b, x){
+  const r=rng(hash('botgot'+x.id)), g=GIFTS.find(i=>i.id===x.item)||{name:'禮物',cat:'odd'}, cat=BOT_RE[g.cat]?g.cat:'odd';
+  const a=botNow(b, x.ts), asleep=a && (a.type==='bath'||a.type==='sleep');
+  let at=x.ts+(30+Math.floor(r()*60))*1000;
+  if (asleep) { const d=minOf(x.ts)<6*60+30 ? ymd(new Date(x.ts)) : addDays(ymd(new Date(x.ts)),1); at=Math.max(at, atMin(d, 6*60+40+Math.floor(r()*60))); }
+  const L=(b.say?.got||{})[cat] || BOT_GENERIC.got[cat];
+  return {at, re:pick(r,BOT_RE[cat]), reply:(asleep?'（剛睡醒）':'')+pick(r,L).replaceAll('{g}',g.name)};
+}
+function botGots(now){
+  const out=[];
+  Object.entries(S.rawMembers||{}).forEach(([uid,m])=>Object.entries(m?.botg||{}).forEach(([k,v])=>{
+    if (!k.startsWith('to_') || !v) return; const b=BOTS.find(x=>x.id===v.bot); if (!b || !v.item) return;
+    const x={id:`tob_${uid}_${k.slice(3)}`, from:uid, to:botUid(b), item:v.item, msg:String(v.msg||'').slice(0,30), date:k.slice(3), ts:+v.ts||atMin(k.slice(3),12*60)};
+    const rp=botGotReply(b,x); out.push(now>=rp.at ? {...x, seen:true, re:rp.re, reply:rp.reply, replyAt:rp.at} : {...x, replyAt:rp.at});
+  }));
+  return out;
+}
+async function sendToBot(b, item, msg){
+  const old=(S.rawMembers?.[S.me.uid]||{}).botg||{}, k='to_'+ymd();
+  if (old[k]) throw Object.assign(new Error('今天已經送過了'),{code:'permission-denied'});
+  const ts=Date.now();
+  await S.api.setMember(S.gid, S.me.uid, {botg:{...old, [k]:{bot:b.id, item, msg, ts}}});
+  // 夥伴回應的時間到了就重畫一次，讓「回覆你了！」跳出來
+  const rp=botGotReply(b,{id:`tob_${S.me.uid}_${ymd()}`, item, ts});
+  if (rp.at-ts < 10*60000) setTimeout(render, rp.at-ts+500);
+}
 // 夥伴每週一早上 8 點設計一個新角色（加入那週是加入後 5 分鐘）
 function botChars(now){
   const out=[];
@@ -1056,7 +1102,7 @@ function botChars(now){
 function botSync(){
   const raw=S.rawMembers||{}, on=isBoba(), now=Date.now();
   S.members = on ? {...raw, ...Object.fromEntries(joinedBots(now).map(b=>[botUid(b), botMember(b,now)]))} : raw;
-  S.sends = on ? [...(S.rawSends||[]), ...botSends(now)] : (S.rawSends||[]);
+  S.sends = on ? [...(S.rawSends||[]), ...botSends(now), ...botGots(now)] : (S.rawSends||[]);
   S.chars = on ? [...(S.rawChars||[]), ...botChars(now)] : (S.rawChars||[]);
 }
 function botAvatar(b, cls=''){ return `<span class="avatar ${cls}" style="background:${b.color};font-size:${cls==='lg'?'1.5rem':'1.15rem'}">${b.ic}</span>`; }
@@ -1067,11 +1113,11 @@ async function botReact(id, d){
   await S.api.setMember(S.gid, S.me.uid, {botg:{...old, [id]:{...cur, ...d}}});
 }
 const reactGift = (id, d) => String(id).startsWith('bot_') ? botReact(id,d) : S.api.reactGift(S.gid,id,d);
-function showBotBack(id){
+function showBotBack(id, re=''){
   const b=BOTS.find(x=>String(id).startsWith(`bot_${x.id}_`)); if (!b) return;
-  setTimeout(()=>{ if ($('#modal-root').innerHTML) return;
+  setTimeout(()=>{ if ($('#modal-root').innerHTML) return; if (re && !botGift2() && !(S.sends||[]).find(s=>s.id===id)?.reply) return; const back=(S.sends||[]).find(s=>s.id===id)?.back || botBack(id,{re});
     openModal(`<div class="celebrate"><div class="pop" style="font-size:3.6rem;line-height:1.2">${b.ic}</div>
-      <div class="big">${esc(b.name)} 回你了！</div><div class="say" style="margin:8px 0">「${esc(botBack(id))}」</div>
+      <div class="big">${esc(b.name)} 回你了！</div><div class="say" style="margin:8px 0">「${esc(back)}」</div>
       <button class="btn red block" style="margin-top:6px" data-a="closeModal">好</button></div>`); }, 700);
 }
 // 新夥伴加入：第一次看到時跳出來介紹
@@ -2249,7 +2295,7 @@ const sentToday = () => (S.sends||[]).some(x=>x.from===S.me.uid && x.date===ymd(
 function openSend(pre=''){
   if (sentToday()) return toast('今天已經送過了，明天再來');
   const inv=giftInv(), items=GIFTS.filter(g=>giftable(g) && (inv[g.id]||0)>0);
-  const mates=(S.group.members||[]).filter(u=>u!==S.me.uid && S.members[u]);
+  const mates=[...(S.group.members||[]).filter(u=>u!==S.me.uid && S.members[u]), ...(isBoba()&&botGift2()?joinedBots().map(botUid):[])];
   if (!items.length) return toast('寶物箱裡還沒有可以送的東西');
   if (!mates.length) return toast('讀書社裡還沒有其他隊友');
   S.sendSel={item:items.some(g=>g.id===pre)?pre:'', to:''};
@@ -2257,7 +2303,8 @@ function openSend(pre=''){
     <label class="f">要送什麼</label>
     <div class="giftbox" id="sendItems">${items.map(g=>`<button class="g ${g.id===S.sendSel.item?'on':''}" data-a="sendPick" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900"><span class="n">×${inv[g.id]}</span><span class="ic">${g.ic}</span>${esc(g.name)}</button>`).join('')}</div>
     <label class="f">送給誰</label>
-    <div class="row wrap" id="sendTo" style="gap:6px">${mates.map(u=>`<button class="pill" data-a="sendTo" data-v="${esc(u)}">${esc(S.members[u].name||'同學')}</button>`).join('')}</div>
+    <div class="row wrap" id="sendTo" style="gap:6px">${mates.map(u=>`<button class="pill" data-a="sendTo" data-v="${esc(u)}">${botOf(u)?botOf(u).ic+' ':''}${esc(S.members[u].name||'同學')}</button>`).join('')}</div>
+    ${isBoba()&&botGift2()&&joinedBots().length?'<p class="tiny" style="margin:6px 0 0">🧋 也可以送給珍珠夥伴，他們會回你一句話（睡著的話，明天早上才會回）。</p>':''}
     <label class="f">附上一句話（可不寫，30 字內）</label><input type="text" id="sendMsg" maxlength="30" placeholder="例如：送你一罐屁，數學加油">
     <button class="btn red block" style="margin-top:12px" data-a="sendGo">送出！</button>
     <button class="btn ghost block" style="margin-top:8px" data-a="closeModal">取消</button>`);
@@ -2265,6 +2312,8 @@ function openSend(pre=''){
 let shownGifts=new Set();
 function checkIncoming(){
   if (!S.me || !S.gid || S.guest || (S.timer&&S.timer.mode==='focus') || $('#modal-root').innerHTML) return;
+  // 珍奶星球：新夥伴還沒自我介紹，先讓介紹跳出來，再拆他送的見面禮
+  if (isBoba() && dailyReady() && joinedBots().some(b=>!([].concat(lsGet(botJoinKey(),[])||[])).includes(b.id))) return;
   const x=(S.sends||[]).filter(x=>x.to===S.me.uid && !x.seen && !shownGifts.has(x.id)).sort((a,b)=>a.ts-b.ts)[0];
   if (!x) return; shownGifts.add(x.id);
   const from=(S.members[x.from]||{}).name||'隊友';
@@ -3086,7 +3135,7 @@ document.addEventListener('click', async e=>{
     case 'guestOff': confirmBox('關閉訪客參觀？已經分享出去的連結會打不開。','guestOffOk'); break;
     case 'guestOffOk': { if(!isLeader()) return; const old=S.group.guestToken; closeModal();
       await S.api.updateGroup(S.gid,{guestToken:''}); if(old) await S.api.delGuest(old).catch(()=>{}); toast('訪客參觀已關閉'); break; }
-    case 'closeModal': closeModal(); if (isBoba()) setTimeout(()=>{ checkBotJoin(); checkSleepNote(); },900); break;
+    case 'closeModal': closeModal(); if (isBoba()) setTimeout(()=>{ checkBotJoin(); checkIncoming(); checkReplies(); checkSleepNote(); },900); break;
     case 'oathGo': { if(el.disabled) return; const p=S.oathPending; S.oathPending=null; lsSet(oathKey(),Date.now()); closeModal(); toast(`${oathGod().name}收到了，開始專心！`); if(p) await startFocus(p.subject,p.taskId); break; }
     case 'pluckNew': await pluckAndShow('newest', el.dataset.task||''); break;
     case 'pluck': await pluckAndShow('oldest'); break;
@@ -3141,12 +3190,14 @@ document.addEventListener('click', async e=>{
       if (sentToday()) { closeModal(); return toast('今天已經送過了，明天再來'); }
       if (!((giftInv()[sel.item]||0)>0)) return toast('你沒有這個寶物了');
       const msg=val('sendMsg').slice(0,30), to=(S.members[sel.to]||{}).name||'隊友';
-      try { await S.api.sendGift(S.gid,{from:S.me.uid,to:sel.to,item:sel.item,msg,date:ymd(),ts:Date.now()}); closeModal(); toast(`送給 ${to} 了！`); }
+      try { const b=botOf(sel.to);
+        if (b) { await sendToBot(b, sel.item, msg); closeModal(); const a=botNow(b); toast(a&&(a.type==='bath'||a.type==='sleep')?`送給 ${to} 了！${to}${a.type==='bath'?'在洗澡':'睡著了'}，明天早上會回你`:`送給 ${to} 了！等一下${to}會回你`); }
+        else { await S.api.sendGift(S.gid,{from:S.me.uid,to:sel.to,item:sel.item,msg,date:ymd(),ts:Date.now()}); closeModal(); toast(`送給 ${to} 了！`); } }
       catch(e){ console.error(e); toast(e.code==='permission-denied'?'今天已經送過了，明天再來':'送出失敗：'+(e.message||e.code)); } break; }
     case 'giftOpenIn': showIncoming(id); break;
     case 'giftReact': { const v=el.dataset.v, reply=cutReply(val('giftReply')); closeModal();
       try { await reactGift(id,{seen:true,re:v,...(reply?{reply}:{})}); } catch(e){ console.warn(e); if(reply) toast('回覆沒送出去，可以在禮物動態再回一次'); break; }
-      toast(reply?'回覆送出了！':v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); if(reply) showBotBack(id); break; }
+      toast(reply?'回覆送出了！':v==='eww'?'噁～已經回應了':v==='lol'?'哈哈，已經回應了':'已經跟對方說謝謝了'); showBotBack(id, v); break; }
     case 'giftReplyOpen': openReply(id); break;
     case 'sleepGo': await goSleep(); break;
     case 'giftReplyGo': { const reply=cutReply(val('giftReply')); if(!reply) return toast('先寫一句話');
