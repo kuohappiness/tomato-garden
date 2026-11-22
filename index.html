@@ -191,6 +191,20 @@ details summary::-webkit-details-marker{display:none}
 .hall-title{font-size:1.6rem;font-weight:900;transform:rotate(-1.5deg);display:inline-block;text-shadow:3px 3px 0 #fff;margin:6px 0 0}
 .s67 .armL{animation:sx .32s ease-in-out infinite alternate}
 .s67 .armR{animation:sx .32s ease-in-out infinite alternate-reverse}
+.oath{text-align:center}
+.oath-top{display:inline-block;background:var(--ink);color:var(--sun);border-radius:10px;padding:2px 12px;font-weight:900;font-size:.9rem}
+.oath-stage{display:flex;justify-content:center;align-items:flex-end;gap:4px;margin:8px 0 2px}
+.oath-stage .wc{width:52px;height:104px}
+.oath-stage .wc:first-child{animation:bob .9s ease-in-out infinite alternate}
+.oath-stage .wc:last-child{animation:bob .9s ease-in-out infinite alternate-reverse}
+.oath-stage .god{width:120px;height:120px}
+.oath .big{font-size:1.2rem;font-weight:900;margin:4px 0 8px}
+.oath-text{background:#fffbea;border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;font-weight:700;line-height:1.65;font-size:1.02rem}
+.oath-text p{margin:0}
+.oath-text .threat{margin-top:6px;background:#2a2140;color:#fff;border-radius:10px;padding:4px 8px;font-size:.92rem}
+.oath-text .threat b{color:#ffd23f}
+.oath-text .g-line{margin-top:6px;color:#b5341f}
+.oath-text .six7-line{font-family:"Bungee",sans-serif,system-ui;font-size:1.1rem;margin-top:4px}
 @keyframes sx{from{transform:translateY(-7px)}to{transform:translateY(7px)}}
 @keyframes drop{0%{transform:translateY(-260px) rotate(-12deg)}70%{transform:translateY(12px) rotate(5deg)}100%{transform:translateY(0) rotate(0)}}
 .drop{animation:drop 1s cubic-bezier(.3,1.2,.5,1)}
@@ -2748,8 +2762,133 @@ let wakeLock=null;
 async function keepAwake(on){ try{ if(on&&'wakeLock' in navigator&&!wakeLock){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener?.('release',()=>wakeLock=null); } else if(!on&&wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{} }
 function saveTimer(){ if(S.timer) lsSet('tg-timer',S.timer); else lsDel('tg-timer'); }
 
+// ======================================================================
+//  真誠誓言：番茄兵讀書社每天種第一顆番茄前，對今天輪值的神明念一段誓言
+//  黑白無常站兩邊當見證，神明每天輪一位（全班同一位）。只存在手機 localStorage，不改資料庫。
+// ======================================================================
+const OATH_GODS = [
+  {id:'tudi',    name:'土地公',     call:'土地公伯伯', line:'這塊番茄園是土地公的地盤，偷玩會被土地公記在小本本上。'},
+  {id:'guanyin', name:'觀世音菩薩', call:'觀世音菩薩', line:'千手觀音有一千隻手，沒有一隻在偷滑手機，我也不會。'},
+  {id:'jesus',   name:'耶穌基督',   call:'親愛的耶穌', line:'我不會在番茄鐘前面說謊，阿們。'},
+  {id:'peishuo', name:'培碩老師',   call:'培碩老師',   line:'培碩老師在看你。對，就是現在，他在看你。'},
+  {id:'wenchang',name:'文昌帝君',   call:'文昌帝君',   line:'考試要靠文昌帝君保佑，但是帝君說：你也要自己讀啊。'},
+  {id:'mazu',    name:'媽祖',       call:'媽祖婆',     line:'千里眼看得到我的螢幕，順風耳聽得到我偷開遊戲的音效。'},
+  {id:'guangong',name:'關聖帝君',   call:'關老爺',     line:'關公面前不耍大刀，番茄鐘面前不耍廢。'},
+  {id:'kongzi',  name:'至聖先師孔子', call:'孔子老師', line:'學而時習之，不亦說乎；偷玩被抓，不亦慘乎。'},
+  {id:'six7',    name:'六七大帝',   call:'六七大帝',   line:'六七大帝說：雙手上下晃可以，眼睛上下飄不行。'},
+];
+// 誓言本文：6 種版本每天換一種，6 天一輪；跟 9 位神明錯開，所以「神明＋誓言」的組合大約 18 天才重複。
+// threat：偶爾來一句恐怖（但好笑）的警告，有些天沒有。
+const OATH_TEXTS = [
+  {head:'今天種番茄前鄭重發誓：',
+   lines:['番茄鐘開著的時候，我是<b>真的在讀書</b>，','不是偷偷跑去滑手機、看影片、打電動。','如果我騙人，願拿<b>下次段考分數</b>當賭注，','我種的番茄全部爛掉，變成番茄醬。'],
+   threat:'', end:'六～七！（雙手上下晃）'},
+  {head:'在此對天發誓：',
+   lines:['這顆番茄的時間裡，我的眼睛只看課本，','手只拿筆，不拿手機。','我拿<b>下次段考分數</b>押在這裡，','說到做到，不打折扣。'],
+   threat:'⚠️ 欺騙神明的人，番茄會爛成一灘番茄汁，<b>淹沒你的考卷</b>，連名字都看不清楚。', end:'六～七！（雙手上下晃）'},
+  {head:'今天要誠實面對自己：',
+   lines:['讀書就是讀書，休息就是休息，','番茄鐘不是用來掛機的。','我用<b>下次段考成績</b>保證，','今天的每一顆番茄都是真的。'],
+   threat:'', end:'番茄真的，我也是真的！六～七！'},
+  {head:'鄭重宣誓，請各位見證：',
+   lines:['我不會把番茄鐘開著，人跑去玩，','也不會一邊讀書一邊偷看影片。','要是我做不到，<b>下次段考分數</b>任憑處置，','番茄爛光光，我也認了。'],
+   threat:'⚠️ 偷玩的人，爛番茄會在半夜爬到你的書包裡，把考卷染成紅色，<b>老師改不出分數</b>。', end:'六～七！（雙手上下晃）'},
+  {head:'現在對自己的良心發誓：',
+   lines:['我知道段考快到了，','我知道該讀的還沒讀完，','所以接下來，<b>我是認真的</b>。','<b>段考分數</b>就是我的賭注。'],
+   threat:'', end:'良心在看，神明也在看！六～七！'},
+  {head:'今天開工前發誓：',
+   lines:['番茄鐘響之前，我不離開座位，','不偷開遊戲，不偷滑短影片。','如果我說謊，<b>下次段考分數</b>自動扣 6.7 分，','番茄全部爛掉變番茄醬。'],
+   threat:'⚠️ 欺騙神明，番茄醬會從天而降，<b>淹沒你的考卷</b>，黑白無常還會在旁邊拍照。', end:'六～七！（雙手上下晃）'},
+];
+function oathText(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').getTime()/86400000); return OATH_TEXTS[((n%OATH_TEXTS.length)+OATH_TEXTS.length)%OATH_TEXTS.length]; }
+const OATH_FROM = '2026-11-23';   // 從這天（手機日期）開始要念誓言
+const OATH_SEC = 6.7;   // 念完才能按：6.7 秒
+function oathGod(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').getTime()/86400000); return OATH_GODS[((n%OATH_GODS.length)+OATH_GODS.length)%OATH_GODS.length]; }
+const oathKey = () => `tg-oath-${S.gid}-${S.me?.uid}-${ymd()}`;
+// 只有番茄兵主題要念；今天已經有番茄、已經念過、訪客都不用
+function needOath(){ return ymd()>=OATH_FROM && !!S.me && !!S.gid && !S.guest && themeKey()==='tomato' && !memberStats(S.me.uid).todayTom && !lsGet(oathKey()); }
+
+// 黑白無常（Q 版）：白無常高帽「認真有番茄」、黑無常高帽「偷玩番茄爛」
+function wuchangSVG(white){
+  const k='#2a2140', face=white?'#fff':'#3a3550', hat=white?'#fff':'#2a2140', txt=white?k:'#fff';
+  const words=white?['認','真','有','番','茄']:['偷','玩','番','茄','爛'];
+  return `<svg viewBox="0 0 60 120" width="100%" height="100%" aria-hidden="true">
+    <path d="M14 58 L20 4 Q30 0 40 4 L46 58 Z" fill="${hat}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <g font-size="7.6" font-weight="900" text-anchor="middle" fill="${txt}">${words.map((w,i)=>`<text x="30" y="${14+i*8.6}">${w}</text>`).join('')}</g>
+    <rect x="9" y="54" width="42" height="6" rx="3" fill="${hat}" stroke="${k}" stroke-width="3"/>
+    <ellipse cx="30" cy="78" rx="19" ry="20" fill="${face}" stroke="${k}" stroke-width="3"/>
+    <path d="M19 72q4-3 8 0M33 72q4-3 8 0" stroke="${white?k:'#fff'}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <circle cx="23" cy="77" r="2.4" fill="${white?k:'#fff'}"/><circle cx="37" cy="77" r="2.4" fill="${white?k:'#fff'}"/>
+    ${white?`<path d="M25 87q5 4 10 0" stroke="${k}" stroke-width="2.5" fill="#ff6a7a"/><path d="M27 88q3 14 0 20q4 3 6 0q-3-6 0-20" fill="#ff6a7a" stroke="${k}" stroke-width="2.2" stroke-linejoin="round"/>`
+           :`<path d="M23 89q7-4 14 0" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/>`}
+    <circle cx="16" cy="84" r="3" fill="#ff8fa0" opacity=".55"/><circle cx="44" cy="84" r="3" fill="#ff8fa0" opacity=".55"/>
+  </svg>`;
+}
+// 今天輪值的神明（Q 版頭像）
+function godSVG(id){
+  const k='#2a2140';
+  const eyes=(c=k)=>`<circle cx="40" cy="58" r="3.2" fill="${c}"/><circle cx="60" cy="58" r="3.2" fill="${c}"/>`;
+  const calm=`<path d="M35 58q5 4 10 0M55 58q5 4 10 0" stroke="${k}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+  const smile=`<path d="M43 70q7 6 14 0" stroke="${k}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+  const cheeks=`<circle cx="33" cy="66" r="4" fill="#ff8fa0" opacity=".5"/><circle cx="67" cy="66" r="4" fill="#ff8fa0" opacity=".5"/>`;
+  const face=(c='#ffe0bd')=>`<circle cx="50" cy="60" r="24" fill="${c}" stroke="${k}" stroke-width="3"/>`;
+  const halo=`<circle cx="50" cy="56" r="38" fill="#fff3b0" stroke="#ffd23f" stroke-width="4"/>`;
+  const P = {
+    tudi: `${face()}<path d="M24 50q26-26 52 0l-4 4q-22-12-44 0z" fill="#e8463a" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="34" r="5" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/>
+           <path d="M34 52q5-3 10 0M56 52q5-3 10 0" stroke="#fff" stroke-width="4" stroke-linecap="round"/>${eyes()}
+           <path d="M30 66q20 40 40 0q-8 8-20 6q-12 2-20-6z" fill="#fff" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M43 66q7-4 14 0" stroke="#fff" stroke-width="5" stroke-linecap="round"/>`,
+    guanyin: `${halo}<path d="M22 64q-2-38 28-40q30 2 28 40l-6 26h-44z" fill="#fff" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>${face()}<circle cx="50" cy="47" r="2.6" fill="#e8463a"/>${calm}${cheeks}<path d="M45 70q5 3 10 0" stroke="${k}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    jesus: `${halo}<path d="M24 62q-2-32 26-32q28 0 26 32l2 24h-12l-2-22h-28l-2 22h-12z" fill="#8a5a2b" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>${face()}<path d="M30 56q2-16 20-16q18 0 20 16q-10-8-20-8q-10 0-20 8z" fill="#8a5a2b"/>
+           ${eyes()}<path d="M32 66q4 20 18 20q14 0 18-20q-6 6-18 6q-12 0-18-6z" fill="#8a5a2b" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/><path d="M44 71q6 4 12 0" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+    peishuo: `${face()}<path d="M26 54q0-26 24-26q24 0 24 26q-4-12-24-14q-20 2-24 14z" fill="#2a2140"/>
+           <g fill="#fff" stroke="${k}" stroke-width="3"><circle cx="40" cy="58" r="7.5"/><circle cx="60" cy="58" r="7.5"/></g><path d="M47.5 58h5" stroke="${k}" stroke-width="3"/>
+           <circle cx="41" cy="58" r="2.6" fill="${k}"/><circle cx="61" cy="58" r="2.6" fill="${k}"/><path d="M44 72h12" stroke="${k}" stroke-width="2.8" stroke-linecap="round"/>
+           <path d="M76 70l14-26" stroke="#c98a3e" stroke-width="4.5" stroke-linecap="round"/><path d="M76 70l14-26" stroke="${k}" stroke-width="1.5" stroke-dasharray="2 4"/>`,
+    wenchang: `${face()}<path d="M28 44q22-14 44 0v-6q-22-14-44 0z" fill="${k}"/><rect x="30" y="26" width="40" height="18" rx="5" fill="${k}"/><path d="M30 38h-20v-5h20M70 38h20v-5h-20" fill="${k}" stroke="${k}" stroke-width="2"/>
+           ${eyes()}${smile}${cheeks}<path d="M38 74q2 14-4 20M62 74q-2 14 4 20" stroke="${k}" stroke-width="2.5" fill="none"/><path d="M82 92l10-26" stroke="#c98a3e" stroke-width="4" stroke-linecap="round"/><path d="M92 66l3-6" stroke="${k}" stroke-width="4" stroke-linecap="round"/>`,
+    mazu: `${face()}<path d="M26 46l4-16 10 8 10-12 10 12 10-8 4 16z" fill="#ffd23f" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M26 46h48" stroke="${k}" stroke-width="3"/>
+           <g stroke="#e8463a" stroke-width="2.5">${[32,40,48,56,64].map(x=>`<path d="M${x+2} 47v5"/>`).join('')}</g><g fill="#e8463a">${[32,40,48,56,64].map(x=>`<circle cx="${x+2}" cy="53" r="2"/>`).join('')}</g>
+           <circle cx="40" cy="62" r="3" fill="${k}"/><circle cx="60" cy="62" r="3" fill="${k}"/>${smile.replace(/70/g,'73').replace(/76/g,'79')}${cheeks}`,
+    guangong: `${face('#d9483b')}<path d="M26 50q4-24 24-24q20 0 24 24q-24-8-48 0z" fill="#2f8f4e" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+           <path d="M33 52l12 4M67 52l-12 4" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/>${eyes()}
+           <path d="M34 68q16 44 32 0q-6 6-16 6q-10 0-16-6z" fill="${k}"/><path d="M44 70q6-3 12 0" stroke="#d9483b" stroke-width="3" stroke-linecap="round"/>`,
+    kongzi: `${face()}<path d="M30 42h40l-4-10h-32z" fill="${k}"/><rect x="38" y="22" width="24" height="12" rx="3" fill="${k}"/>
+           ${calm}<path d="M44 68q6 3 12 0" stroke="${k}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M42 74q8 4 16 0q2 14-8 22q-10-8-8-22z" fill="#cfcfd8" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>
+           <rect x="74" y="66" width="20" height="26" rx="3" fill="#f6e3b4" stroke="${k}" stroke-width="2.5"/><path d="M79 72v14M84 72v14M89 72v14" stroke="${k}" stroke-width="1.5"/>`,
+  };
+  if (id==='six7') return `<div style="width:100%;height:100%">${soldierSVG({subject:'其他',rare:'67',seed:67, acc:'crown'})}</div>`;
+  return `<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">${P[id]||P.tudi}</svg>`;
+}
+function showOath(subject, taskId){
+  const g=oathGod(), v=oathText(), nm=esc(myName());
+  S.oathPending={subject, taskId:taskId||''};
+  openModal(`<div class="oath">
+    <div class="oath-top">今日監督：<b>${esc(g.name)}</b></div>
+    <div class="oath-stage"><span class="wc">${wuchangSVG(true)}</span><span class="god">${godSVG(g.id)}</span><span class="wc">${wuchangSVG(false)}</span></div>
+    <div class="big">種第一顆番茄前，大聲念出來</div>
+    <div class="oath-text">
+      <p>${esc(g.call)}在上，黑白無常作證，</p>
+      <p>我${nm==='我'?'':` <b>${nm}</b>`}，${v.head}</p>
+      ${v.lines.map(l=>`<p>${l}</p>`).join('')}
+      ${v.threat?`<p class="threat">${v.threat}</p>`:''}
+      <p class="g-line">${esc(g.line)}</p>
+      <p class="six7-line">${v.end}</p>
+    </div>
+    <p class="small muted" style="margin:6px 0 10px">番茄只騙得了別人，騙不了自己。真誠面對自己，番茄才會長出來。</p>
+    <button class="btn red big block" id="oathGo" data-a="oathGo" disabled>念完才能按（${OATH_SEC.toFixed(1)}）</button>
+    <button class="btn ghost block" style="margin-top:10px" data-a="closeModal">我再想想</button>
+  </div>`);
+  const t0=Date.now(), b=$('#oathGo');
+  const tk=setInterval(()=>{
+    if (!document.body.contains(b)) return clearInterval(tk);
+    const left=OATH_SEC-(Date.now()-t0)/1000;
+    if (left<=0){ clearInterval(tk); b.disabled=false; b.textContent='我發誓，開始專心'; }
+    else b.textContent=`念完才能按（${left.toFixed(1)}）`;
+  },100);
+}
+
 async function startFocus(subject, taskId){
   ensureAudio();
+  if (needOath()) { showOath(subject, taskId); return; }
   const dur=focusMin()*60000;
   S.timer={mode:'focus', startAt:Date.now(), dur, subject, taskId:taskId||'', gid:S.gid};
   saveTimer(); keepAwake(true); render();
@@ -2948,6 +3087,7 @@ document.addEventListener('click', async e=>{
     case 'guestOffOk': { if(!isLeader()) return; const old=S.group.guestToken; closeModal();
       await S.api.updateGroup(S.gid,{guestToken:''}); if(old) await S.api.delGuest(old).catch(()=>{}); toast('訪客參觀已關閉'); break; }
     case 'closeModal': closeModal(); if (isBoba()) setTimeout(()=>{ checkBotJoin(); checkSleepNote(); },900); break;
+    case 'oathGo': { if(el.disabled) return; const p=S.oathPending; S.oathPending=null; lsSet(oathKey(),Date.now()); closeModal(); toast(`${oathGod().name}收到了，開始專心！`); if(p) await startFocus(p.subject,p.taskId); break; }
     case 'pluckNew': await pluckAndShow('newest', el.dataset.task||''); break;
     case 'pluck': await pluckAndShow('oldest'); break;
     case 'crate': openCrate(+el.dataset.i); break;
