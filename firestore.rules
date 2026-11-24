@@ -91,7 +91,7 @@ service cloud.firestore {
         // 團長（建立者）可以改讀書社名稱、角色、科目、最短專心時間、考試設定
         ( resource.data.owner == me() && onlyChanged(['name', 'theme', 'subjects', 'minFocus', 'examName', 'examDate', 'guestToken', 'dirId'])
           && (!('minFocus' in request.resource.data)
-              || (request.resource.data.minFocus is int && request.resource.data.minFocus >= 5 && request.resource.data.minFocus <= 60)) )
+              || (request.resource.data.minFocus is int && request.resource.data.minFocus >= 5 && request.resource.data.minFocus <= 180)) )
         ||
         // 團長可以移除、封鎖、解除封鎖成員（不能移除或封鎖自己）
         ( resource.data.owner == me() && onlyChanged(['members', 'banned'])

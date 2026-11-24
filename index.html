@@ -201,6 +201,11 @@ details summary::-webkit-details-marker{display:none}
 .oath .big{font-size:1.2rem;font-weight:900;margin:4px 0 8px}
 .oath-text{background:#fffbea;border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;font-weight:700;line-height:1.65;font-size:1.02rem}
 .oath-text p{margin:0}
+.godwarn{display:flex;align-items:center;gap:10px;text-align:left;background:#fff3b0;border:3px solid var(--ink);border-radius:16px;padding:8px 10px;margin:0 0 10px;box-shadow:3px 3px 0 var(--ink)}
+.godwarn .gw-god{width:78px;height:78px;flex:none;animation:bob .9s ease-in-out infinite alternate}
+.godwarn .gw-tag{display:inline-block;background:var(--ink);color:var(--sun);border-radius:8px;padding:0 8px;font-size:.75rem;font-weight:900}
+.godwarn .gw-big{font-size:1.25rem;font-weight:900;color:#b3261e;margin-top:2px;line-height:1.25}
+.godwarn .gw-small{font-size:.85rem;font-weight:700;line-height:1.4}
 .oath-text .threat{margin-top:6px;background:#2a2140;color:#fff;border-radius:10px;padding:4px 8px;font-size:.92rem}
 .oath-text .threat b{color:#ffd23f}
 .oath-text .g-line{margin-top:6px;color:#b5341f}
@@ -1278,6 +1283,12 @@ const BONUS_MISSIONS = [
   {title:'把料理阿嬤煮成肉醬', goal:167, stay:true, story:'料理阿嬤不小心跳進自己的大鍋子，現在舉雙手投降中！每讀完一顆番茄，鍋底的火就旺一點。大家一起讀到火力全開，就能把阿嬤燉成一鍋香噴噴的「阿嬤肉醬」！', win:'叮！阿嬤肉醬燉好了！阿嬤從鍋子裡探出頭說：「乖孫，有讀書的才可以拌麵喔！」', art:(d,p)=>grannySVG(d,p)},
   {title:'子路牛排店', goal:267, story:'孔子的學生子路上課太愛頂嘴，被綁上了「牛排店」的輸送帶！每讀完一顆番茄，番茄兵就把他往最左邊嘰嘰叫的線鋸推近一步。全班讀滿 267 顆，就能吃到傳說中的「子路牛排」！', win:'滋滋滋～「子路牛排」上桌啦，七分熟還淋了番茄醬！子路的帽子居然還戴得端端正正：「君子吃牛排，帽子不能歪！」',
    scene:(d,p)=>steakScene(d,p), push:p=>`calc(${zlLeft(p)} + 72px)`},
+  {title:'熬一鍋子路腿骨蘿蔔排骨湯', goal:167, story:'子路牛排吃完了，只剩一根腿骨，上面居然還戴著子路的帽子（君子死，冠不免！）。國文課剛讀完杏林子〈煮蘿蔔湯〉，大家決定學她慢慢熬：每讀完一顆番茄，番茄兵就推一根白蘿蔔跳進鍋裡，湯就更甜一點。讀滿 167 顆，就能喝到「子路腿骨蘿蔔排骨湯」！', win:'咕嘟咕嘟～湯熬好了，清甜到骨頭都在笑！腿骨上的帽子還是端端正正，子路說：「喝湯也要正衣冠！」',
+   scene:(d,p)=>soupScene(d,p), push:()=>sceneX(250)},
+  {title:'救活快乾掉的噴血心臟', goal:167, story:'生物課的超級心臟罷工了，乾巴巴的快要變成「心臟乾」！每讀完一顆番茄，就幫它擠進一點血：右心室把藍藍的缺氧血噴去肺（肺循環），左心室把紅紅的含氧血噴到全身（體循環）。這週讀不滿 167 顆，心臟就乾掉啦！', win:'噗通！噗通！心臟復活了！血從主動脈噴出去繞全身一圈，再經過肺換成新鮮的氧氣，噴得比夜市的噴水池還壯觀！',
+   scene:(d,p)=>heartScene(d,p), push:()=>sceneX(126)},
+  {title:'大航海時代：把迷路的荷蘭船拖進大員', goal:167, story:'大航海時代，荷蘭船長把望遠鏡拿反了，一直以為台灣只有一顆小番茄那麼大，船怎麼開都靠不了岸。番茄兵划著竹筏，要把大船一路拖進大員港。岸上的西拉雅族小勇士和梅花鹿已經等很久了，準備教船長：這座島可是又大又美！', win:'靠岸啦！瞭望台上的水手大喊「Ilha Formosa（美麗之島）！」喊到破音。西拉雅族小勇士教船長用羅馬字寫西拉雅語，這就是後來的「新港文書」；船長還被梅花鹿追著跑了三圈。',
+   scene:(d,p)=>formosaScene(d,p), push:p=>sceneX(shipX(p)-86)},
 ];
 function missionGoal(m, hp){ return m.goal ? (hp===67 ? m.goal : Math.max(hp, Math.round(hp*m.goal/67))) : hp; }
 function weekMission(weekTom, hp){
@@ -1435,6 +1446,186 @@ function steakPlateSVG(){
   <circle cx="100" cy="66" r="5" fill="#2fbf5b" stroke="${k}" stroke-width="2"/><circle cx="106" cy="70" r="4" fill="#2fbf5b" stroke="${k}" stroke-width="2"/>
   <path d="M98 40v22" stroke="${k}" stroke-width="2"/><path d="M98 40h22v11H98z" fill="#fff" stroke="${k}" stroke-width="2"/><text x="109" y="48.5" text-anchor="middle" font-size="7" font-weight="900" fill="#b0482a">七分熟</text>
   <path d="M8 26l3-6 3 6-6-3h6zM118 18l2.5-5 2.5 5-5-2.5h5z" fill="#ffd23f" stroke="${k}" stroke-width="1"/></svg>`;
+}
+// ======================================================================
+//  加碼任務 5～7：整格場景（scene）。座標都畫在 340×178 的 SVG 上，置中靠下；
+//  番茄兵的位置用 sceneX(x)（SVG 的 x 換成遠征框裡的位置）。
+// ======================================================================
+const sceneX = x => `calc(50% + ${Math.round(x-170)}px)`;
+function sceneWrap(bg, inner){
+  return `<div style="position:absolute;inset:0;background:${bg}"></div><svg viewBox="0 0 340 178" preserveAspectRatio="xMidYMax meet" overflow="visible" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">${inner}</svg>`;
+}
+function mixColor(a, b, t){
+  t=Math.max(0,Math.min(1,t||0)); const h=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));
+  const A=h(a), B=h(b); return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+function sceneBubble(x, y, w, text, color){
+  const tw=[...text].reduce((a,c)=>a+(c.charCodeAt(0)>255?11:6.4),0)+16; w=Math.max(w,Math.round(tw)); x=Math.max(2,Math.min(x,338-w));
+  return `<g><rect x="${x}" y="${y}" width="${w}" height="20" rx="9" fill="#fff" stroke="${INK}" stroke-width="2.5"/><text x="${x+w/2}" y="${y+14.5}" text-anchor="middle" font-size="11" font-weight="900" fill="${color||INK}">${text}</text></g>`;
+}
+const sceneStars = `<path d="M8 30l3-6 3 6-6-3h6zM326 22l2.5-5 2.5 5-5-2.5h5zM300 60l2-4 2 4-4-2h4z" fill="#ffd23f" stroke="${INK}" stroke-width="1"/>`;
+function sceneFlame(x, y, s){
+  return `<g transform="translate(${x} ${y}) scale(${s.toFixed(2)})"><path d="M0 0q-11-3-9-15q2-7 5-10q0 7 4 8q-1-10 6-17q0 11 7 16q4 6 0 13q-5 6-13 5z" fill="#ff7a1a" stroke="${INK}" stroke-width="${(2.4/s).toFixed(2)}" stroke-linejoin="round"><animateTransform attributeName="transform" type="scale" values="1 1;1 1.12;1 1" dur=".5s" repeatCount="indefinite"/></path><path d="M1-3q-5-2-3-8q2 2 4 1q0-5 3-7q1 6 3 8q1 5-7 6z" fill="#ffd23f"/></g>`;
+}
+
+// ---------- 5. 子路腿骨蘿蔔排骨湯（杏林子〈煮蘿蔔湯〉）：每讀一顆，番茄兵就推蘿蔔跳進鍋 ----------
+const SOUP_RADISH = 6;
+function radishGuy(x, y, mood=0){
+  const k=INK;
+  const face = mood>0 ? `<path d="M-6-25q2-2 4 0M2-25q2-2 4 0" stroke="${k}" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M-3-20q3 3 6 0" stroke="${k}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`
+                      : `<circle cx="-4" cy="-25" r="1.8" fill="${k}"/><circle cx="4" cy="-25" r="1.8" fill="${k}"/><ellipse cx="0" cy="-19" rx="2" ry="2.4" fill="#7a1010"/><path d="M9-34q3 5 0 7q-3-2 0-7z" fill="#8fd3ff" stroke="${k}" stroke-width="1.2"/>`;
+  return `<g transform="translate(${x} ${y}) rotate(-8)">
+    <path d="M0-38q-10-12-5-19q6 6 5 19zM0-38q10-12 5-19q-6 6-5 19zM0-38q-2-12 0-22q2 10 0 22z" fill="#2fbf5b" stroke="${k}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M-11-28q0-11 11-11t11 11q0 16-11 28q-11-12-11-28z" fill="#fff" stroke="${k}" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M-6-10h4M2-6h4" stroke="#c9c2b0" stroke-width="1.5" stroke-linecap="round"/>${face}
+    <circle cx="-7" cy="-21" r="2" fill="#ff8fa0" opacity=".6"/><circle cx="7" cy="-21" r="2" fill="#ff8fa0" opacity=".6"/></g>`;
+}
+// 子路的腿骨：一端戴著子路的冠、還留著大鬍子
+function ziluBone(done, p){
+  const k=INK;
+  const eyes = done ? `<path d="M-7-2q3-3 6 0M3-2q3-3 6 0" stroke="${k}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+             : p<.5 ? `<circle cx="-4" cy="-1" r="2" fill="${k}"/><circle cx="5" cy="-1" r="2" fill="${k}"/><path d="M-8-6l5 2M9-6l-5 2" stroke="${k}" stroke-width="2" stroke-linecap="round"/>`
+             : `<path d="M-7-1q3-3 6 0M3-1q3-3 6 0" stroke="${k}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  return `<g transform="translate(148 70) rotate(${done?-28:-34})">
+    <path d="M0 0h44" stroke="${k}" stroke-width="15" stroke-linecap="round"/><path d="M0 0h44" stroke="#f6edd6" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="-3" cy="-6" r="7" fill="#f6edd6" stroke="${k}" stroke-width="2.5"/><circle cx="-3" cy="6" r="7" fill="#f6edd6" stroke="${k}" stroke-width="2.5"/>
+    <g transform="translate(56 0) rotate(${done?28:34})">
+      <circle cx="0" cy="0" r="14" fill="#f6edd6" stroke="${k}" stroke-width="2.5"/>
+      ${eyes}<path d="M-9 5q2 12 9 12t9-12q-4 3-9 3t-9-3z" fill="#2b1a10" stroke="${k}" stroke-width="1.8" stroke-linejoin="round"/>
+      <rect x="-6" y="-25" width="12" height="10" rx="2" fill="#6b4a2b" stroke="${k}" stroke-width="2.2"/><path d="M-10-21h20" stroke="#c9a227" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M-6-16q-9 10-8 22M6-16q9 10 8 22" stroke="#e02a1e" stroke-width="1.6" fill="none"/>
+    </g></g>`;
+}
+function soupScene(done=false, p=0){
+  p=Math.max(0,Math.min(1,p||0)); const k=INK;
+  const inPot = done ? SOUP_RADISH : Math.min(SOUP_RADISH-1, Math.floor(p*SOUP_RADISH));
+  const soup = done ? '#f0b84a' : mixColor('#dff3fa', '#f2c25a', p);
+  const steamN = done ? 4 : p>.66 ? 3 : p>.33 ? 2 : p>.1 ? 1 : 0;
+  const steam = Array.from({length:steamN},(_,i)=>`<path d="M${80+i*18} 50q-6-7 0-13t0-13" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".95"><animate attributeName="opacity" values=".95;.2;.95" dur="${1.3+i*.3}s" repeatCount="indefinite"/></path>`).join('');
+  const potRad = [70,90,110,128,146,100].slice(0,inPot).map((x,i)=>`<g transform="translate(${x} ${i===5?70:64})"><g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="${.8+i*.13}s" repeatCount="indefinite"/>
+      <path d="M0-4q-6-8-3-12q4 4 3 12zM0-4q6-8 3-12q-4 4-3 12z" fill="#2fbf5b" stroke="${k}" stroke-width="1.6"/><path d="M-7 4q0-9 7-9t7 9z" fill="#fff" stroke="${k}" stroke-width="2"/></g></g>`).join('');
+  const fs = done ? 1.15 : .45+p*.8;
+  const queue = done ? '' : Array.from({length:Math.min(3, SOUP_RADISH-inPot)},(_,i)=>radishGuy(200+i*21, 158, 0)).join('');
+  const say = done ? '喝湯也要正衣冠！' : p<.35 ? '我只剩骨頭了還要熬？' : p<.7 ? '加蘿蔔……好像有點香' : '好甜！帽子幫我戴正！';
+  const card = `<g transform="rotate(-4 50 28)"><rect x="6" y="6" width="90" height="46" rx="4" fill="#fffdf4" stroke="${k}" stroke-width="2.5"/><path d="M14 6v-3M88 6v-3" stroke="${k}" stroke-width="2"/>
+    <text x="51" y="21" text-anchor="middle" font-size="9" font-weight="900" fill="#8b5a2b">杏林子</text>
+    <text x="51" y="35" text-anchor="middle" font-size="12" font-weight="900" fill="${k}">〈煮蘿蔔湯〉</text>
+    <text x="51" y="47" text-anchor="middle" font-size="7.5" font-weight="700" fill="#6b6b6b">慢慢熬，清淡也甘甜</text></g>`;
+  const stove = `<rect x="36" y="128" width="138" height="42" rx="5" fill="#9aa7b0" stroke="${k}" stroke-width="3.5"/><rect x="48" y="140" width="40" height="18" rx="3" fill="#2b3a44" stroke="${k}" stroke-width="2"/>
+    <circle cx="118" cy="149" r="6" fill="#fff" stroke="${k}" stroke-width="2"/><circle cx="146" cy="149" r="6" fill="#fff" stroke="${k}" stroke-width="2"/><path d="M118 149l3-4M146 149l3-4" stroke="${k}" stroke-width="2"/>`;
+  const flames = `${sceneFlame(78,130,fs*.8)}${sceneFlame(104,130,fs)}${sceneFlame(130,130,fs*.8)}`;
+  const pot = `<path d="M46 66h118l-6 56q-1 6-7 6H59q-6 0-7-6z" fill="#c9d2d8" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M46 72q-11 0-11 7t11 6M164 72q11 0 11 7t-11 6" fill="none" stroke="${k}" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M58 80v34" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+    <rect x="76" y="96" width="58" height="18" rx="4" fill="#fff" stroke="${k}" stroke-width="2"/><text x="105" y="109" text-anchor="middle" font-size="9" font-weight="900" fill="#b0482a">排骨湯</text>`;
+  const surface = `<ellipse cx="105" cy="66" rx="59" ry="9" fill="${soup}" stroke="${k}" stroke-width="3"/>
+    ${p>.2||done?`<circle cx="78" cy="66" r="2.5" fill="#fff" opacity=".8"/><circle cx="132" cy="64" r="3" fill="#fff" opacity=".8"/>`:''}`;
+  const bowl = done ? `<g transform="translate(232 120)"><path d="M0 0h70q-4 30-35 30T0 0z" fill="#fff" stroke="${k}" stroke-width="3"/><ellipse cx="35" cy="0" rx="35" ry="7" fill="#f0b84a" stroke="${k}" stroke-width="3"/>
+      <path d="M20-1q-4-6 3-7q4 4-3 7zM46 1q-3-6 3-7q5 4-3 7z" fill="#fff" stroke="${k}" stroke-width="1.4"/><path d="M56-4l24-22" stroke="${k}" stroke-width="5" stroke-linecap="round"/><path d="M56-4l24-22" stroke="#c9d2d8" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="4" y="34" width="64" height="16" rx="4" fill="#fff" stroke="${k}" stroke-width="2"/><text x="36" y="45.5" text-anchor="middle" font-size="8" font-weight="900" fill="#b0482a">子路蘿蔔排骨湯</text></g>` : '';
+  return sceneWrap('linear-gradient(#fff4dc,#ffe8c4 72%,#d8a878 72%,#c48f5e)',
+    `${card}${stove}${flames}${steam}${pot}${surface}${potRad}${ziluBone(done,p)}${queue}${bowl}
+     ${sceneBubble(214, 6, 120, say, done?'#b0482a':INK)}${done?sceneStars:''}`);
+}
+
+// ---------- 6. 噴血心臟（體循環＋肺循環）：讀越多番茄，乾掉的心臟越有血色、跳越快 ----------
+function heartScene(done=false, p=0){
+  p=done?1:Math.max(0,Math.min(1,p||0)); const k=INK;
+  const col = mixColor('#b89a7c', '#e8283c', p);
+  const red = mixColor('#d9c8b8', '#e8283c', p), blue = mixColor('#d9c8b8', '#3a6fd8', p);
+  const s = done ? 1.12 : .78+p*.3, beat = done ? .55 : 1.8-p*1.1;
+  const loops = [
+    {d:'M150 64C128 22 92 24 70 46', c:blue},   // 右心室 → 肺動脈 → 肺（缺氧血）
+    {d:'M72 120C96 146 128 140 152 108', c:red},  // 肺 → 肺靜脈 → 左心房（含氧血）
+    {d:'M190 64C212 22 250 24 274 50', c:red},  // 左心室 → 主動脈 → 全身（含氧血）
+    {d:'M274 122C248 146 212 140 188 108', c:blue}, // 全身 → 腔靜脈 → 右心房（缺氧血）
+  ];
+  const dots = p<.05 ? 0 : done ? 3 : 1+Math.floor(p*2.2), dur = done ? 1.1 : 3.4-p*2;
+  const tubes = loops.map(L=>`<path d="${L.d}" stroke="${k}" stroke-width="11" fill="none" stroke-linecap="round"/><path d="${L.d}" stroke="${L.c}" stroke-width="7" fill="none" stroke-linecap="round"/>
+    ${Array.from({length:dots},(_,i)=>`<circle r="3.2" fill="#fff" opacity=".85"><animateMotion dur="${dur.toFixed(2)}s" begin="-${(i*dur/dots).toFixed(2)}s" repeatCount="indefinite" path="${L.d}"/></circle>`).join('')}`).join('');
+  const lungs = `<g transform="translate(52 84)"><g><animateTransform attributeName="transform" type="scale" values="1;1.05;1" dur="2.4s" repeatCount="indefinite"/>
+    <path d="M0-40v14M0-26l-8 8M0-26l8 8" stroke="${k}" stroke-width="4" stroke-linecap="round"/><path d="M0-40v14" stroke="#ffd0d6" stroke-width="2" stroke-linecap="round"/>
+    <path d="M-6-20q-22-4-24 24q0 22 18 22q8 0 8-12z" fill="#ff9fb0" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M6-20q22-4 24 24q0 22-18 22q-8 0-8-12z" fill="#ff9fb0" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="-15" cy="2" r="1.8" fill="${k}"/><circle cx="15" cy="2" r="1.8" fill="${k}"/><path d="M-4 10q4 3 8 0" stroke="${k}" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+    <text x="0" y="46" text-anchor="middle" font-size="12" font-weight="900" fill="${k}">肺</text></g>`;
+  const body = `<g transform="translate(292 84)">
+    <circle cx="0" cy="-26" r="12" fill="#ffd9b0" stroke="${k}" stroke-width="3"/><circle cx="-4" cy="-27" r="1.6" fill="${k}"/><circle cx="4" cy="-27" r="1.6" fill="${k}"/><path d="M-3-21q3 2 6 0" stroke="${k}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M-12-12h24l4 28h-32z" fill="#3a8a6a" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M-12-10l-10 16M12-10l10 16M-7 16v18M7 16v18" stroke="${k}" stroke-width="4" stroke-linecap="round"/>
+    <text x="0" y="50" text-anchor="middle" font-size="12" font-weight="900" fill="${k}">全身</text></g>`;
+  const eyes = p<.35 ? `<path d="M-16-8l7 6M-9-8l-7 6M9-8l7 6M16-8l-7 6" stroke="${k}" stroke-width="2.6" stroke-linecap="round"/>`
+             : p<.7 ? `<circle cx="-12" cy="-5" r="3" fill="${k}"/><circle cx="12" cy="-5" r="3" fill="${k}"/><path d="M-17-11l9 2M17-11l-9 2" stroke="${k}" stroke-width="2.4" stroke-linecap="round"/>`
+             : `<circle cx="-12" cy="-5" r="5" fill="#fff" stroke="${k}" stroke-width="2"/><circle cx="12" cy="-5" r="5" fill="#fff" stroke="${k}" stroke-width="2"/><circle cx="-11" cy="-4" r="2.4" fill="${k}"/><circle cx="13" cy="-4" r="2.4" fill="${k}"/>`;
+  const mouth = p<.35 ? `<path d="M-6 6q6-4 12 0" stroke="${k}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M1 7q2 8 6 4" fill="#ff8fa0" stroke="${k}" stroke-width="1.6"/>`
+              : `<path d="M-7 5q7 ${p<.7?5:10} 14 0z" fill="#7a1010" stroke="${k}" stroke-width="2"/>`;
+  const cracks = p<.5 ? `<path d="M-26-14l8 6-4 6 6 4M20-18l-4 8 6 4M-4 16l4 6-3 6" stroke="#6b4a2b" stroke-width="2" fill="none" opacity="${(1-p*2).toFixed(2)}"/>` : '';
+  const heart = `<g transform="translate(170 86)"><g><animateTransform attributeName="transform" type="scale" values="${s.toFixed(2)};${(s*1.09).toFixed(2)};${s.toFixed(2)};${(s*1.04).toFixed(2)};${s.toFixed(2)}" dur="${beat.toFixed(2)}s" repeatCount="indefinite"/>
+    <path d="M-10-28q-2-14 6-18M8-30q0-14 12-14q10 0 10 10" stroke="${k}" stroke-width="11" fill="none" stroke-linecap="round"/>
+    <path d="M-10-28q-2-14 6-18" stroke="${blue}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M8-30q0-14 12-14q10 0 10 10" stroke="${red}" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M0 34C-30 14-46-10-32-26C-20-40-4-34 0-22C4-34 20-40 32-26C46-10 30 14 0 34Z" fill="${col}" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/>
+    <ellipse cx="-20" cy="-18" rx="7" ry="4" fill="#fff" opacity="${(.15+p*.45).toFixed(2)}" transform="rotate(-30 -20 -18)"/>
+    ${cracks}${eyes}${mouth}
+    <circle cx="-21" cy="4" r="3.5" fill="#ff8fa0" opacity="${(p*.7).toFixed(2)}"/><circle cx="21" cy="4" r="3.5" fill="#ff8fa0" opacity="${(p*.7).toFixed(2)}"/>
+    ${p<.3?`<path d="M30 -30q3 6 0 8q-3-2 0-8z" fill="#e8dccc" stroke="${k}" stroke-width="1.2"/><path d="M-36 20l-6 4M36 22l6 3" stroke="#b89a7c" stroke-width="2" stroke-linecap="round"/>`:''}
+    </g></g>`;
+  const spurtN = done ? 4 : p>.75 ? 3 : p>.5 ? 2 : 0;
+  const spurts = Array.from({length:spurtN},(_,i)=>{ const dx=[-34,30,-14,46][i], path=`M${196+i%2*-8} 46q${dx/2} -40 ${dx} -16`;
+    return `<path d="M0-5q4 5 0 8q-4-3 0-8z" fill="#e8283c" stroke="${k}" stroke-width="1.2"><animateMotion dur="${(.9+i*.15).toFixed(2)}s" begin="-${(i*.25).toFixed(2)}s" repeatCount="indefinite" path="${path}"/></path>`; }).join('');
+  const say = done ? '噗通噗通！復活啦！' : p<.35 ? '好渴……我快乾成心臟乾了' : p<.7 ? '再擠一點血給我！' : '噗通噗通！我要噴了！';
+  const labels = `<text x="106" y="60" text-anchor="middle" font-size="10" font-weight="900" fill="${k}">肺循環</text><text x="234" y="60" text-anchor="middle" font-size="10" font-weight="900" fill="${k}">體循環</text>
+    <g font-size="8" font-weight="900"><text x="6" y="172" fill="#e8283c">● 紅＝含氧血</text><text x="78" y="172" fill="#3a6fd8">● 藍＝缺氧血</text></g>`;
+  return sceneWrap('radial-gradient(circle at 50% 50%,#fff0f2,#ffd3da)',
+    `${labels}${tubes}${lungs}${body}${heart}${spurts}${sceneBubble(110, 2, 120, say, done||p>=.7?'#c4161c':INK)}${done?sceneStars:''}`);
+}
+
+// ---------- 7. 大航海時代：望遠鏡拿反的荷蘭船長，被番茄兵用竹筏拖進大員港 ----------
+function shipX(p){ return 112 + (1-Math.max(0,Math.min(1,p||0)))*120; }
+function formosaScene(done=false, p=0){
+  p=done?1:Math.max(0,Math.min(1,p||0)); const k=INK, sx=done?104:shipX(p);
+  const island = `<path d="M-30 120Q-6 58 44 64Q84 70 116 120Z" fill="#5fbf4a" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M-30 118Q50 106 124 118L124 126L-30 126Z" fill="#f3d98b" stroke="${k}" stroke-width="2.5"/>
+    <g><circle cx="10" cy="74" r="11" fill="#3f9a3a" stroke="${k}" stroke-width="2.5"/><path d="M10 84v14" stroke="#7a4a28" stroke-width="4"/></g>
+    <path d="M98 118v-26" stroke="#7a4a28" stroke-width="3"/><rect x="84" y="84" width="30" height="13" rx="2" fill="#fff" stroke="${k}" stroke-width="2"/><text x="99" y="94.5" text-anchor="middle" font-size="9" font-weight="900" fill="${k}">大員</text>`;
+  // 梅花鹿：完成時一臉驚訝、往船長的方向衝
+  const deer = `<g transform="translate(36 76)">${done?`<path d="M-30-6h-12M-30 0h-16M-30 6h-10" stroke="${k}" stroke-width="2" stroke-linecap="round"/>`:''}
+    <path d="M-8 6v12M-2 6v12M8 6v12M13 6v12" stroke="${k}" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="2" cy="2" rx="15" ry="8" fill="#c47a3a" stroke="${k}" stroke-width="2.5"/>
+    <circle cx="-4" cy="0" r="1.6" fill="#fff"/><circle cx="4" cy="3" r="1.6" fill="#fff"/><circle cx="9" cy="-1" r="1.4" fill="#fff"/><circle cx="-1" cy="5" r="1.3" fill="#fff"/>
+    <path d="M12-2l6-12" stroke="${k}" stroke-width="7" stroke-linecap="round"/><path d="M12-2l6-12" stroke="#c47a3a" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="22" cy="-14" rx="7" ry="5" fill="#c47a3a" stroke="${k}" stroke-width="2.5"/><circle cx="23" cy="-15" r="1.4" fill="${k}"/><circle cx="28" cy="-13" r="1.3" fill="${k}"/>
+    <path d="M18-18l-3-8m3 4l-4-1M22-19l2-8m-1 4l4-2" stroke="#7a4a28" stroke-width="2" stroke-linecap="round"/>
+    ${done?`<text x="30" y="-24" font-size="12" font-weight="900" fill="#d22">!</text>`:''}</g>`;
+  // 西拉雅族的小勇士：在岸邊揮手；完成時拿著「新港文書」
+  const kid = `<g transform="translate(74 118)">
+    <path d="M-4 0v-10M4 0v-10" stroke="${k}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M-9-10h18l-2-16h-14z" fill="#2b3a6e" stroke="${k}" stroke-width="2.2" stroke-linejoin="round"/><path d="M-8-14h16" stroke="#e8463a" stroke-width="2.4"/><path d="M-8-18h16" stroke="#fff" stroke-width="1.6" stroke-dasharray="2 2"/>
+    ${done?`<path d="M-8-22l-3-20M8-22l3-20" stroke="${k}" stroke-width="3" stroke-linecap="round"/><g transform="translate(-12 -52) rotate(-4)"><rect x="0" y="-12" width="24" height="18" fill="#fff6d8" stroke="${k}" stroke-width="2"/><text x="12" y="-4" text-anchor="middle" font-size="5.5" font-weight="900" fill="${k}">新港</text><text x="12" y="3" text-anchor="middle" font-size="5.5" font-weight="900" fill="${k}">文書</text></g>`
+          :`<path d="M-8-22l-7 8M8-22l6-12" stroke="${k}" stroke-width="3" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 8 -22;-14 8 -22;0 8 -22" dur=".7s" repeatCount="indefinite"/></path>`}
+    <circle cx="0" cy="-33" r="8" fill="#e9b98f" stroke="${k}" stroke-width="2.4"/><path d="M-8-35q0-8 8-8t8 8q-4-3-8-3t-8 3z" fill="#2b1a10"/>
+    <path d="M-8.5-37h17" stroke="#e8463a" stroke-width="3"/><path d="M-6-37l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5" stroke="#ffd23f" stroke-width="1.2" fill="none"/>
+    <circle cx="-3" cy="-32" r="1.3" fill="${k}"/><circle cx="3" cy="-32" r="1.3" fill="${k}"/><path d="M-3-28q3 2 6 0" stroke="${k}" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>`;
+  // 荷蘭船：船長在甲板上把望遠鏡拿反，瞭望台上的水手負責大喊
+  const ship = `<g transform="translate(${sx.toFixed(1)} 0)"><g><animateTransform attributeName="transform" type="translate" values="0 0;0 2.5;0 0" dur="2.2s" repeatCount="indefinite"/>
+    <path d="M30 112V34M64 112V18" stroke="${k}" stroke-width="3.5"/>
+    <path d="M64 18h20v4h-20zM64 22h20v4h-20zM64 26h20v4h-20z" stroke="${k}" stroke-width="1"/><path d="M64 18h20v4h-20z" fill="#ff8a1f"/><path d="M64 22h20v4h-20z" fill="#fff"/><path d="M64 26h20v4h-20z" fill="#1d4fd8"/>
+    <path d="M44 44q20-6 40 0v32q-20 6-40 0z" fill="#fffaf0" stroke="${k}" stroke-width="2.5"/><text x="64" y="66" text-anchor="middle" font-size="11" font-weight="900" fill="#e07800">VOC</text>
+    <path d="M16 52q14-5 28 0v26q-14 5-28 0z" fill="#fffaf0" stroke="${k}" stroke-width="2.5"/>
+    <path d="M22 40h16v6h-16z" fill="#8b5a2b" stroke="${k}" stroke-width="2"/><circle cx="30" cy="34" r="5" fill="#ffd9b0" stroke="${k}" stroke-width="2"/><ellipse cx="30" cy="37" rx="2" ry="2.4" fill="#7a1010"/>
+    <path d="M-4 112h108l-10 28h-90z" fill="#8b5a2b" stroke="${k}" stroke-width="3.5" stroke-linejoin="round"/><path d="M0 121h100" stroke="#ffd23f" stroke-width="3"/>
+    ${[20,40,60,80].map(x=>`<circle cx="${x}" cy="130" r="3" fill="#2b1a10" stroke="${k}" stroke-width="1.2"/>`).join('')}
+    <g transform="translate(88 112)"><path d="M-6 0v-14h12v14" fill="#ff8a1f" stroke="${k}" stroke-width="2"/><circle cx="0" cy="-20" r="7" fill="#ffd9b0" stroke="${k}" stroke-width="2.2"/><path d="M-12-25h24M-7-25q0-10 7-10t7 10" fill="#2b1a10" stroke="${k}" stroke-width="2"/>
+      <path d="M2-17q4 3 8 0" stroke="#c9944a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      ${done?`<path d="M-4-20q2-2 4 0" stroke="${k}" stroke-width="1.6" fill="none"/>`:`<path d="M-4-21l-16 -4l-1 8 17-2z" fill="#c9a227" stroke="${k}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="-21" cy="-21" r="4.5" fill="#bfe9ff" stroke="${k}" stroke-width="1.8"/>`}</g>
+    </g></g>`;
+  const water = `<path d="M-40 140q12-5 24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0t24 0V190H-40z" fill="#2a86b6" opacity=".55"><animateTransform attributeName="transform" type="translate" values="0 0;-24 0" dur="1.6s" repeatCount="indefinite"/></path>`;
+  const rx = sx-88;
+  const raft = done ? '' : `<path d="M${(sx-4).toFixed(1)} 116Q${(sx-30).toFixed(1)} 150 ${(rx+76).toFixed(1)} 152" stroke="#c9944a" stroke-width="2.5" fill="none"/>
+    <g transform="translate(${rx.toFixed(1)} 154)">${[0,1,2,3,4,5,6,7].map(i=>`<rect x="${i*10}" y="0" width="10" height="8" rx="4" fill="#b7d36b" stroke="${k}" stroke-width="1.8"/>`).join('')}</g>`;
+  const say = done ? 'Ilha Formosa！美麗之島！' : p<.35 ? '台灣怎麼這麼小一顆？' : p<.7 ? '咦？島好像越來越大了' : '原來望遠鏡拿反了！';
+  return sceneWrap('linear-gradient(#ffe2a8 0%,#bfe9ff 42%,#5cbde4 62%,#2a86b6 100%)',
+    `<circle cx="300" cy="22" r="12" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/>${island}${deer}${kid}${ship}${water}${raft}
+     ${sceneBubble(Math.min(206, sx+10), 2, 130, say, done?'#1d4fd8':INK)}${done?sceneStars:''}`);
 }
 function missionOfWeek(){ const w=Math.floor((parseYmd(weekStart())-new Date(2026,0,5))/604800000); return MISSIONS[((w%MISSIONS.length)+MISSIONS.length)%MISSIONS.length]; }
 
@@ -1936,8 +2127,11 @@ const guestFromHash = (location.hash.match(/^#guest-([A-Za-z0-9]{12})$/)||[])[1]
 // ---------- 衍生資料 ----------
 const isLeader = () => !!S.group && S.group.owner===S.me?.uid;
 // 團長設定的最短專心時間（沒設定就是 5 分鐘）；實際使用的專心時間不會低於它
-const clubMinFocus = () => { const v=parseInt(S.group?.minFocus); return v>=5&&v<=60 ? v : 5; };
-const focusMin = () => Math.max(S.settings.focus, clubMinFocus());
+// 專心時間：個人設定 25 分鐘～3 小時（FOCUS_MIN～FOCUS_MAX）；團長的最短專心時間 5～180 分鐘
+const FOCUS_MIN = 25, FOCUS_MAX = 180;
+const clubMinFocus = () => { const v=parseInt(S.group?.minFocus); return v>=5&&v<=FOCUS_MAX ? v : 5; };
+const myFocus = () => Math.min(FOCUS_MAX, Math.max(FOCUS_MIN, parseInt(S.settings.focus)||25));
+const focusMin = () => Math.max(myFocus(), clubMinFocus());
 const leaderName = () => (S.members[S.group?.owner]||{}).name || '團長';
 const prog = (uid,tid) => S.progress[`${uid}_${tid}`] || {};
 const sortTasks = a => [...a].sort((x,y)=> (x.date||'9999').localeCompare(y.date||'9999') || (x.order||0)-(y.order||0));
@@ -2765,8 +2959,9 @@ function viewSettings(){
     <label class="f">暱稱（朋友看到的名字）</label><input type="text" id="sname" data-keep="sname" value="${esc(myName())}" maxlength="16">
     <button class="btn soft sm" style="margin-top:8px" data-a="saveName">儲存暱稱</button></div>
   <div class="card"><h2>番茄鐘</h2>
-    <div class="row" style="margin-top:6px"><div class="grow"><label class="f">專心（分）</label><input type="number" id="sfocus" min="5" max="60" value="${s.focus}"></div><div class="grow"><label class="f">休息（分）</label><input type="number" id="sbrk" min="1" max="30" value="${s.brk}"></div>${themeKey()==='boba'?'':`<div class="grow"><label class="f">每日目標（顆）</label><input type="number" id="sgoal" min="1" max="20" value="${s.goal}"></div>`}</div>
-    ${clubMinFocus()>5?`<p class="small" style="margin:8px 0 0"><b>團長規定這個讀書社每次至少專心 ${clubMinFocus()} 分鐘。</b>${s.focus<clubMinFocus()?`你設的 ${s.focus} 分鐘比較短，在這裡會自動用 ${clubMinFocus()} 分鐘。`:''}</p>`:''}
+    <div class="row" style="margin-top:6px"><div class="grow"><label class="f">專心（分）</label><input type="number" id="sfocus" min="${FOCUS_MIN}" max="${FOCUS_MAX}" value="${myFocus()}"></div><div class="grow"><label class="f">休息（分）</label><input type="number" id="sbrk" min="1" max="30" value="${s.brk}"></div>${themeKey()==='boba'?'':`<div class="grow"><label class="f">每日目標（顆）</label><input type="number" id="sgoal" min="1" max="20" value="${s.goal}"></div>`}</div>
+    <p class="tiny" style="margin:6px 0 0">專心時間可以設 ${FOCUS_MIN} 分鐘到 ${FOCUS_MAX/60} 小時（${FOCUS_MAX} 分鐘）。</p>
+    ${clubMinFocus()>5?`<p class="small" style="margin:8px 0 0"><b>團長規定這個讀書社每次至少專心 ${clubMinFocus()} 分鐘。</b>${myFocus()<clubMinFocus()?`你設的 ${myFocus()} 分鐘比較短，在這裡會自動用 ${clubMinFocus()} 分鐘。`:''}</p>`:''}
     <button class="btn soft sm" style="margin-top:10px" data-a="saveTimer">儲存</button>
     <p class="tiny muted" style="margin:8px 0 0">撐滿一個專心時段才會得到${TH().unit}；中途放棄會${TH().fail==='番茄醬'?'變成番茄醬':'被吸管吸走'}，但滿 5 分鐘的時間仍會記錄。</p></div>
   <div class="card"><div class="row between"><h2>科目</h2><span class="small" style="font-weight:700">${clubSubjects().length} 科</span></div>
@@ -2781,7 +2976,7 @@ function viewSettings(){
   <div class="card"><div class="row between"><h2>讀書社</h2><span class="tag">團長：${esc(leaderName())}</span></div>
     <label class="f">讀書社名稱${isOwner?'':'（團長才能改）'}</label><input type="text" id="sgname" data-keep="sgname" value="${esc(g.name)}" ${isOwner?'':'disabled'}>
     <label class="f">角色${isOwner?'':'（團長才能改）'}</label><select id="stheme" ${isOwner?'':'disabled'}>${Object.entries(THEMES).map(([k,t])=>`<option value="${k}" ${(g.theme||'tomato')===k?'selected':''}>${esc(t.label)}${t.ready?'':'（先用番茄兵）'}</option>`).join('')}</select>
-    <label class="f">最短專心時間（分）${isOwner?'':'（團長才能改）'}</label><input type="number" id="sminfocus" data-keep="sminfocus" min="5" max="60" value="${clubMinFocus()}" ${isOwner?'':'disabled'}>
+    <label class="f">最短專心時間（分）${isOwner?'':'（團長才能改）'}</label><input type="number" id="sminfocus" data-keep="sminfocus" min="5" max="${FOCUS_MAX}" value="${clubMinFocus()}" ${isOwner?'':'disabled'}>
     ${isOwner?'<p class="tiny muted" style="margin:4px 0 0">社員每次專心至少要這麼久，設得比較短的人會自動拉長。例如大孩子 25 分鐘、小小孩 20 分鐘。</p>':''}
     <label class="f">考試名稱</label><input type="text" id="sexam" data-keep="sexam" value="${esc(g.examName||'')}">
     <label class="f">考試第一天</label><input type="date" id="sedate" data-keep="sedate" value="${esc(g.examDate||'')}">
@@ -2855,6 +3050,35 @@ function oathGod(day){ const n=Math.floor(new Date((day||ymd())+'T12:00:00').get
 const oathKey = () => `tg-oath-${S.gid}-${S.me?.uid}-${ymd()}`;
 // 只有番茄兵主題要念；今天已經有番茄、已經念過、訪客都不用
 function needOath(){ return ymd()>=OATH_FROM && !!S.me && !!S.gid && !S.guest && themeKey()==='tomato' && !memberStats(S.me.uid).todayTom && !lsGet(oathKey()); }
+
+// 神明警語：番茄兵讀書社當天收到第 3、6、9 顆番茄時，在收成畫面跳出一位可愛神明提醒
+//   每天從當天輪值神明往後輪，3、6、9 顆各是不同神明；警語也每天換。
+const GOD_WARN_AT = [3, 6, 9];
+const GOD_WARNS = [
+  {big:'舉頭三尺有神明', small:'你頭頂上三尺的地方，現在有一位神明正在數你的番茄。'},
+  {big:'人在做，天在看', small:'番茄是真的還是假的，天上看得一清二楚。'},
+  {big:'神明不睡覺', small:'你讀書的時候神明醒著，你偷玩的時候神明也醒著。'},
+  {big:'誠實的番茄最甜', small:'偷玩換來的番茄，咬下去是苦的喔。'},
+  {big:'善有善報，偷玩有番茄醬報', small:'不是不報，是番茄還在熟。'},
+  {big:'暗室不欺', small:'就算房間只有你一個人，也要像大家都在看一樣認真。'},
+  {big:'天知、地知、你知、我知', small:'你有沒有真的在讀，至少有四個知道。'},
+  {big:'神明有記帳', small:'每一顆番茄都記在天上的小本本，月底一起對帳。'},
+  {big:'神明在看，番茄在長', small:'祂在笑，是因為你剛剛很認真。繼續保持！'},
+];
+function godWarn(todayTom){
+  const i=GOD_WARN_AT.indexOf(todayTom);
+  if (i<0 || themeKey()!=='tomato' || ymd()<OATH_FROM) return null;
+  const n=Math.floor(new Date(ymd()+'T12:00:00').getTime()/86400000);
+  const m=(a,len)=>((a%len)+len)%len;
+  const g=OATH_GODS[m(OATH_GODS.indexOf(oathGod())+i+1, OATH_GODS.length)];
+  const w=GOD_WARNS[m(n*3+i, GOD_WARNS.length)];
+  return {g, w, n:todayTom};
+}
+function godWarnHTML(todayTom){
+  const x=godWarn(todayTom); if(!x) return '';
+  return `<div class="godwarn pop"><div class="gw-god">${godSVG(x.g.id)}</div>
+    <div class="gw-txt"><div class="gw-tag">⚠️ 第 ${x.n} ${TH().cnt}・${esc(x.g.name)}提醒</div><div class="gw-big">${esc(x.w.big)}</div><div class="gw-small">${esc(x.w.small)}</div></div></div>`;
+}
 
 // 黑白無常（Q 版）：白無常高帽「認真有番茄」、黑無常高帽「偷玩番茄爛」
 function wuchangSVG(white){
@@ -3010,7 +3234,7 @@ function closeModal(){ $('#modal-root').innerHTML=''; }
 function showCelebrate(t){
   const st=memberStats(S.me.uid);
   const U=TH().cnt;
-  openModal(`<div class="celebrate"><div class="plantbox shake">${growArt(1)}</div>
+  openModal(`<div class="celebrate">${godWarnHTML(st.todayTom)}<div class="plantbox shake">${growArt(1)}</div>
     <div class="big">${TH().pending}</div>
     <p style="font-weight:700;margin:4px 0 12px">今天第 ${st.todayTom} ${U}${themeKey()==='boba'?'・不限顆數，想撈幾顆就撈幾顆':st.todayTom>=S.settings.goal?'・今日目標達成 🎯':`・離目標還差 ${S.settings.goal-st.todayTom} ${U}`}</p>
     <button class="btn red big block" data-a="pluckNew" data-task="${esc(t.taskId||'')}">${TH().pluck}</button>
@@ -3282,8 +3506,8 @@ document.addEventListener('click', async e=>{
     case 'fsort': S.friendSort=el.dataset.v; render(); break;
     case 'copy': { const v=el.dataset.v; try{ await navigator.clipboard.writeText(v); toast('已複製'); }catch{ openModal(`<p>請長按下面文字複製：</p><input type="text" value="${esc(v)}" onfocus="this.select()"><button class="btn block" style="margin-top:10px" data-a="closeModal">好</button>`); } break; }
     case 'saveName': { const n=val('sname'); if(!n) return; await S.api.setMember(S.gid,S.me.uid,{name:n}); toast('已儲存'); break; }
-    case 'saveTimer': { const c=(id,lo,hi,d)=>Math.min(hi,Math.max(lo,parseInt(val(id))||d)); S.settings={focus:c('sfocus',5,60,25),brk:c('sbrk',1,30,5),goal:$('#sgoal')?c('sgoal',1,20,4):S.settings.goal}; lsSet('tg-settings',S.settings); toast('已儲存'); render(); break; }
-    case 'saveGroup': await S.api.updateGroup(S.gid, isLeader() ? {name:val('sgname')||S.group.name, theme:$('#stheme')?.value||'tomato', minFocus:Math.min(60,Math.max(5,parseInt(val('sminfocus'))||clubMinFocus())), examName:val('sexam'), examDate:val('sedate')} : {examName:val('sexam'), examDate:val('sedate')}); toast('已儲存'); break;
+    case 'saveTimer': { const c=(id,lo,hi,d)=>Math.min(hi,Math.max(lo,parseInt(val(id))||d)); S.settings={focus:c('sfocus',FOCUS_MIN,FOCUS_MAX,25),brk:c('sbrk',1,30,5),goal:$('#sgoal')?c('sgoal',1,20,4):S.settings.goal}; lsSet('tg-settings',S.settings); toast('已儲存'); render(); break; }
+    case 'saveGroup': await S.api.updateGroup(S.gid, isLeader() ? {name:val('sgname')||S.group.name, theme:$('#stheme')?.value||'tomato', minFocus:Math.min(FOCUS_MAX,Math.max(5,parseInt(val('sminfocus'))||clubMinFocus())), examName:val('sexam'), examDate:val('sedate')} : {examName:val('sexam'), examDate:val('sedate')}); toast('已儲存'); break;
     case 'home': case 'switchGroup': closeModal(); goHome(); break;
     case 'enter': { const g=el.dataset.v; await S.api.setUser(S.me.uid,{current:g}).catch(()=>{}); S.userDoc.current=g; S.view='today'; subscribe(g); window.scrollTo(0,0); break; }
     case 'newGroup': closeModal(); unsubs.forEach(f=>f()); unsubs=[]; S.group=null; S.gid=null; S.creating=true; render(); window.scrollTo(0,0); break;
