@@ -853,7 +853,7 @@ function newsCard(){
 // 讀書社裡還沒有真的夥伴，先請 9 位虛擬夥伴在 11/22～12/1 陸續加入，陪大家讀書、送禮、一起早睡。
 // 夥伴的動態全部在每個人的手機上算出來（同一時間大家看到的一樣），不會寫進資料庫；
 // 你給夥伴的回應存在自己的成員資料 botg 欄位。
-//   BOT_UNTIL 之前：平日晚上 7～9 點、假日早上 8 點起有讀書／運動動態，也會送禮、每週設計新角色
+//   BOT_UNTIL 之前：平日下午 4 點～晚上 8:30、假日早上 8 點起輪流讀書（顆數跟著真的社員走，見 botCount），也會送禮、每週設計新角色
 //   每天晚上 8:30 起陸續去洗澡、睡覺（這個沒有期限）
 const BOT_UNTIL = '2027-01-16';
 // 送禮給夥伴、見面禮、只按表情夥伴也回：從這天起（台灣時間）開始
@@ -980,41 +980,102 @@ const botJoined = (b, now=Date.now()) => botJoinTs(b)<=now;
 const joinedBots = (now=Date.now()) => BOTS.filter(b=>botJoined(b,now));
 const botSay = (b, type) => (b.say||{})[type] || BOT_GENERIC[type];
 function botSubjects(){ const l=subjNames().filter(n=>n!=='其他' && n!==SPORT.name); return l.length?l:['國語']; }
+// ---- 夥伴每天讀幾顆：跟著真的社員的進度走（不會差太多） ----
+// 看「這一天以前」真的社員（有讀過書的人）每天平均讀幾顆，每位夥伴有自己的個性（有人勤快、有人慢一點），
+// 每天再上下浮動；夥伴的總顆數比「社員平均總顆數 × 個性」少就多讀一點、多就少讀一點（一天最多差 2 顆），
+// 所以晚加入的夥伴會慢慢追上，不會跟大家差太多。
+// 只看這一天以前的資料，所以當天的行程一整天都不會變，每支手機算出來也一樣。
+const BOT_PACE_DEF = 3;                  // 還沒有社員資料時，一天大約讀幾顆
+const BOT_MAX = {wd:8, we:14};           // 一天最多：平日、假日
+const BOT_CATCH = 2;                     // 追趕／放慢：一天最多多讀或少讀幾顆
+let _botRef = {src:null};
+function botRefData(){
+  const raw=S.rawMembers||{}; if (_botRef.src===raw) return _botRef;
+  const ids=(S.group?.members||Object.keys(raw)).filter(u=>raw[u] && !raw[u].bot && (raw[u].tomatoes||0)>0);
+  const ms=ids.map(u=>raw[u]); let start='';
+  ms.forEach(m=>Object.keys(m.dt||{}).forEach(d=>{ if (!start || d<start) start=d; }));
+  return _botRef={src:raw, ms, start, days:new Map(), cum:new Map()};
+}
+function botRefOn(d){                    // 真的社員在 d 這天平均讀幾顆（還沒加入的人不算）
+  const R=botRefData(); if (R.days.has(d)) return R.days.get(d);
+  const ms=R.ms.filter(m=>!(typeof m.joinedAt==='number') || ymd(new Date(m.joinedAt))<=d);
+  const v = ms.length ? ms.reduce((s,m)=>s+((m.dt||{})[d]||0),0)/ms.length : null;
+  R.days.set(d, v); return v;
+}
+function botRefCum(d){                   // 真的社員平均在 d 以前一共讀了幾顆
+  const R=botRefData(); if (!R.start || d<=R.start) return 0; if (R.cum.has(d)) return R.cum.get(d);
+  let x=d; const stack=[]; while (x>R.start && !R.cum.has(x)) { stack.push(x); x=addDays(x,-1); }
+  let c = x<=R.start ? 0 : R.cum.get(x);
+  for (let i=stack.length-1;i>=0;i--){ c += botRefOn(addDays(stack[i],-1))||0; R.cum.set(stack[i], c); }
+  return c;
+}
+function botPace(d){                     // d 以前 7 天的平均（沒有資料就用預設）
+  let s=0, n=0; for (let i=1;i<=7;i++){ const v=botRefOn(addDays(d,-i)); if (v!=null){ s+=v; n++; } }
+  return n ? s/n : BOT_PACE_DEF;
+}
+const _botCnt = new Map();               // 夥伴每天讀了幾顆、在那天以前一共讀了幾顆
+function botCount(b, d){ return botTally(b,d).n; }
+function botTally(b, d){
+  const raw=S.rawMembers||{}, key=b.id+d; const c=_botCnt.get(key); if (c && c.src===raw) return c;
+  if (d<b.join) return {n:0, before:0};
+  // 從加入那天往後算（避免太深的遞迴）
+  let x=b.join, before=0; while (x<d) { const k=_botCnt.get(b.id+x); if (!(k && k.src===raw)) break; before=k.before+k.n; x=addDays(x,1); }
+  let out;
+  for (; x<=d; x=addDays(x,1)) {
+    let n=0;
+    if (x<BOT_UNTIL) {
+      const r=rng(hash('botpace'+b.id+x)), pr=rng(hash('botpersona'+b.id)), wkend=[0,6].includes(parseYmd(x).getDay());
+      const persona=0.8+pr()*0.4;        // 0.8～1.2：個性
+      const lag=persona*botRefCum(x) - before;   // 正的＝落後
+      const want = Math.max(0, botPace(x)*persona*(0.6+r()*0.8) + Math.max(-BOT_CATCH, Math.min(BOT_CATCH, lag*0.2)));
+      n = r()<0.06 ? 0 : Math.min(wkend?BOT_MAX.we:BOT_MAX.wd, Math.round(want));
+    }
+    out={src:raw, n, before}; _botCnt.set(b.id+x, out); before+=n;
+  }
+  return out;
+}
 // 夥伴某一天的行程（同一天、同一位夥伴，每支手機算出來都一樣）
+// 平日：下午 4 點～晚上 8:30 輪流讀書；假日：早上 8 點～晚上 8:30，中間會運動、出去玩、吃飯
 const _botDay = new Map();
 function botDay(b, d){
-  const key=b.id+d; if (_botDay.has(key)) return _botDay.get(key);
+  const raw=S.rawMembers||{}, key=b.id+d, c=_botDay.get(key); if (c && c.src===raw) return c.acts;
   const r=rng(hash('botday'+b.id+d)), acts=[], dow=parseYmd(d).getDay(), wkend=dow===0||dow===6, join=botJoinTs(b);
+  const bi=BOTS.indexOf(b), dseed=hash('botsub'+d)%97;
   const add=(type,s,e,extra={})=>{ const st=atMin(d,s); if (st>=join) acts.push({type, start:st, end:atMin(d,e), ...extra}); };
   if (d < BOT_UNTIL) {
-    if (wkend) {
-      // 假日：早上 8 點起陸續讀書、運動、出去玩，下午 5 點前結束
-      if (r() < 0.85) {
-        let t = 8*60 + Math.floor(r()*90);
-        const n = 2 + Math.floor(r()*3);
-        for (let i=0; i<n && t<17*60; i++) {
-          const k=r();
-          if (k<0.55) { const reps=r()<0.4?2:1; for (let j=0;j<reps;j++){ add('study',t,t+25,{si:r(),li:r()}); t+=30; } }
-          else if (k<0.8) { const len=30+Math.floor(r()*4)*10; add('sport',t,t+len,{li:r()}); t+=len; }
-          else { const len=20+Math.floor(r()*3)*10; add('fun',t,t+len,{li:r()}); t+=len; }
-          t += 20 + Math.floor(r()*100);
-        }
-      }
-    } else if (r() < 0.75) {
-      // 平日：晚上 7～9 點讀 1～3 顆（有時候沒來）
-      let t = 19*60 + Math.floor(r()*25);
-      const n = 1 + Math.floor(r()*3);
-      for (let i=0; i<n && t+25<=21*60; i++) { add('study',t,t+25,{si:r(),li:r()}); t+=30; }
+    const n=botCount(b,d);
+    // 可以讀書的 30 分鐘時段；假日中午 12～13 點吃飯
+    // 每位夥伴每天開始的分鐘數不一樣，大家才會錯開、輪流讀
+    const slots=[]; const from=(wkend?8*60:16*60)+Math.floor(r()*30), to=20*60+30;
+    for (let t=from; t+28<=to; t+=30) if (!(wkend && t>=12*60 && t<13*60)) slots.push(t);
+    // 隨機挑 n 個時段（偏好連續讀 1～3 顆，比較像真的人）
+    const pickd=new Set(); let guard=0;
+    while (pickd.size<Math.min(n,slots.length) && guard++<200) {
+      let i=Math.floor(r()*slots.length); const run=1+Math.floor(r()*3);
+      for (let k=0;k<run && pickd.size<n && i<slots.length;k++,i++) pickd.add(i);
     }
+    const studyAt=[...pickd].sort((a,b)=>a-b).map(i=>slots[i]);
+    studyAt.forEach(t=>{ const j=Math.floor(r()*3);
+      // 科目輪流：同一時段不同夥伴大多讀不同科目
+      add('study', t+j, t+j+25, {sx:bi+Math.floor((t+15)/30)*2+dseed, li:r()}); });
+    // 假日空檔：運動或出去玩
+    if (wkend) {
+      const free=slots.filter(t=>!studyAt.includes(t) && !studyAt.includes(t-30));
+      const m=Math.min(free.length, 1+Math.floor(r()*2));
+      for (let i=0;i<m;i++){ const t=free.splice(Math.floor(r()*free.length),1)[0]; if (t==null) break;
+        if (studyAt.includes(t+30)) continue;
+        r()<0.65 ? add('sport',t,t+30+Math.floor(r()*3)*10,{li:r()}) : add('fun',t,t+20+Math.floor(r()*3)*10,{li:r()}); }
+    }
+    acts.sort((a,b)=>a.start-b.start);
   }
   // 每天晚上 8:30 起陸續去洗澡、睡覺（睡到隔天 6:30）
-  const lastEnd = acts.length ? minOf(acts.at(-1).end) : 0;
-  const bath = Math.max(20*60+30+Math.floor(r()*35), lastEnd+3), bathLen = 15+Math.floor(r()*11);
+  const lastEnd = acts.length ? minOf(Math.max(...acts.map(a=>a.end))) : 0;
+  const bath = Math.max(20*60+30+Math.floor(r()*40), lastEnd+3), bathLen = 10+Math.floor(r()*16);
   add('bath', bath, bath+bathLen, {li:r()});
   add('sleep', bath+bathLen, 30*60+30, {li:r()});
-  _botDay.set(key, acts); return acts;
+  _botDay.set(key, {src:raw, acts}); return acts;
 }
-function botAct(b, a){ if (!a) return null; const subs=botSubjects(), subject=a.type==='study'?subs[Math.floor(a.si*subs.length)]:'';
+function botAct(b, a){ if (!a) return null; const subs=botSubjects(), subject=a.type==='study'?subs[(a.sx??Math.floor((a.si||0)*subs.length))%subs.length]:'';
   const L=botSay(b,a.type); return {...a, subject, text:L[Math.floor(a.li*L.length)].replace('{s}',subject), ic:BOT_IC[a.type]}; }
 // 夥伴現在在做什麼（沒事就是 null）
 function botNow(b, now=Date.now()){
@@ -1028,8 +1089,12 @@ function botMember(b, now){
   for (let d=b.join; d<=today; d=addDays(d,1)) botDay(b,d).forEach(a=>{
     if (a.type!=='study' || a.end>now) return; const s=botAct(b,a).subject;
     dm[d]=(dm[d]||0)+25; dt[d]=(dt[d]||0)+1; sm[s]=(sm[s]||0)+25; minutes+=25; tomatoes++; });
+  // 夥伴也會早睡拿月亮珍珠：9:30 前睡 +2、10:00 前 +1（跟大家一樣的規則）
+  let moon=0;
+  for (let d=b.join>SLEEP_FROM?b.join:SLEEP_FROM; d<=today; d=addDays(d,1)) { const z=botDay(b,d).find(a=>a.type==='sleep');
+    if (z && z.start<=now) moon += minOf(z.start)<SLEEP_GOOD ? 2 : 1; }
   const cur=botNow(b,now);
-  return {name:b.name, photo:'', bot:b.id, joinedAt:botJoinTs(b), dm, dt, sm, minutes, tomatoes,
+  return {name:b.name, photo:'', bot:b.id, joinedAt:botJoinTs(b), dm, dt, sm, minutes, tomatoes, pearls:tomatoes+moon,
     studying: cur&&cur.type==='study' ? {subject:cur.subject, endsAt:cur.end} : null, botStatus: cur};
 }
 // 夥伴送的禮物：加入當天送見面禮（加入後 40～100 分鐘），之後隔 3～5 天、再每 4～6 天送一次（只送到 BOT_UNTIL 前）
@@ -1129,22 +1194,27 @@ function checkBotJoin(){
   lsSet(botJoinKey(), [...seen, ...fresh.map(b=>b.id)]);
   openModal(`<h2>🎉 ${fresh.length>1?`${fresh.length} 位新夥伴`:esc(fresh[0].name)}加入珍奶星球了！</h2>
     ${fresh.map(b=>`<div class="row" style="border-top:2px dashed #d8cfb8;padding:10px 0;gap:10px;align-items:flex-start">${botAvatar(b,'lg')}<span class="grow"><b>${esc(b.name)}</b><br><span class="small">「${esc(b.intro)}」</span></span></div>`).join('')}
-    <p class="tiny" style="margin:6px 0 0">珍珠夥伴是陪你一起讀書的虛擬角色。平日晚上 7 點、假日早上 8 點以後會陸續出現，晚上 8:30 就會準備去睡覺。</p>
+    <p class="tiny" style="margin:6px 0 0">珍珠夥伴是陪你一起讀書的虛擬角色。平日下午 4 點、假日早上 8 點以後會輪流讀不同科目，晚上 8:30 就會準備去睡覺。</p>
     <button class="btn red block" style="margin-top:10px" data-a="closeModal">歡迎！一起讀書</button>`);
 }
-// 「今天」頁：珍珠夥伴動態
+// 「今天」頁：珍珠夥伴動態（誰正在讀什麼、今天讀了幾顆、剛剛讀完什麼）
 function botCard(){
   if (!isBoba()) return '';
   const now=Date.now(), today=ymd(), list=joinedBots(now), next=BOTS.find(b=>!botJoined(b,now));
   if (!list.length) return '';
-  const rows=list.map(b=>{ const a=botNow(b,now), m=S.members[botUid(b)]||{}, n=(m.dt||{})[today]||0; return {b,a,n}; });
-  const on=rows.filter(x=>x.a).sort((x,y)=>['study','sport','fun','bath','sleep'].indexOf(x.a.type)-['study','sport','fun','bath','sleep'].indexOf(y.a.type));
+  const ORD=['study','sport','fun','bath','sleep'];
+  const rows=list.map(b=>{ const a=botNow(b,now), m=S.members[botUid(b)]||{}, n=(m.dt||{})[today]||0; return {b,a,n,p:pearlTotal(m)}; });
+  const on=rows.filter(x=>x.a).sort((x,y)=>ORD.indexOf(x.a.type)-ORD.indexOf(y.a.type));
   const off=rows.filter(x=>!x.a);
+  // 今天讀完的（最新的在上面，最多 4 筆）
+  const done=list.flatMap(b=>botDay(b,today).filter(a=>a.type==='study'&&a.end<=now).map(a=>({b, a:botAct(b,a)}))).sort((x,y)=>y.a.end-x.a.end).slice(0,4);
   const mins=minOf(now), wk=isWeekend();
-  const quiet = mins<(wk?8*60:19*60) ? (wk?'假日早上 8 點以後，夥伴們會陸續出現。':'平日晚上 7 點以後，夥伴們會陸續上線讀書。') : '';
+  const quiet = mins<(wk?8*60:16*60) ? (wk?'假日早上 8 點以後，夥伴們會陸續出現。':'平日下午 4 點以後，夥伴們會陸續上線讀書。') : '';
+  const cnt = (n,p) => `<span class="tiny" style="white-space:nowrap">今天 ${n} 顆・共 ${p} 🧋</span>`;
   return `<div class="card"><div class="row between"><h2>🧋 珍珠夥伴動態</h2><span class="small" style="font-weight:700">${list.length} 位夥伴</span></div>
-    ${on.map(({b,a})=>`<div class="row" style="border-top:2px dashed #d8cfb8;padding:7px 0;gap:10px;align-items:center">${botAvatar(b)}<span class="grow small"><b>${esc(b.name)}</b> ${a.ic} ${esc(a.text)}${a.type==='study'?`<span class="tiny">・剩 ${Math.max(1,Math.ceil((a.end-now)/60000))} 分</span>`:''}</span></div>`).join('')}
-    ${off.length?`<p class="small" style="margin:8px 0 0">${off.map(({b,n})=>`<span style="white-space:nowrap;margin-right:8px">${b.ic} ${esc(b.name)}${n?` 今天 ${n} 顆`:''}</span>`).join('')}</p>`:''}
+    ${on.map(({b,a,n,p})=>`<div class="row" style="border-top:2px dashed #d8cfb8;padding:7px 0;gap:10px;align-items:center">${botAvatar(b)}<span class="grow small"><b>${esc(b.name)}</b> ${cnt(n,p)}<br>${a.ic} ${esc(a.text)}${a.type==='study'?`<span class="tiny">・剩 ${Math.max(1,Math.ceil((a.end-now)/60000))} 分</span>`:''}</span></div>`).join('')}
+    ${off.length?`<p class="small" style="margin:8px 0 0">${off.map(({b,n,p})=>`<span style="white-space:nowrap;margin-right:10px">${b.ic} ${esc(b.name)} <span class="tiny">今天 ${n} 顆・共 ${p} 🧋</span></span>`).join(' ')}</p>`:''}
+    ${done.length?`<div style="margin-top:8px;padding-top:6px;border-top:2px dashed #d8cfb8"><p class="tiny" style="margin:0 0 2px;font-weight:900">剛剛讀完</p>${done.map(({b,a})=>`<p class="tiny" style="margin:2px 0">${hhmm(a.end)} ${b.ic} ${esc(b.name)} 讀完 <b>${esc(a.subject)}</b>，拿到 1 顆珍珠 🧋</p>`).join('')}</div>`:''}
     ${!on.length&&quiet?`<p class="tiny" style="margin:6px 0 0">${quiet}</p>`:''}
     ${next?`<p class="tiny" style="margin:6px 0 0;font-weight:700">🔮 ${daysBetween(today,next.join)<=1?'明天':fmtDate(next.join)}還有新夥伴要加入，猜猜是誰？</p>`:''}
   </div>`;
@@ -1188,7 +1258,8 @@ function sleepLedger(army, m){
 }
 // 別人的珍珠數（沒有他的完整紀錄，用總數估）：番茄數＋月亮珍珠－被偷的，不會小於 0
 function pearlTotal(m, theme){
-  let n=m?.tomatoes||0; if (themeKey(theme)!=='boba' || !m || m.bot) return n;
+  let n=m?.tomatoes||0; if (m?.bot && m.pearls!=null && themeKey(theme)==='boba') return m.pearls;
+  if (themeKey(theme)!=='boba' || !m || m.bot) return n;
   sleepEvents(m).forEach(e=>{ if (e.pts>0) n+=e.pts; else if (n>0) n--; }); return n;
 }
 const sleptAt = (m, d=ymd()) => { const sl=m?.sleep||{}; return Object.prototype.hasOwnProperty.call(sl,d) ? (tsMs(sl[d]) ?? Date.now()) : null; };
