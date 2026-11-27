@@ -232,6 +232,7 @@ body.embed .tabbar{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:
 body.embed .modal{align-items:flex-start}
 body.embed .sheet{border-radius:0 0 22px 22px;border:var(--b);border-top:0;max-height:none}
 body.embed .toast{top:80px;bottom:auto;position:absolute}
+.giftbox .g .new{position:absolute;left:2px;top:2px;background:var(--tomato);color:#fff;border-radius:6px;font-size:.5rem;padding:1px 3px;line-height:1.2}
 .giftbox .g.on{outline:4px solid var(--tomato);outline-offset:1px;background:#fff3c4}
 </style>
 </head>
@@ -608,16 +609,39 @@ const GIFTS = [
   {id:'curry',ev:1,cat:'odd',ic:'🍛',name:'一盤不拌的咖哩飯',rar:'稀有',w:0,d:'咖哩在左邊，飯在右邊，中間有一條楚河漢界。'},
   {id:'pudding2',ev:1,cat:'love',ic:'🍮',name:'多出來的那個布丁',rar:'稀有',w:0,d:'全班盯著看了五分鐘，最後是你的。'},
   {id:'crown67',ic:'👑',name:'六七大帝的王冠',rar:'傳說',w:0.6,d:'戴上去之後，手會自己開始上下晃。'},
+  // 無厘頭新寶物：分 5 批從天上掉下來（drop 是第幾批，開放時間見 GIFT_DROP_TS）
+  {id:'jigsaw',drop:1,cat:'odd',ic:'🪚',name:'一台線鋸機',rar:'少見',w:4,d:'可以把作業鋸成兩半，但要寫的量不會變少。'},
+  {id:'sunglass',drop:1,cat:'love',ic:'🕶️',name:'一副墨鏡',rar:'普通',w:7,d:'戴上去考卷變暗了，題目沒有變簡單，但你變帥了。'},
+  {id:'letter3',drop:1,cat:'odd',ic:'💌',name:'3號的來信',rar:'稀有',w:2,d:'信上寫：「你好，我是3號。沒什麼事，只是想讓你知道我是3號。」'},
+  {id:'duck',drop:2,cat:'love',ic:'🦆',name:'洗澡用的小黃鴨',rar:'普通',w:7,d:'一捏就會叫，叫聲跟下課鐘一模一樣。'},
+  {id:'slipper',drop:2,cat:'gross',ic:'🩴',name:'左腳的藍白拖',rar:'普通',w:7,d:'右腳的那隻在阿公腳上，他不打算還。'},
+  {id:'tape',drop:2,cat:'odd',ic:'🧻',name:'找不到頭的膠帶',rar:'普通',w:7,d:'全班輪流找了一節課，還是找不到頭在哪裡。'},
+  {id:'letter3b',drop:3,cat:'odd',ic:'✉️',name:'3號的第二封信',rar:'稀有',w:2,d:'「上一封信你有收到嗎？我還是3號，今天也是。」'},
+  {id:'garlic',drop:3,cat:'gross',ic:'🧄',name:'一整顆生大蒜',rar:'普通',w:7,d:'可以防吸血鬼，也可以防同學靠近你三公尺。'},
+  {id:'snail',drop:3,cat:'odd',ic:'🐌',name:'幫你交作業的蝸牛',rar:'少見',w:4,d:'保證一定會交到老師手上，大概三個月後。'},
+  {id:'airjar',drop:4,cat:'love',ic:'🫙',name:'玉山頂的空氣罐頭',rar:'少見',w:4,d:'100% 新鮮高山空氣。打開就沒了，請考試前再打開。'},
+  {id:'juice',drop:4,cat:'gross',ic:'🧃',name:'喝到一半的鋁箔包',rar:'普通',w:7,d:'吸管還插著，上面有齒痕。是誰的？沒人承認。'},
+  {id:'horn',drop:4,cat:'odd',ic:'📯',name:'只會「噗」的喇叭',rar:'普通',w:7,d:'不管怎麼吹都只會「噗～」，全班都轉過來看你。'},
+  {id:'letter3c',drop:5,cat:'odd',ic:'📨',name:'3號的最後一封信',rar:'稀有',w:2,d:'「其實……我是4號。對不起騙了你這麼久。」'},
+  {id:'ufo',drop:5,cat:'love',ic:'🛸',name:'迷你飛碟',rar:'稀有',w:2,d:'火星人忘在操場的。上面有一顆紅色按鈕，不要按。'},
+  {id:'onigiri',drop:5,cat:'gross',ic:'🍙',name:'海苔碎掉的飯糰',rar:'普通',w:7,d:'三角飯糰的包裝又拆失敗了，海苔全部碎在袋子裡。'},
 ];
+// 新寶物開放時間（台灣時間）：第 1 批 11/27 16:00，之後每天 0:00 開一批，到 12/1 全部開完
+const GIFT_DROP_TS = [Date.UTC(2026,10,27,8,0), Date.UTC(2026,10,27,16,0), Date.UTC(2026,10,28,16,0), Date.UTC(2026,10,29,16,0), Date.UTC(2026,10,30,16,0)];
+const giftOpenAt = g => g.drop ? GIFT_DROP_TS[g.drop-1] : 0;
+// 這個寶物在 ts 這個時間已經開放了嗎（舊紀錄只會掉當時已經開放的寶物，所以拿過的不會變）
+const giftOpen = (g, ts=Date.now()) => (ts||0) >= giftOpenAt(g);
+// 剛開放 1 天內的寶物，寶物箱裡標 NEW
+const giftIsNew = (g, now=Date.now()) => !!g.drop && giftOpen(g, now) && now-giftOpenAt(g) < 86400000;
 function weightedGift(r, pool){ const tot=pool.reduce((a,b)=>a+b.w,0); let x=r()*tot; for(const g of pool){ x-=g.w; if(x<=0) return g; } return pool[0]; }
 function is67Time(ts){ const d=new Date(ts); return d.getMinutes()===7 && (d.getHours()===6 || d.getHours()===18); }
-const GIFTS_V1 = () => GIFTS.filter(g=>!g.v2 && !g.ev);
+const GIFTS_V1 = () => GIFTS.filter(g=>!g.v2 && !g.ev && !g.drop);
 // 珍奶星球加碼：這個時間以後撈到的珍珠，空投機率 25%→40%、節日彩蛋機率加倍（之前撈到的不變）
 const BOBA_BOOST_TS = Date.UTC(2026,10,22,4,0); // 11/22 12:00（台灣）
 const bobaBoost = so => themeKey()==='boba' && (so?.endedAt||0) >= BOBA_BOOST_TS;
 function giftOf(so){
   if (!so || !so.endedAt || so.moon) return null;
-  const pool = so.endedAt<NEW_FX_TS ? GIFTS_V1() : GIFTS.filter(g=>!g.ev);
+  const pool = (so.endedAt<NEW_FX_TS ? GIFTS_V1() : GIFTS.filter(g=>!g.ev)).filter(g=>giftOpen(g, so.endedAt));
   if (so.n===67) return {...GIFTS.find(g=>g.id==='crown67'), why:'第 67 個角色出現，六七大帝親自送禮！'};
   const nw=so.date ? newsOf(so.date) : null;
   if (nw?.fx?.gift && so.dayIdx===1) { const g=GIFTS.find(x=>x.id===nw.fx.gift); if (g) return {...g, why:`班級新鮮事：${nw.title}`}; }
@@ -1116,7 +1140,7 @@ function botSends(now){
     while (d < BOT_UNTIL && d <= today) {
       const rr=rng(hash('botgift'+b.id+d)), dow=parseYmd(d).getDay(), wk=dow===0||dow===6;
       const ts=first ? botJoinTs(b)+(40+Math.floor(rr()*60))*60000 : atMin(d, wk ? 9*60+Math.floor(rr()*8*60) : 19*60+Math.floor(rr()*100));
-      const item=weightedGift(rr,pool), msg=(first?'見面禮！':'')+pick(rr,botSay(b,'gift'));
+      const item=weightedGift(rr,pool.filter(g=>giftOpen(g,ts))), msg=(first?'見面禮！':'')+pick(rr,botSay(b,'gift'));
       if (ts<=now) { const id=`bot_${b.id}_${d}`, st=mine[id]||{};
         out.push({id, bot:b.id, from:botUid(b), to:me, item:item.id, msg, date:d, ts,
           // 兩天以前的禮物就不跳出來了（直接放進寶物箱和禮物動態）
@@ -2683,15 +2707,18 @@ function checkDaily(){
     <button class="btn red block" style="margin-top:10px" data-a="closeModal">知道了，開始讀書</button>`);
 }
 function giftFeedHTML(){
-  const list=(S.sends||[]).slice().sort((a,b)=>b.ts-a.ts).slice(0,10);
-  const nm=u=>u===S.me.uid?'我':((S.members[u]||{}).name||'隊友');
+  const all=(S.sends||[]).slice().sort((a,b)=>b.ts-a.ts).slice(0,60), list=all.slice(0,10), more=all.slice(10);
   const done=sentToday();
   return `<div class="card"><div class="row between"><h2>禮物動態</h2><button class="btn ${done?'ghost':'yellow'} sm" data-a="sendOpen">${done?'今天送過了':'🎁 送禮物'}</button></div>
     <p class="small" style="margin:4px 0 6px">空投拿到的寶物可以送給隊友，一天限送一個。</p>
-    ${list.length?list.map(x=>{ const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}; const re=REACTS.find(r=>r[0]===x.re);
-      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}${x.reply?`<br>💬 ${esc(nm(x.to))} 回覆：「${esc(x.reply)}」`:''}${x.back?`<br>💬 ${esc(nm(x.from))}：「${esc(x.back)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span>${x.to===S.me.uid && x.seen && !x.reply?`<button class="btn ghost sm" style="flex:none" data-a="giftReplyOpen" data-id="${esc(x.id)}">回覆</button>`:''}</div>`; }).join('')
+    ${list.length?list.map(feedRow).join('')+(more.length?`<details style="border-top:2px dashed #d8cfb8;padding-top:8px"><summary class="small" style="text-align:center;color:var(--muted)">▼ 還有 ${more.length} 則比較舊的禮物動態，點這裡展開</summary>${more.map(feedRow).join('')}</details>`:'')
       :'<p class="small">還沒有人送過禮物。當第一個吧！</p>'}
   </div>`;
+}
+function feedRow(x){
+  const nm=u=>u===S.me.uid?'我':((S.members[u]||{}).name||'隊友');
+  { const g=GIFTS.find(i=>i.id===x.item)||{ic:'🎁',name:'神秘禮物'}; const re=REACTS.find(r=>r[0]===x.re);
+      return `<div class="row" style="border-top:2px dashed #d8cfb8;padding:8px 0;gap:10px;align-items:flex-start"><span style="font-size:1.8rem;line-height:1">${g.ic}</span><span class="grow small"><b>${esc(nm(x.from))}</b> 送 <b>${esc(nm(x.to))}</b> ${esc(g.name)}${x.msg?`<br>「${esc(x.msg)}」`:''}${x.reply?`<br>💬 ${esc(nm(x.to))} 回覆：「${esc(x.reply)}」`:''}${x.back?`<br>💬 ${esc(nm(x.from))}：「${esc(x.back)}」`:''}<br><span class="tiny">${fmtDate(x.date)}${re?`・${esc(nm(x.to))} 回應 ${re[1]}`:x.seen?'':'・還沒打開'}</span></span>${x.to===S.me.uid && x.seen && !x.reply?`<button class="btn ghost sm" style="flex:none" data-a="giftReplyOpen" data-id="${esc(x.id)}">回覆</button>`:''}</div>`; }
 }
 
 function viewGarden(){
@@ -2708,6 +2735,11 @@ function viewGarden(){
   const gifts=giftInv(); gifts.antidote=earned.antidote||0;
   const giftTotal=Object.values(gifts).reduce((a,b)=>a+b,0);
   const ketchupRaw=me.ketchup||0, ketchup=Math.max(0, ketchupRaw-(gifts.antidote||0));
+  // 寶物箱：只放已經開放的寶物；新開放的排最前面，再來是有的，最後是還沒拿到的
+  const nowTs=Date.now(), box=GIFTS.filter(g=>giftOpen(g,nowTs) || gifts[g.id]>0).map((g,i)=>({g,i,k:giftIsNew(g,nowTs)?0:gifts[g.id]>0?1:2})).sort((a,b)=>a.k-b.k||a.i-b.i).map(x=>x.g);
+  const boxCell=g=>{ const n=Math.max(0,gifts[g.id]||0), nw=giftIsNew(g,nowTs); return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${nw?'<span class="new">NEW</span>':''}${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; };
+  const newN=GIFTS.filter(g=>giftIsNew(g,nowTs)).length, waitN=GIFTS.filter(g=>!giftOpen(g,nowTs)).length;
+  const dropNote=(newN||waitN)?`🪂 無厘頭新寶物空投中！${newN?`今天新開放 ${newN} 個（標 NEW 的）`:''}${newN&&waitN?'，':''}${waitN?`還有 ${waitN} 個明天以後才會掉下來`:''}。`:'';
   const dex=[...dexSubjects().map(s=>({key:s, so:{subject:s,seed:hash('dex'+s)}, name:typeOf(s).name, sub:s})),
              {key:'gold', so:{subject:'其他',rare:'gold',seed:hash('dexg')}, name:rareInfo({rare:'gold'}).name, sub:'稀有 5%'},
              {key:'67', so:{subject:'其他',rare:'67',seed:hash('dex67')}, name:rareInfo({rare:'67'}).name, sub:'稀有 6.7%'},
@@ -2737,10 +2769,12 @@ function viewGarden(){
     <p class="small" style="margin:4px 0 10px">讀哪一科就會${bb?'搖出哪一種珍珠':'長出哪一種兵'}，還有機會抽到稀有的和社員設計的角色。</p>
     <div class="dex">${dex.map(d=>{ const n=cnt[d.key]||0; return `<div class="cell ${n?'':'lock'}">${n?`<span class="n">×${n}</span>`:''}<div class="pic">${soldierSVG(d.so,{lock:!n})}</div>${n?esc(d.name):'？？？'}<div class="tiny" style="font-weight:500">${esc(d.sub)}</div></div>`; }).join('')}</div>
   </div>
-  <div class="card"><div class="row between"><h2>空投寶物箱</h2><span class="small" style="font-weight:700">${Object.keys(gifts).length}／${GIFTS.length}</span></div>
+  <div class="card"><div class="row between"><h2>空投寶物箱</h2><span class="small" style="font-weight:700">${box.filter(g=>gifts[g.id]>0).length}／${box.length}</span></div>
     <p class="small" style="margin:4px 0 10px">每得到一${U}${T_.unit}，有機會從天上掉空投${bb?'（珍奶星球加碼中，掉得比較多）':''}。6:07 或 18:07 ${T_.born}的必掉稀有空投！${gifts.antidote&&ketchupRaw?`<br>${T_.antidote.name}已幫你抵銷 ${Math.min(gifts.antidote,ketchupRaw)} 次${T_.fail}。`:''}</p>
     <div class="row" style="margin:0 0 10px"><button class="btn ${sentToday()?'ghost':'yellow'} block" data-a="sendOpen">${sentToday()?'今天已經送過禮物了，明天再來':'🎁 送一個寶物給隊友（一天一個）'}</button></div>
-    <div class="giftbox">${GIFTS.map(g=>{ const n=Math.max(0,gifts[g.id]||0); return `<button class="g ${n?'':'off'}" data-a="giftInfo" data-v="${g.id}" style="font:inherit;font-size:.66rem;font-weight:900">${n?`<span class="n">×${n}</span>`:''}<span class="ic">${g.ic}</span>${n?esc(giftDisp(g).name):'？？？'}</button>`; }).join('')}</div>
+    ${dropNote?`<p class="small" style="margin:0 0 10px;font-weight:700">${dropNote}</p>`:''}
+    <div class="giftbox">${box.slice(0,10).map(boxCell).join('')}</div>
+    ${box.length>10?`<details style="margin-top:8px"><summary class="small" style="text-align:center;color:var(--muted)">▼ 展開其他 ${box.length-10} 個寶物</summary><div class="giftbox" style="margin-top:8px">${box.slice(10).map(boxCell).join('')}</div></details>`:''}
   </div>
   ${shopOn()?shopCard():''}
   ${charCard()}
