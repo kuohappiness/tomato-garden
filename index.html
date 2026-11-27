@@ -1369,33 +1369,33 @@ function bobaSVG(done=false){
         :`<circle cx="40" cy="50" r="6" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="62" cy="49" r="7.5" fill="#fff" stroke="${k}" stroke-width="3"/><circle cx="41" cy="51" r="2.6" fill="${k}"/><circle cx="60" cy="51" r="3.2" fill="${k}"/><ellipse cx="51" cy="64" rx="4" ry="5" fill="#7a1010" stroke="${k}" stroke-width="2.5"/>`}
   <rect x="34" y="70" width="32" height="13" rx="4" fill="#fff" stroke="${k}" stroke-width="2.5"/><text x="50" y="80.5" text-anchor="middle" font-size="10" font-weight="900" fill="${k}">67L</text></g></svg>`;
 }
-const MISSIONS = [
-  {title:'把考卷怪拖回基地', story:'段考魔王派出考卷怪，大家一起把它拖回基地關起來！', win:'考卷怪被拖回基地了！它說它下次還會再來。', art:d=>bossSVG(d)},
-  {title:'護送 67 公斤的巨大滷蛋', story:'一顆 67 公斤的滷蛋迷路了，正在冒冷汗，快護送它回基地。', win:'巨大滷蛋安全抵達！它感動到流出滷汁。', art:d=>eggSVG(d)},
-  {title:'搬回 67 公升的巨無霸珍奶', story:'有人在操場留下一杯 67 公升的珍奶，趁它還沒退冰搬回基地！', win:'珍奶搬回來了！可是最後一顆珍珠還是吸不到。', art:d=>bobaSVG(d)},
-];
-// 週任務提早破關後接上的加碼任務（依序出現）
-//   goal：這一關要幾顆番茄（4 人以上的目標；人少時照週任務的比例縮小）。沒寫就和週任務一樣。
-//   art(done, p)：p 是這一關的進度 0~1，畫面可以跟著變。
-const BONUS_MISSIONS = [
-  {title:'拿到培碩老師的簽名照', story:'週任務提早破關！導師培碩老師答應：大家再一起讀一輪，就送全班一張親筆簽名照。', win:'簽名照到手！培碩老師還多畫了一顆愛心，快掛到基地牆上。', art:d=>photoSVG(d)},
-  {title:'把料理阿嬤煮成肉醬', goal:167, stay:true, story:'料理阿嬤不小心跳進自己的大鍋子，現在舉雙手投降中！每讀完一顆番茄，鍋底的火就旺一點。大家一起讀到火力全開，就能把阿嬤燉成一鍋香噴噴的「阿嬤肉醬」！', win:'叮！阿嬤肉醬燉好了！阿嬤從鍋子裡探出頭說：「乖孫，有讀書的才可以拌麵喔！」', art:(d,p)=>grannySVG(d,p)},
-  {title:'子路牛排店', goal:267, story:'孔子的學生子路上課太愛頂嘴，被綁上了「牛排店」的輸送帶！每讀完一顆番茄，番茄兵就把他往最左邊嘰嘰叫的線鋸推近一步。全班讀滿 267 顆，就能吃到傳說中的「子路牛排」！', win:'滋滋滋～「子路牛排」上桌啦，七分熟還淋了番茄醬！子路的帽子居然還戴得端端正正：「君子吃牛排，帽子不能歪！」',
-   scene:(d,p)=>steakScene(d,p), push:p=>`calc(${zlLeft(p)} + 72px)`},
-  {title:'熬一鍋子路腿骨蘿蔔排骨湯', goal:167, story:'子路牛排吃完了，只剩一根腿骨，上面居然還戴著子路的帽子（君子死，冠不免！）。國文課剛讀完杏林子〈煮蘿蔔湯〉，大家決定學她慢慢熬：每讀完一顆番茄，番茄兵就推一根白蘿蔔跳進鍋裡，湯就更甜一點。讀滿 167 顆，就能喝到「子路腿骨蘿蔔排骨湯」！', win:'咕嘟咕嘟～湯熬好了，清甜到骨頭都在笑！腿骨上的帽子還是端端正正，子路說：「喝湯也要正衣冠！」',
+// 遠征任務排程：照日期一個接一個換，每個任務只出現一次，用過就不會再出現。
+//   from / to：任務的第一天和最後一天（含），只算這段期間種的番茄。
+//   goal：這一關要幾顆番茄（4 人以上的目標；人少時照 67 的比例縮小）。
+//   scene(done, p)：p 是進度 0~1，畫面跟著變。push(p)：番茄兵站的位置。
+// 以前的任務（考卷怪、滷蛋、珍奶、簽名照、料理阿嬤、子路牛排店）已經結束，不再出現。
+// 要加新任務：在最後面接一個新的 from/to（下一週的週一到週日）。
+const MISSION_PLAN = [
+  {from:'2026-11-27', to:'2026-12-06', title:'熬一鍋子路腿骨蘿蔔排骨湯', goal:167, story:'子路牛排吃完了，只剩一根腿骨，上面居然還戴著子路的帽子（君子死，冠不免！）。國文課剛讀完杏林子〈煮蘿蔔湯〉，大家決定學她慢慢熬：每讀完一顆番茄，番茄兵就推一根白蘿蔔跳進鍋裡，湯就更甜一點。讀滿 167 顆，就能喝到「子路腿骨蘿蔔排骨湯」！', win:'咕嘟咕嘟～湯熬好了，清甜到骨頭都在笑！腿骨上的帽子還是端端正正，子路說：「喝湯也要正衣冠！」',
    scene:(d,p)=>soupScene(d,p), push:()=>sceneX(250)},
-  {title:'救活快乾掉的噴血心臟', goal:167, story:'生物課的超級心臟罷工了，乾巴巴的快要變成「心臟乾」！每讀完一顆番茄，就幫它擠進一點血：右心室把藍藍的缺氧血噴去肺（肺循環），左心室把紅紅的含氧血噴到全身（體循環）。這週讀不滿 167 顆，心臟就乾掉啦！', win:'噗通！噗通！心臟復活了！血從主動脈噴出去繞全身一圈，再經過肺換成新鮮的氧氣，噴得比夜市的噴水池還壯觀！',
+  {from:'2026-12-07', to:'2026-12-13', title:'救活快乾掉的噴血心臟', goal:167, story:'生物課的超級心臟罷工了，乾巴巴的快要變成「心臟乾」！每讀完一顆番茄，就幫它擠進一點血：右心室把藍藍的缺氧血噴去肺（肺循環），左心室把紅紅的含氧血噴到全身（體循環）。這週讀不滿 167 顆，心臟就乾掉啦！', win:'噗通！噗通！心臟復活了！血從主動脈噴出去繞全身一圈，再經過肺換成新鮮的氧氣，噴得比夜市的噴水池還壯觀！',
    scene:(d,p)=>heartScene(d,p), push:()=>sceneX(126)},
-  {title:'大航海時代：把迷路的荷蘭船拖進大員', goal:167, story:'大航海時代，荷蘭船長把望遠鏡拿反了，一直以為台灣只有一顆小番茄那麼大，船怎麼開都靠不了岸。番茄兵划著竹筏，要把大船一路拖進大員港。岸上的西拉雅族小勇士和梅花鹿已經等很久了，準備教船長：這座島可是又大又美！', win:'靠岸啦！瞭望台上的水手大喊「Ilha Formosa（美麗之島）！」喊到破音。西拉雅族小勇士教船長用羅馬字寫西拉雅語，這就是後來的「新港文書」；船長還被梅花鹿追著跑了三圈。',
+  {from:'2026-12-14', to:'2026-12-20', title:'大航海時代：把迷路的荷蘭船拖進大員', goal:167, story:'大航海時代，荷蘭船長把望遠鏡拿反了，一直以為台灣只有一顆小番茄那麼大，船怎麼開都靠不了岸。番茄兵划著竹筏，要把大船一路拖進大員港。岸上的西拉雅族小勇士和梅花鹿已經等很久了，準備教船長：這座島可是又大又美！', win:'靠岸啦！瞭望台上的水手大喊「Ilha Formosa（美麗之島）！」喊到破音。西拉雅族小勇士教船長用羅馬字寫西拉雅語，這就是後來的「新港文書」；船長還被梅花鹿追著跑了三圈。',
    scene:(d,p)=>formosaScene(d,p), push:p=>sceneX(shipX(p)-86)},
 ];
 function missionGoal(m, hp){ return m.goal ? (hp===67 ? m.goal : Math.max(hp, Math.round(hp*m.goal/67))) : hp; }
-function weekMission(weekTom, hp){
-  const list=[missionOfWeek(), ...BONUS_MISSIONS];
-  let stage=0, start=0;
-  while (stage<list.length-1 && weekTom>=start+missionGoal(list[stage],hp)) { start+=missionGoal(list[stage],hp); stage++; }
-  const goal=missionGoal(list[stage],hp), got=Math.min(goal, weekTom-start), p=got/goal;
-  return {mis:list[stage], stage, prev:stage?list[stage-1]:null, last:stage===list.length-1, got, goal, need:Math.max(0,goal-got), p, done:p>=1};
+// 今天進行中的任務；排程用完或還沒開始就是 null
+function currentMission(day=ymd()){ return MISSION_PLAN.find(m=>day>=m.from && day<=m.to) || null; }
+// 這個任務期間（到今天為止）大家種的番茄
+function missionTom(m, uids){
+  if (!m) return 0; const end=ymd()<m.to?ymd():m.to; let n=0;
+  uids.forEach(u=>{ const dt=(S.members[u]||{}).dt||{}; for(let d=m.from; d<=end; d=addDays(d,1)) n+=dt[d]||0; });
+  return n;
+}
+function weekMission(tom, hp, m=currentMission()){
+  if (!m) return null;
+  const goal=missionGoal(m,hp), got=Math.min(goal, tom), p=got/goal;
+  return {mis:m, got, goal, need:Math.max(0,goal-got), p, done:p>=1, daysLeft:daysBetween(ymd(),m.to)+1};
 }
 function photoSVG(done=false){
   const k=INK;
@@ -1726,7 +1726,6 @@ function formosaScene(done=false, p=0){
     `<circle cx="300" cy="22" r="12" fill="#ffd23f" stroke="${k}" stroke-width="2.5"/>${island}${deer}${kid}${ship}${water}${raft}
      ${sceneBubble(Math.min(206, sx+10), 2, 130, say, done?'#1d4fd8':INK)}${done?sceneStars:''}`);
 }
-function missionOfWeek(){ const w=Math.floor((parseYmd(weekStart())-new Date(2026,0,5))/604800000); return MISSIONS[((w%MISSIONS.length)+MISSIONS.length)%MISSIONS.length]; }
 
 // ---------- 計時中：土裡慢慢長出來 ----------
 function growSVG(p){
@@ -2660,6 +2659,7 @@ function cutReply(t){ let out=''; for (const ch of String(t||'').trim()) { if ((
 //   make  ()=>({ic, title, text, btn:[按鈕文字, 動作, 參數]})；btn 可省略
 // 動作可以用 dailyGo（切到某個分頁，參數是 today/tasks/garden/friends/settings），或任何現有的 data-a。
 function groupWeekTom(){ const ws=weekStart(); let n=0; (S.group?.members||[]).forEach(u=>{ const dt=(S.members[u]||{}).dt||{}; for(let i=0;i<7;i++) n+=dt[addDays(ws,i)]||0; }); return n; }
+function groupMission(){ return weekMission(missionTom(currentMission(), (S.group?.members||[]).filter(u=>S.members[u])), missionHp()); }
 function missionHp(){ const n=(S.group?.members||[]).filter(u=>S.members[u]).length; return n>=4 ? 67 : Math.max(17, n*17); }
 const isWeekend = (d=new Date()) => d.getDay()===0 || d.getDay()===6;
 const hasSport = () => subjNames().includes(SPORT.name);
@@ -2676,9 +2676,9 @@ const DAILY_TIPS = [
     show:()=>!sentToday() && (S.group?.members||[]).some(u=>u!==S.me.uid && S.members[u]) && Object.keys(giftInv()).some(k=>giftable(GIFTS.find(g=>g.id===k))),
     make:()=>({ic:'🎁', title:'今天可以送同學一個禮物', text:'寶物箱裡的東西可以送給隊友，好的、噁心的都行，一天一個。', btn:['送禮物','sendOpen']})},
   {id:'mission', pri:30,
-    show:()=>groupWeekTom()<missionHp(),
-    make:()=>{ const left=missionHp()-groupWeekTom(), days=7-((new Date().getDay()+6)%7);
-      return {ic:'🚩', title:`本週遠征：${missionOfWeek().title}`, text:`全社還差 ${left} 個番茄鐘，剩 ${days} 天。`, btn:['看遠征','dailyGo','friends']}; }},
+    show:()=>{ const W=groupMission(); return W && !W.done; },
+    make:()=>{ const W=groupMission(), left=W.need, days=W.daysLeft;
+      return {ic:'🚩', title:`本週遠征：${W.mis.title}`, text:`全社還差 ${left} 個番茄鐘，剩 ${days} 天。`, btn:['看遠征','dailyGo','friends']}; }},
   {id:'streak', pri:40,
     show:()=>{ const st=memberStats(S.me.uid); return st.streak>=2 && !st.todayTom; },
     make:()=>({ic:'🔥', title:`已經連續讀 ${memberStats(S.me.uid).streak} 天了`, text:'今天完成一個番茄鐘，就能把連續紀錄接下去。', btn:['開始讀書','dailyGo','today']})},
@@ -2876,6 +2876,36 @@ function openCharDesigner(){
 }
 function refreshDraft(){ const el=$('#cd_prev'); if(el) el.innerHTML=soldierSVG({subject:'其他',seed:7,custom:S.draft}); }
 // ----- 朋友 -----
+// 遠征任務卡（戰友頁）
+function missionCard(W){
+  const mis=W.mis, p=W.p, done=W.done;
+  // stay：任務角色站在原地（進度用畫面本身表現），番茄兵在旁邊加油
+  const bossLeft = mis.stay ? 38 : 18 + (1-p)*62;
+  const carriers = mis.scene&&done ? 0 : Math.min(mis.stay||mis.scene?4:7, Math.max(0,W.got));
+  return `<div class="card">
+    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">剩 ${W.daysLeft} 天</span></div>
+    <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${esc(mis.title)}</div>
+    <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
+    <div class="quest${mis.scene?' tall':''}">
+      ${mis.scene?mis.scene(done,p):`<div class="trail"></div>
+      <div class="base">${baseSVG()}</div>
+      <div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div>`}
+      ${carriers?`<div class="carry" style="${mis.scene?`left:${mis.push(p)};bottom:20px`:`left:calc(${bossLeft}% + ${mis.stay?100:4}px)`}">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
+      ${W.got===67?`<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%)"><span class="six7" style="font-size:1.6rem">6 7 !</span></div>`:''}
+    </div>
+    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${W.goal}</b></div>
+    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${nextMissionNote(mis)}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${W.goal===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
+    <p class="tiny" style="margin:4px 0 0">每週一換新任務，做過的任務不會再出現・人少時目標照比例變少</p>
+  </div>`;
+}
+function nextMissionNote(m){
+  const nx=MISSION_PLAN.find(x=>x.from>m.to);
+  return nx ? `下一個任務 ${+nx.from.slice(5,7)}/${+nx.from.slice(8)} 開始！` : '新任務準備中，敬請期待！';
+}
+function noMissionCard(){
+  return `<div class="card"><h2>本週遠征</h2>
+    <p class="small" style="margin:6px 0 0;font-weight:700">🚧 新任務準備中，敬請期待！大家照樣讀書，${TH().unit}一樣會長出來。</p></div>`;
+}
 function viewFriends(){
   const uids=(S.group.members||[]).filter(u=>S.members[u]);
   const realRows=uids.map(u=>({u, st:memberStats(u), m:S.members[u]}));
@@ -2886,32 +2916,11 @@ function viewFriends(){
   const now=Date.now();
   const link=`${location.origin}${location.pathname}#join-${S.gid}`;
   const studyingN=rows.filter(r=>r.m.studying&&r.m.studying.endsAt>now).length;
-  // 本週遠征：大家一起把考卷怪搬回基地
-  const ws=weekStart(); let weekTom=0;
-  realRows.forEach(({m})=>{ for(let i=0;i<7;i++) weekTom+=(m.dt||{})[addDays(ws,i)]||0; });
+  // 本週遠征：照 MISSION_PLAN 的日期換任務
   const hp=realRows.length>=4 ? 67 : Math.max(17, realRows.length*17);
-  const W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done;
-  // stay：任務角色站在原地（進度用畫面本身表現），番茄兵在旁邊加油
-  const bossLeft = mis.stay ? 38 : 18 + (1-p)*62;
-  const carriers = mis.scene&&done ? 0 : Math.min(mis.stay||mis.scene?4:7, Math.max(0,W.got));
-  const daysLeft = 7-((new Date().getDay()+6)%7);
+  const W=weekMission(missionTom(currentMission(), realRows.map(r=>r.u)),hp);
   return `
-  <div class="card">
-    <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">剩 ${daysLeft} 天</span></div>
-    ${W.prev?`<p class="small" style="margin:2px 0 0;font-weight:700">✅ 已破關：${esc(W.prev.title)}</p>`:''}
-    <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${W.stage?'🎁 加碼任務：':''}${esc(mis.title)}</div>
-    <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
-    <div class="quest${mis.scene?' tall':''}">
-      ${mis.scene?mis.scene(done,p):`<div class="trail"></div>
-      <div class="base">${baseSVG()}</div>
-      <div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div>`}
-      ${carriers?`<div class="carry" style="${mis.scene?`left:${mis.push(p)};bottom:20px`:`left:calc(${bossLeft}% + ${mis.stay?100:4}px)`}">${Array.from({length:carriers},(_,i)=>`<span style="animation-delay:-${i*.1}s">${soldierSVG({subject:dexSubjects()[i%Math.max(1,dexSubjects().length)]||'其他',seed:hash('c'+i),rare:i===6?'67':''})}</span>`).join('')}</div>`:''}
-      ${weekTom===67?`<div style="position:absolute;left:50%;top:6px;transform:translateX(-50%)"><span class="six7" style="font-size:1.6rem">6 7 !</span></div>`:''}
-    </div>
-    <div class="row between" style="margin-top:8px"><div class="bar grow"><i style="width:${p*100}%;background:var(--tomato)"></i></div><b style="font-family:Bungee,sans-serif;font-weight:400">${W.got}/${W.goal}</b></div>
-    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}${W.last?'本週任務全破，下週一再來！':''}`:`全隊這週一起收集的${TH().unit}都會來幫忙。再 ${W.need} ${TH().cnt}就成功！${W.goal===67?`（目標剛好 67 ${TH().cnt}，你懂的）`:''}`}</p>
-    <p class="tiny" style="margin:4px 0 0">每週一換新任務・4 人以上目標 67 ${TH().cnt}，人少時每人 17 ${TH().cnt}・提早破關會出現加碼任務</p>
-  </div>
+  ${W?missionCard(W):noMissionCard()}
   ${giftFeedHTML()}
   <div class="card">
     <div class="row between"><h2>戰友們</h2>${studyingN?`<span class="live">${studyingN} 人正在讀</span>`:''}</div>
@@ -2955,7 +2964,7 @@ function buildGuestSummary(){
   const order=[...subjNames(), ...Object.keys(by).filter(n=>!subjNames().includes(n))];
   const subj=order.filter(n=>by[n]).map(n=>({name:n, total:by[n].total, pct:uids.length?Math.round(by[n].done/(by[n].total*uids.length)*100):0}));
   return { gid:S.gid, name:g.name||'', theme:g.theme||'tomato', subjects:clubSubjects(), examName:g.examName||'', examDate:g.examDate||'',
-    n:uids.length, tom, min, weekTom, weekMin, todayMin, todayTom, sm, lives, subj, week:ws };
+    n:uids.length, tom, min, weekTom, weekMin, misFrom:currentMission()?.from||'', misTom:missionTom(currentMission(),uids), todayMin, todayTom, sm, lives, subj, week:ws };
 }
 let guestPub={timer:null, last:'', at:0};
 function scheduleGuestPublish(force){
@@ -2998,7 +3007,7 @@ function viewGuest(){
   const isToday = d.updatedAt && ymd(new Date(d.updatedAt))===ymd();
   const todayMin=isToday?d.todayMin:0, todayTom=isToday?d.todayTom:0;
   const live=(d.lives||[]).filter(x=>x.endsAt>now);
-  const hp=d.n>=4?67:Math.max(17,d.n*17), W=weekMission(weekTom,hp), mis=W.mis, p=W.p, done=W.done, bossLeft=mis.stay?38:18+(1-p)*62;
+  const curM=currentMission(), hp=d.n>=4?67:Math.max(17,d.n*17), W=weekMission(curM&&d.misFrom===curM.from?(d.misTom||0):0,hp);
   const ago=d.updatedAt?Math.round((now-d.updatedAt)/60000):null;
   return `
   <div class="top"><div class="brand"><span class="logo">${soldierSVG({subject:'其他',seed:5})}</span>${esc(d.name)}</div><span class="tag">👀 訪客參觀中</span></div>
@@ -3010,15 +3019,14 @@ function viewGuest(){
     <div class="stat" style="grid-template-columns:repeat(3,1fr)"><div><b>${todayTom}</b><span>今天(${U})</span></div><div><b>${todayMin}</b><span>今天(分)</span></div><div><b>${Math.round(weekMin/6)/10}</b><span>本週(時)</span></div></div>
     ${d.examName?`<p class="small" style="margin:8px 0 0;font-weight:700">目標：${esc(d.examName)}${d.examDate?`（${esc(d.examDate)}）`:''}</p>`:''}
   </div>
-  <div class="card">
+  ${W?`<div class="card">
     <div class="row between"><h2>本週遠征</h2><span class="small" style="font-weight:900">${W.got}/${W.goal}</span></div>
-    ${W.prev?`<p class="small" style="margin:2px 0 0;font-weight:700">✅ 已破關：${esc(W.prev.title)}</p>`:''}
-    <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${W.stage?'🎁 加碼任務：':''}${esc(mis.title)}</div>
-    <p class="small" style="margin:2px 0 0">${esc(mis.story)}</p>
-    <div class="quest${mis.scene?' tall':''}">${mis.scene?mis.scene(done,p):`<div class="trail"></div><div class="base">${baseSVG()}</div><div class="boss" style="left:${bossLeft}%">${mis.art(done,p)}</div>`}</div>
-    <div class="bar" style="margin-top:8px"><i style="width:${p*100}%;background:var(--tomato)"></i></div>
-    <p class="small" style="margin:8px 0 0;font-weight:700">${done?`任務完成！${esc(mis.win)}`:`全團再 ${W.need} ${U}${T_.unit}就成功！`}</p>
-  </div>
+    <div style="font-weight:900;font-size:1.1rem;margin-top:2px">${esc(W.mis.title)}</div>
+    <p class="small" style="margin:2px 0 0">${esc(W.mis.story)}</p>
+    <div class="quest${W.mis.scene?' tall':''}">${W.mis.scene(W.done,W.p)}</div>
+    <div class="bar" style="margin-top:8px"><i style="width:${W.p*100}%;background:var(--tomato)"></i></div>
+    <p class="small" style="margin:8px 0 0;font-weight:700">${W.done?`任務完成！${esc(W.mis.win)}`:`全團再 ${W.need} ${U}${T_.unit}就成功！`}</p>
+  </div>`:noMissionCard()}
   <div class="card"><h2>各科讀書時間</h2>
     ${Object.keys(sm).length?Object.entries(sm).sort((a,b)=>b[1]-a[1]).map(([s,v])=>`<div style="margin-top:10px"><div class="row between small"><span>${chip(s)}</span><b>${fmtMin(v)}</b></div><div class="bar" style="margin-top:4px"><i style="width:${v/Math.max(...Object.values(sm))*100}%;background:${subjColor(s)}"></i></div></div>`).join(''):'<p class="small">還沒有讀書紀錄。</p>'}
   </div>
