@@ -763,6 +763,43 @@ const NEWS = [
   {id:'fan', ic:'🥵', title:'教室的冷氣壞了', story:'全班都在用考卷搧風，有人把墊板折成扇子。讀書的時候記得多喝水。'},
   {id:'board', ic:'🔢', title:'黑板角落出現神秘的「67」', story:'沒有人承認是自己寫的。值日生擦掉之後，下一節課又出現了。'},
 ];
+// 第二季班級新鮮事（2026-11-27 起）：每天一題選擇題，照日期排、30 天不重複。
+// 部分題目配合明道中學國中部 115-1 行事曆（國一）：12/2～3 第二次定期評量、12/12 國一童軍成團典禮、
+// 12/7～18 校園足球/羽球賽、12/21～24 歲末感恩、12/24 草地音樂會…；其他是生活題和無厘頭題。
+// poll 可以 2～4 個選項；每個人投了就不能改。30 天後照順序再輪一次（之後可以直接在後面加新題目、加日期）。
+const NEWS2_FROM = '2026-11-27';
+const NEWS2 = [
+  {d:'2026-11-27', id:'n2-countdown', ic:'⏳', title:'段考倒數 5 天！', story:'下週三就是第二次段考了，黑板角落的倒數數字越寫越大。你現在的心情是？', poll:['穩穩的，都準備好了','有點慌，但還撐得住','完了，課本還很新','段考是什麼？能吃嗎']},
+  {d:'2026-11-28', id:'n2-satstudy', ic:'🏫', title:'段考前週六，學校開放自習', story:'學校說段考前的週六可以去教室自習。週六早上你會選擇？', poll:['去學校讀，比較讀得下','在家讀，可以穿睡衣','先睡到中午再說']},
+  {d:'2026-11-29', id:'n2-bgm', ic:'🎧', title:'讀書的時候，你一定要……', story:'有人說邊聽音樂邊讀比較專心，也有人說一點聲音都不能有。你是哪一派？', poll:['戴耳機聽音樂','完全安靜','旁邊要有零食','手機丟遠遠的']},
+  {d:'2026-11-30', id:'n2-sugar', ic:'🧋', title:'班上在揪團訂飲料', story:'班長拿著菜單一個一個問，問到你的時候，你的甜度是？', poll:['全糖，人生已經夠苦了','半糖剛剛好','微糖或無糖','我只喝白開水']},
+  {d:'2026-12-01', id:'n2-eve', ic:'🌙', title:'明天就段考了', story:'考前最後一個晚上，大家都在做最後衝刺……嗎？你考前一晚最常做的是？', poll:['把重點再看一次','早早上床睡覺','突然很想整理房間','祈禱明天考的都會']},
+  {d:'2026-12-02', id:'n2-spare', ic:'📝', title:'段考第一天：還剩 20 分鐘', story:'你已經寫完考卷了，教室安靜到只聽得到筆的聲音。剩下的時間你會？', poll:['從頭再檢查一遍','趴下來睡一下','在考卷背面畫畫','盯著時鐘發呆']},
+  {d:'2026-12-03', id:'n2-after', ic:'🎉', title:'段考最後一科考完了！', story:'鐘聲一響，全班一起歡呼。考完的第一件事，你要做什麼？', poll:['衝去福利社','回家倒頭大睡','打電動、看影片','跟同學對答案']},
+  {d:'2026-12-04', id:'n2-score', ic:'💯', title:'考卷陸續發回來了', story:'老師一張一張唸名字發考卷，大家都把分數折起來。你最怕分數被誰看到？', poll:['爸媽','隔壁同學','自己，不敢打開','都不怕，我考很好']},
+  {d:'2026-12-05', id:'n2-brunch', ic:'🍳', title:'週末早上的早餐店', story:'不用趕上學的早上，早餐可以慢慢吃。你的週末早餐是？', poll:['蛋餅','飯糰','鐵板麵','漢堡配奶茶']},
+  {d:'2026-12-06', id:'n2-dino', ic:'🦖', title:'如果可以養一隻恐龍', story:'生物課講到恐龍化石，有人提問：如果現在可以養恐龍當寵物，你要哪一隻？', poll:['暴龍，帥就對了','三角龍，看起來很乖','翼龍，可以載我上學','不要，飼料太貴']},
+  {d:'2026-12-07', id:'n2-ball', ic:'⚽', title:'校園足球賽、羽球賽開打！', story:'這兩週操場和體育館都很熱鬧。比賽的時候你最可能在？', poll:['下場踢足球','下場打羽球','當啦啦隊','坐在旁邊吃東西']},
+  {d:'2026-12-08', id:'n2-write', ic:'✍️', title:'今天文學獎截稿', story:'聽說學長姐都在趕稿。如果讓你寫一篇故事，你最想寫哪一種？', poll:['奇幻冒險','搞笑日常','恐怖故事','寫不出來，交白卷']},
+  {d:'2026-12-09', id:'n2-nap', ic:'😴', title:'午休時間到了', story:'燈一關，全班趴下。說真的，你午休都在做什麼？', poll:['真的秒睡','假裝睡，其實在想事情','偷偷寫作業','睡到流口水']},
+  {d:'2026-12-10', id:'n2-chicken', ic:'🍗', title:'終極二選一', story:'下課有人丟出一個超難的問題，全班吵到上課鐘響都還沒結論。你選哪一個？', poll:['一輩子不能吃炸雞','一輩子不能喝手搖飲']},
+  {d:'2026-12-11', id:'n2-cold', ic:'🥶', title:'寒流來了', story:'早上氣溫只有 12 度，鬧鐘響了三次。冬天早上最難的是哪一關？', poll:['離開棉被','刷牙的冷水','換上冰冰的制服','每一關都很難']},
+  {d:'2026-12-12', id:'n2-scout', ic:'⛺', title:'今天是國一童軍成團典禮', story:'正式成為童軍了！說到童軍露營，你最期待哪一個？', poll:['搭帳篷','野炊','營火晚會','晚上不睡覺聊天']},
+  {d:'2026-12-13', id:'n2-power', ic:'🦸', title:'送你一個超能力', story:'週日晚上，突然有個神燈精靈說可以送你一個超能力（只能選一個）。', poll:['瞬間移動，再也不會遲到','讀心術','過目不忘，段考無敵','時間暫停']},
+  {d:'2026-12-14', id:'n2-hw', ic:'📚', title:'這週要作業檢查', story:'老師說這週會檢查所有作業簿。作業檢查前一天，你通常是……', poll:['早就寫好了','熬夜補完','跟同學借來「參考」','祈禱老師忘記']},
+  {d:'2026-12-15', id:'n2-uniform', ic:'👕', title:'今天服儀檢查', story:'老師一早就站在校門口，大家都把衣服紮好了。上學你比較喜歡穿？', poll:['制服','運動服','都可以，我只在乎能不能睡飽']},
+  {d:'2026-12-16', id:'n2-lunch', ic:'🍱', title:'看到明天的午餐菜單了', story:'有人把下週菜單貼在後面公布欄，大家圍著看。營養午餐你最期待哪一道？', poll:['炸雞腿','咖哩飯','滷肉、焢肉','甜點和水果']},
+  {d:'2026-12-17', id:'n2-tomato', ic:'🍅', title:'如果番茄會說話', story:'有人在園子裡聽到番茄在講話（大概是讀書讀太累了）。你覺得它第一句會說什麼？', poll:['不要吃我！','我到底是水果還是蔬菜？','你今天讀書了嗎？','我比橘子甜']},
+  {d:'2026-12-18', id:'n2-break', ic:'🔔', title:'下課只有 10 分鐘', story:'鐘聲一響，每個人都有自己的任務。下課 10 分鐘你通常在？', poll:['衝去廁所','跟同學聊天','趴著補眠','寫下一節的作業']},
+  {d:'2026-12-19', id:'n2-math', ic:'📐', title:'今天有國中數學競賽', story:'有同學一大早就去參加數學競賽了。說到數學，你最怕哪一種題目？', poll:['應用題，字好多','幾何，看不出輔助線','計算題，一直算錯','都不怕，數學是好朋友']},
+  {d:'2026-12-20', id:'n2-out', ic:'🎡', title:'週日要去哪裡？', story:'難得的週日，作業也寫完了（假設）。你最想去哪？', poll:['逛夜市','百貨公司、看電影','在家耍廢一整天','去山上或海邊']},
+  {d:'2026-12-21', id:'n2-speech', ic:'🎤', title:'今天是國語文決賽', story:'台上的同學好厲害，都不會緊張。如果叫你上台演講，你會？', poll:['超緊張，手會抖','還好，當作在聊天','很享受，我是天生的明星','拜託不要叫我']},
+  {d:'2026-12-22', id:'n2-tangyuan', ic:'🥣', title:'今天冬至，吃湯圓！', story:'吃了湯圓就長一歲。你喜歡哪一種湯圓？', poll:['紅白小湯圓','包餡大湯圓（芝麻、花生）','鹹湯圓','我不吃湯圓']},
+  {d:'2026-12-23', id:'n2-thanks', ic:'💌', title:'歲末感恩週', story:'學校這週是歲末感恩活動。這學期你最想謝謝誰？', poll:['爸媽','好朋友','老師','我自己，辛苦了']},
+  {d:'2026-12-24', id:'n2-concert', ic:'🎶', title:'平安夜，草地音樂會', story:'今天下午有歲末感恩草地音樂會。如果可以點歌，你想聽哪一種？', poll:['流行歌','動漫歌','K-pop','古典音樂']},
+  {d:'2026-12-25', id:'n2-xmas', ic:'🎁', title:'聖誕節交換禮物', story:'班上在玩交換禮物，抽籤箱傳到你手上了。你最怕抽到什麼？', poll:['又一組文具','自己送出去的那份','很大一包，打開是空的','同學精心準備的整人禮物']},
+  {d:'2026-12-26', id:'n2-winter', ic:'❄️', title:'離寒假還有 4 週', story:'有人已經開始倒數寒假了。寒假的第一天，你要做什麼？', poll:['睡到自然醒','出去玩','追劇、打電動','預習下學期（真的假的）']},
+];
 const NEWS_FIXED = {'2026-11-19':'orange', '2026-11-20':'curry'}; // 指定某天出現哪一則（沒指定就輪流）
 // 每 NEWS.length 天為一輪，每輪把全部新鮮事洗牌輪一次；指定日期的那則會被換到那一天，同一輪不會重複
 function newsOrder(cyc){
@@ -780,6 +817,7 @@ function newsOrder(cyc){
 function newsOf(d=ymd()){
   if (!d || d<FX2_FROM) return null;
   if (themeKey()==='boba' && d>='2026-11-22') return null; // 珍奶星球不放班級新鮮事（之前的收成不變）
+  if (d>=NEWS2_FROM) { const k=daysBetween(NEWS2_FROM,d), L=NEWS2.length; return NEWS2.find(n=>n.d===d) || NEWS2[k%L]; }
   const days=daysBetween(FX2_FROM,d), L=NEWS.length;
   return NEWS[newsOrder(Math.floor(days/L))[days%L]];
 }
@@ -865,10 +903,11 @@ function newsCard(){
   if (nw.fx?.gift) { const g=GIFTS.find(x=>x.id===nw.fx.gift); if(g) fx=`今天第一${T_.cnt}${T_.born}時，必掉 ${g.ic} ${esc(g.name)}！`; }
   let poll='';
   if (nw.poll) {
-    const votes=[0,0]; Object.values(S.members||{}).forEach(m=>{ const p=m.poll; if(p&&p.d===today&&p.id===nw.id&&(p.v===0||p.v===1)) votes[p.v]++; });
-    const tot=votes[0]+votes[1];
-    poll=`<div class="row" style="gap:8px;margin-top:10px">${nw.poll.map((o,i)=>`<button class="btn ${myVote===i?'':'ghost'} grow sm" style="flex-direction:column;gap:0;min-height:52px;font-size:.85rem" data-a="vote" data-v="${i}">${esc(o)}${myVote>=0?`<span class="tiny" style="font-weight:700">${votes[i]} 票${tot?`・${Math.round(votes[i]/tot*100)}%`:''}</span>`:''}</button>`).join('')}</div>
-      <p class="tiny" style="margin:6px 0 0">${myVote>=0?'可以改票，明天換新題目':'投票之後才看得到大家選什麼'}</p>`;
+    const n=nw.poll.length, votes=nw.poll.map(()=>0);
+    Object.values(S.members||{}).forEach(m=>{ const p=m.poll; if(p&&p.d===today&&p.id===nw.id&&p.v>=0&&p.v<n) votes[p.v]++; });
+    const tot=votes.reduce((a,b)=>a+b,0), voted=myVote>=0;
+    poll=`<div style="display:grid;grid-template-columns:repeat(${n===3?1:2},1fr);gap:8px;margin-top:10px">${nw.poll.map((o,i)=>`<button class="btn ${myVote===i?'':'ghost'} sm" style="flex-direction:column;gap:0;min-height:52px;font-size:.85rem;${voted&&myVote!==i?'opacity:.75;':''}" ${voted?'disabled':`data-a="vote" data-v="${i}"`}>${myVote===i?'✅ ':''}${esc(o)}${voted?`<span class="tiny" style="font-weight:700">${votes[i]} 票${tot?`・${Math.round(votes[i]/tot*100)}%`:''}</span>`:''}</button>`).join('')}</div>
+      <p class="tiny" style="margin:6px 0 0">${voted?'已經選好了，答案不能更換喔！明天換新題目':'想好再選，選了就不能更換！選了之後才看得到大家選什麼'}</p>`;
   }
   let rich='';
   if (nw.fx?.harvest==='orange') {
@@ -3524,7 +3563,8 @@ document.addEventListener('click', async e=>{
     case 'shopInfo': openShopItem(el.dataset.v); break;
     case 'shopBuy': await buyShopItem(el.dataset.v); break;
     case 'cdAccLock': { const x=SHOP.find(i=>i.id===el.dataset.v); if(x) toast(`先到花園的「番茄兌換所」用 ${x.p} ${TH().cnt}換「${x.name}」`); break; }
-    case 'vote': { const nw=newsOf(); if(!nw?.poll) break; await S.api.setMember(S.gid,S.me.uid,{poll:{d:ymd(),id:nw.id,v:+el.dataset.v}}); break; }
+    case 'vote': { const nw=newsOf(); if(!nw?.poll) break; const pv=S.members[S.me.uid]?.poll; if ((pv&&pv.d===ymd()&&pv.id===nw.id) || S._voted===ymd()+nw.id) break; // 選了就不能改
+      S._voted=ymd()+nw.id; try { await S.api.setMember(S.gid,S.me.uid,{poll:{d:ymd(),id:nw.id,v:+el.dataset.v}}); } catch(e) { S._voted=null; throw e; } break; }
     case 'sendPick': S.sendSel.item=el.dataset.v; document.querySelectorAll('#sendItems .g').forEach(b=>b.classList.toggle('on',b.dataset.v===S.sendSel.item)); break;
     case 'sendTo': S.sendSel.to=el.dataset.v; document.querySelectorAll('#sendTo .pill').forEach(b=>b.classList.toggle('on',b.dataset.v===S.sendSel.to)); break;
     case 'sendGo': { const sel=S.sendSel||{}; if(!sel.item) return toast('先選要送的寶物'); if(!sel.to) return toast('選一個隊友');
